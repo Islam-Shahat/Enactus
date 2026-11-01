@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
 import { Sparkles, User, BookOpen, Phone, CheckCircle2, Copy, Check, ArrowLeft, Shield, Clock, Award } from 'lucide-react';
-import confetti from 'canvas-confetti';
 
 export default function JoinUsPage() {
   const [searchParams] = useSearchParams();
@@ -67,11 +66,14 @@ export default function JoinUsPage() {
     setMemberId(passCode);
     setIsSubmitted(true);
 
-    confetti({
-      particleCount: 150,
-      spread: 100,
-      origin: { y: 0.6 },
-      colors: ['#ffd700', '#ffaa00', '#ff8c00', '#ffffff'],
+    import('canvas-confetti').then((m) => {
+      const confetti = m.default || m;
+      confetti({
+        particleCount: 150,
+        spread: 100,
+        origin: { y: 0.6 },
+        colors: ['#ffd700', '#ffaa00', '#ff8c00', '#ffffff'],
+      });
     });
 
     window.scrollTo({ top: 100, behavior: 'smooth' });

@@ -1,5 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
+import { queryClient } from '../lib/queryClient';
 
 const AuthContext = createContext(null);
 
@@ -38,14 +39,23 @@ export function AuthProvider({ children }) {
     setLoading(true);
 
     (async () => {
-      const [profileRes, rolesRes] = await Promise.all([
-        supabase.from('profiles').select('*').eq('id', userId).maybeSingle(),
-        supabase.from('user_roles').select('role, committee_id').eq('user_id', userId),
-      ]);
-      if (cancelled) return;
-      setProfile(profileRes.data ?? null);
-      setRoles(rolesRes.data ?? []);
-      setLoading(false);
+      try {
+        const [profileRes, rolesRes] = await Promise.all([
+          supabase.from('profiles').select('*').eq('id', userId).maybeSingle(),
+          supabase.from('user_roles').select('role, committee_id').eq('user_id', userId),
+        ]);
+        if (cancelled) return;
+        setProfile(profileRes.data ?? null);
+        setRoles(rolesRes.data ?? []);
+      } catch (err) {
+        if (!cancelled) {
+          console.error('[AuthContext] Error loading user profile/roles:', err);
+          setProfile(null);
+          setRoles([]);
+        }
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
     })();
 
     return () => {
@@ -57,7 +67,18 @@ export function AuthProvider({ children }) {
     (email, password) => supabase.auth.signInWithPassword({ email, password }),
     [],
   );
-  const signOut = useCallback(() => supabase.auth.signOut(), []);
+  const signOut = useCallback(async () => {
+    setSession(null);
+    setProfile(null);
+    setRoles([]);
+    setLoading(false);
+    queryClient.clear();
+    try {
+      await supabase.auth.signOut();
+    } catch (err) {
+      console.error('[AuthContext] signOut error:', err);
+    }
+  }, []);
   const sendPasswordReset = useCallback(
     (email) => supabase.auth.resetPasswordForEmail(email, { redirectTo: `${window.location.origin}/reset-password` }),
     [],
@@ -76,7 +97,12 @@ export function AuthProvider({ children }) {
       isAuthenticated: Boolean(session),
       isSuperAdmin,
       /** True if the user has ANY of the given roles (super_admin always passes). */
-      hasRole: (...allowed) => isSuperAdmin || allowed.flat().some((r) => roleNames.includes(r)),
+      hasRole: (...allowed) => {
+        if (isSuperAdmin) return true;
+        const list = allowed.flat();
+        if (list.length === 0) return isSuperAdmin;
+        return list.some((r) => roleNames.includes(r));
+      },
       /** True if the user heads this committee (or is super_admin). */
       isHeadOf: (committeeId) =>
         isSuperAdmin || roles.some((r) => r.role === 'committee_head' && r.committee_id === committeeId),

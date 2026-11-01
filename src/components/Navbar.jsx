@@ -2,10 +2,12 @@ import React, { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { Menu, X, Sparkles, Compass, Shield, Rocket, Image, Award, Users, Calendar, LogIn, ChevronDown } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
+import { useAuth } from '../context/AuthContext';
 import ThemeToggle from './ThemeToggle';
 
 export default function Navbar() {
   const { isDark } = useTheme();
+  const { isAuthenticated } = useAuth();
   const [isScrolled, setIsScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [moreDropdownOpen, setMoreDropdownOpen] = useState(false);
@@ -218,7 +220,7 @@ export default function Navbar() {
 
           {/* Member Login Link */}
           <Link
-            to="/login"
+            to={isAuthenticated ? '/dashboard' : '/login'}
             style={{
               display: 'none',
               alignItems: 'center',
@@ -235,7 +237,7 @@ export default function Navbar() {
             className="login-btn-desktop"
           >
             <LogIn size={15} color={isDark ? '#ffb800' : '#c98500'} />
-            <span>دخول الأعضاء</span>
+            <span>{isAuthenticated ? 'لوحة التحكم' : 'دخول الأعضاء'}</span>
           </Link>
 
           {/* Join CTA */}
@@ -319,13 +321,13 @@ export default function Navbar() {
 
           <div className="mobile-drawer-actions" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', marginTop: '1rem' }}>
             <Link
-              to="/login"
+              to={isAuthenticated ? '/dashboard' : '/login'}
               onClick={() => setMobileMenuOpen(false)}
               className="btn-secondary"
               style={{ justifyContent: 'center', fontSize: '0.88rem', padding: '0.65rem 0.75rem' }}
             >
               <LogIn size={15} />
-              <span>دخول الأعضاء</span>
+              <span>{isAuthenticated ? 'لوحة التحكم' : 'دخول الأعضاء'}</span>
             </Link>
 
             <Link

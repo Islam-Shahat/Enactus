@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { sponsorshipTiers } from '../data/enactusData';
 import { Award, CheckCircle2, Building, Mail, Phone, User, Sparkles, Send, Check } from 'lucide-react';
-import confetti from 'canvas-confetti';
 
 export default function BecomeSponsorPage() {
   const [formData, setFormData] = useState({
@@ -18,11 +17,14 @@ export default function BecomeSponsorPage() {
   const handleSubmit = (e) => {
     e.preventDefault();
     setSubmitted(true);
-    confetti({
-      particleCount: 100,
-      spread: 70,
-      origin: { y: 0.6 },
-      colors: ['#ffd700', '#ffaa00', '#ffffff'],
+    import('canvas-confetti').then((m) => {
+      const confetti = m.default || m;
+      confetti({
+        particleCount: 100,
+        spread: 70,
+        origin: { y: 0.6 },
+        colors: ['#ffd700', '#ffaa00', '#ffffff'],
+      });
     });
   };
 

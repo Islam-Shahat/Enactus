@@ -1,26 +1,84 @@
-import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
-import { Lock, User, KeyRound, Sparkles, Shield, ArrowLeft, CheckCircle2, AlertCircle } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
+import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod';
+import { Lock, Mail, AlertCircle, KeyRound, ArrowRight } from 'lucide-react';
+import { useAuth } from '../context/AuthContext';
+import { isSupabaseConfigured } from '../lib/supabase';
+import { t } from '../lib/strings';
+
+const loginSchema = z.object({
+  email: z.email({ message: 'يرجى إدخال بريد إلكتروني صحيح' }),
+  password: z.string().min(1, { message: 'يرجى إدخال كلمة المرور' }),
+});
 
 export default function LoginPage() {
-  const [role, setRole] = useState('member'); // 'member' | 'board'
-  const [credential, setCredential] = useState('');
-  const [password, setPassword] = useState('');
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [error, setError] = useState('');
+  const { isAuthenticated, signIn } = useAuth();
+  const location = useLocation();
+  const navigate = useNavigate();
+  const [serverError, setServerError] = useState('');
 
-  const handleLogin = (e) => {
-    e.preventDefault();
-    if (!credential || !password) {
-      setError('يرجى ملء جميع الحقول للمتابعة');
+  const {
+    register,
+    handleSubmit,
+    formState: { errors, isSubmitting },
+  } = useForm({
+    resolver: zodResolver(loginSchema),
+    defaultValues: {
+      email: '',
+      password: '',
+    },
+  });
+
+  // Prevent browser back button from re-entering dashboard after signing out
+  useEffect(() => {
+    if (location.state?.loggedOut) {
+      window.history.pushState(null, '', window.location.href);
+      const handlePopState = () => {
+        window.history.pushState(null, '', window.location.href);
+      };
+      window.addEventListener('popstate', handlePopState);
+      return () => window.removeEventListener('popstate', handlePopState);
+    }
+  }, [location.state?.loggedOut]);
+
+  if (isAuthenticated) {
+    const destination = location.state?.from || '/dashboard';
+    return <Navigate to={destination} replace />;
+  }
+
+  const onSubmit = async (values) => {
+    setServerError('');
+    if (!isSupabaseConfigured) {
+      setServerError(t('supabaseNotConfigured'));
       return;
     }
-    setError('');
-    setIsLoggedIn(true);
+
+    try {
+      const { error } = await signIn(values.email.trim(), values.password);
+      if (error) {
+        setServerError(t('loginGenericError'));
+        return;
+      }
+      const destination = location.state?.from || '/dashboard';
+      navigate(destination, { replace: true });
+    } catch {
+      setServerError(t('loginGenericError'));
+    }
   };
 
   return (
-    <div className="page-container-padding" style={{ paddingTop: '120px', paddingBottom: '100px', minHeight: '85vh', display: 'flex', alignItems: 'center' }}>
+    <div
+      className="page-container-padding"
+      style={{
+        paddingTop: '120px',
+        paddingBottom: '100px',
+        minHeight: '85vh',
+        display: 'flex',
+        alignItems: 'center',
+      }}
+    >
       <div className="container" style={{ maxWidth: '520px' }}>
         <div
           className="glass-panel gold-border-glow card-shine responsive-panel-p"
@@ -32,7 +90,7 @@ export default function LoginPage() {
             position: 'relative',
           }}
         >
-          {/* Logo */}
+          {/* Logo & Header */}
           <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
             <div
               style={{
@@ -54,177 +112,171 @@ export default function LoginPage() {
             </span>
 
             <h1 style={{ fontSize: 'clamp(1.5rem, 3vw, 1.8rem)', fontWeight: 900, color: '#fff', marginBottom: '0.25rem' }}>
-              بوابة كتيبة إيناكوس قنا
+              {t('loginTitle')}
             </h1>
             <p style={{ color: '#a0a0b2', fontSize: '0.85rem', margin: 0 }}>
-              تسجيل الدخول للأعضاء ومجلس الإدارة
+              {t('loginSubtitle')}
             </p>
           </div>
 
-          {!isLoggedIn ? (
-            <div>
-              {/* Role Toggle */}
-              <div
-                className="role-toggle-grid"
-                style={{
-                  display: 'grid',
-                  gridTemplateColumns: '1fr 1fr',
-                  gap: '0.5rem',
-                  background: 'rgba(0, 0, 0, 0.4)',
-                  padding: '0.35rem',
-                  borderRadius: '12px',
-                  marginBottom: '1.75rem',
-                  border: '1px solid rgba(255, 184, 0, 0.2)',
-                }}
-              >
-                <button
-                  type="button"
-                  onClick={() => setRole('member')}
-                  style={{
-                    padding: '0.6rem',
-                    borderRadius: '8px',
-                    border: 'none',
-                    background: role === 'member' ? 'linear-gradient(135deg, #ffd752, #c47c00)' : 'transparent',
-                    color: role === 'member' ? '#08080a' : '#c5c5d6',
-                    fontWeight: 800,
-                    fontSize: '0.88rem',
-                    cursor: 'pointer',
-                    transition: 'all 0.25s ease',
-                  }}
-                >
-                  عضو الكتيبة (Member)
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setRole('board')}
-                  style={{
-                    padding: '0.6rem',
-                    borderRadius: '8px',
-                    border: 'none',
-                    background: role === 'board' ? 'linear-gradient(135deg, #ffd752, #c47c00)' : 'transparent',
-                    color: role === 'board' ? '#08080a' : '#c5c5d6',
-                    fontWeight: 800,
-                    fontSize: '0.88rem',
-                    cursor: 'pointer',
-                    transition: 'all 0.25s ease',
-                  }}
-                >
-                  مجلس الإدارة (Board / Head)
-                </button>
-              </div>
-
-              {error && (
-                <div style={{ background: 'rgba(255, 68, 68, 0.15)', border: '1px solid #ff4444', borderRadius: '10px', padding: '0.65rem 1rem', color: '#ff8888', fontSize: '0.85rem', marginBottom: '1.25rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                  <AlertCircle size={16} />
-                  <span>{error}</span>
-                </div>
-              )}
-
-              <form onSubmit={handleLogin}>
-                <div style={{ marginBottom: '1.25rem' }}>
-                  <label style={{ display: 'block', color: '#ffd54f', fontSize: '0.88rem', fontWeight: 700, marginBottom: '0.4rem' }}>
-                    {role === 'member' ? 'البريد أو كود العضوية (Member Pass Code)' : 'البريد المؤسسي للإدارة'}
-                  </label>
-                  <div style={{ position: 'relative' }}>
-                    <input
-                      type="text"
-                      required
-                      placeholder={role === 'member' ? 'مثال: ENACTUS-SVU-5821 أو بريدك' : 'head@enactus-qena.org'}
-                      value={credential}
-                      onChange={(e) => setCredential(e.target.value)}
-                      style={{
-                        width: '100%',
-                        background: 'rgba(10, 11, 16, 0.85)',
-                        border: '1px solid rgba(255, 184, 0, 0.3)',
-                        borderRadius: '12px',
-                        padding: '0.85rem 1rem 0.85rem 2.8rem',
-                        color: '#fff',
-                        fontSize: '0.95rem',
-                        outline: 'none',
-                        direction: 'ltr',
-                        textAlign: 'right',
-                      }}
-                    />
-                    <User size={18} color="#ffb800" style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)' }} />
-                  </div>
-                </div>
-
-                <div style={{ marginBottom: '1.75rem' }}>
-                  <label style={{ display: 'block', color: '#ffd54f', fontSize: '0.88rem', fontWeight: 700, marginBottom: '0.4rem' }}>
-                    كلمة المرور (Password)
-                  </label>
-                  <div style={{ position: 'relative' }}>
-                    <input
-                      type="password"
-                      required
-                      placeholder="••••••••"
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      style={{
-                        width: '100%',
-                        background: 'rgba(10, 11, 16, 0.85)',
-                        border: '1px solid rgba(255, 184, 0, 0.3)',
-                        borderRadius: '12px',
-                        padding: '0.85rem 1rem 0.85rem 2.8rem',
-                        color: '#fff',
-                        fontSize: '0.95rem',
-                        outline: 'none',
-                        direction: 'ltr',
-                        textAlign: 'right',
-                      }}
-                    />
-                    <KeyRound size={18} color="#ffb800" style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)' }} />
-                  </div>
-                </div>
-
-                <button
-                  type="submit"
-                  className="btn-primary"
-                  style={{
-                    width: '100%',
-                    justifyContent: 'center',
-                    padding: '0.95rem',
-                    fontSize: '1.05rem',
-                    marginBottom: '1.25rem',
-                  }}
-                >
-                  <Lock size={18} />
-                  <span>دخول البورتال الداخلي</span>
-                </button>
-
-                <div style={{ textAlign: 'center', fontSize: '0.85rem', color: '#a0a0b2' }}>
-                  لست عضواً بعد؟{' '}
-                  <Link to="/join" style={{ color: '#ffd54f', fontWeight: 700, textDecoration: 'none' }}>
-                    قدّم الآن واترك أثرك
-                  </Link>
-                </div>
-              </form>
-            </div>
-          ) : (
-            <div style={{ textAlign: 'center', padding: '1.5rem 0' }}>
-              <div style={{ width: '64px', height: '64px', borderRadius: '50%', background: 'rgba(255, 184, 0, 0.2)', border: '2px solid #ffb800', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#ffd54f', margin: '0 auto 1.25rem auto' }}>
-                <CheckCircle2 size={36} />
-              </div>
-              <h2 style={{ fontSize: '1.6rem', fontWeight: 900, color: '#fff', marginBottom: '0.5rem' }}>
-                أهلاً بك مجدداً يا بطل!
-              </h2>
-              <p style={{ color: '#c5c5d6', fontSize: '0.95rem', marginBottom: '1.5rem', lineHeight: 1.6 }}>
-                تم تسجيل دخولك بنجاح كـ <strong>{role === 'member' ? 'عضو في كتيبة إيناكوس قنا' : 'قائد في مجلس الإدارة'}</strong>. مرحباً بك في مساحة المهام وملفات مشاريع الصعيد.
-              </p>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-                <Link to="/" className="btn-primary" style={{ justifyContent: 'center' }}>
-                  <span>العودة للصفحة الرئيسية</span>
-                </Link>
-                <button
-                  onClick={() => setIsLoggedIn(false)}
-                  className="btn-secondary"
-                  style={{ justifyContent: 'center' }}
-                >
-                  <span>تسجيل الخروج</span>
-                </button>
-              </div>
+          {!isSupabaseConfigured && (
+            <div
+              style={{
+                background: 'rgba(255, 184, 0, 0.1)',
+                border: '1px solid rgba(255, 184, 0, 0.4)',
+                borderRadius: '12px',
+                padding: '0.85rem 1rem',
+                color: '#ffd54f',
+                fontSize: '0.85rem',
+                marginBottom: '1.5rem',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.6rem',
+              }}
+            >
+              <AlertCircle size={18} />
+              <span>{t('supabaseNotConfigured')}</span>
             </div>
           )}
+
+          {serverError && (
+            <div
+              style={{
+                background: 'rgba(239, 68, 68, 0.15)',
+                border: '1px solid #ef4444',
+                borderRadius: '12px',
+                padding: '0.75rem 1rem',
+                color: '#fca5a5',
+                fontSize: '0.88rem',
+                marginBottom: '1.5rem',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.6rem',
+              }}
+            >
+              <AlertCircle size={18} />
+              <span>{serverError}</span>
+            </div>
+          )}
+
+          <form onSubmit={handleSubmit(onSubmit)}>
+            {/* Email Field */}
+            <div style={{ marginBottom: '1.25rem' }}>
+              <label style={{ display: 'block', color: '#ffd54f', fontSize: '0.88rem', fontWeight: 700, marginBottom: '0.4rem' }}>
+                {t('emailLabel')}
+              </label>
+              <div style={{ position: 'relative' }}>
+                <input
+                  type="email"
+                  autoComplete="email"
+                  placeholder={t('emailPlaceholder')}
+                  {...register('email')}
+                  style={{
+                    width: '100%',
+                    background: 'rgba(10, 11, 16, 0.85)',
+                    border: errors.email ? '1px solid #ef4444' : '1px solid rgba(255, 184, 0, 0.3)',
+                    borderRadius: '12px',
+                    padding: '0.85rem 1rem 0.85rem 2.8rem',
+                    color: '#fff',
+                    fontSize: '0.95rem',
+                    outline: 'none',
+                    direction: 'ltr',
+                    textAlign: 'left',
+                  }}
+                />
+                <Mail
+                  size={18}
+                  color="#ffb800"
+                  style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)' }}
+                />
+              </div>
+              {errors.email && (
+                <span style={{ display: 'block', color: '#ef4444', fontSize: '0.8rem', marginTop: '0.35rem' }}>
+                  {errors.email.message}
+                </span>
+              )}
+            </div>
+
+            {/* Password Field */}
+            <div style={{ marginBottom: '1.5rem' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.4rem' }}>
+                <label style={{ color: '#ffd54f', fontSize: '0.88rem', fontWeight: 700 }}>
+                  {t('passwordLabel')}
+                </label>
+                <Link
+                  to="/forgot-password"
+                  style={{ color: '#a3a3b2', fontSize: '0.82rem', textDecoration: 'none', transition: 'color 0.2s' }}
+                >
+                  {t('forgotPasswordLink')}
+                </Link>
+              </div>
+              <div style={{ position: 'relative' }}>
+                <input
+                  type="password"
+                  autoComplete="current-password"
+                  placeholder={t('passwordPlaceholder')}
+                  {...register('password')}
+                  style={{
+                    width: '100%',
+                    background: 'rgba(10, 11, 16, 0.85)',
+                    border: errors.password ? '1px solid #ef4444' : '1px solid rgba(255, 184, 0, 0.3)',
+                    borderRadius: '12px',
+                    padding: '0.85rem 1rem 0.85rem 2.8rem',
+                    color: '#fff',
+                    fontSize: '0.95rem',
+                    outline: 'none',
+                    direction: 'ltr',
+                    textAlign: 'left',
+                  }}
+                />
+                <KeyRound
+                  size={18}
+                  color="#ffb800"
+                  style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)' }}
+                />
+              </div>
+              {errors.password && (
+                <span style={{ display: 'block', color: '#ef4444', fontSize: '0.8rem', marginTop: '0.35rem' }}>
+                  {errors.password.message}
+                </span>
+              )}
+            </div>
+
+            {/* Submit Button */}
+            <button
+              type="submit"
+              disabled={isSubmitting}
+              className="btn-primary"
+              style={{
+                width: '100%',
+                justifyContent: 'center',
+                padding: '0.95rem',
+                fontSize: '1.05rem',
+                opacity: isSubmitting ? 0.7 : 1,
+                cursor: isSubmitting ? 'not-allowed' : 'pointer',
+              }}
+            >
+              <Lock size={18} />
+              <span>{isSubmitting ? t('loggingIn') : t('loginButton')}</span>
+            </button>
+          </form>
+
+          <div style={{ marginTop: '2rem', textAlign: 'center' }}>
+            <Link
+              to="/"
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '0.4rem',
+                color: '#a3a3b2',
+                fontSize: '0.85rem',
+                textDecoration: 'none',
+              }}
+            >
+              <span>العودة للرئيسية</span>
+              <ArrowRight size={14} />
+            </Link>
+          </div>
         </div>
       </div>
     </div>

@@ -6,7 +6,7 @@ SOURCE OF TRUTH: supabase/migrations/\*.sql (schema + RLS), docs/SETUP.md (RBAC 
 
 RULES:
 
-1. Never edit existing migration files. Every schema change = a NEW timestamped migration (after 20261101000006). Every new table: RLS enabled, explicit policies, explicit GRANTs, indexes on foreign keys.
+1. Never edit existing migration files. The 6 existing migrations are already applied to the dev project; any new migration must be a NEW timestamped migration file with a timestamp later than 20261031151827 and must never edit these six. Every new table: RLS enabled, explicit policies, explicit GRANTs, indexes on foreign keys. Never run `supabase db push`, `db reset`, or any command that changes the remote database unless I ask explicitly in that message.
 2. Never put the service*role/secret key anywhere in frontend code or any VITE* variable. It is only used inside Edge Functions via secrets.
 3. Authorization is enforced by RLS, not by the UI. UI role checks (RoleGuard, hasRole) are convenience only.
 4. Use the existing patterns: src/lib/supabase.js, src/context/AuthContext.jsx, src/services/_, src/hooks/_ (React Query), withFallback() mock fallback for public pages.

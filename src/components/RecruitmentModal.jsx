@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import { X, Sparkles, CheckCircle2, User, BookOpen, Phone, Briefcase, Award, Download, Copy, Check } from 'lucide-react';
-import confetti from 'canvas-confetti';
 
 export default function RecruitmentModal({ isOpen, onClose, defaultCommittee = '' }) {
   const [formData, setFormData] = useState({
@@ -39,11 +38,14 @@ export default function RecruitmentModal({ isOpen, onClose, defaultCommittee = '
     setIsSubmitted(true);
 
     // Golden celebratory confetti burst!
-    confetti({
-      particleCount: 120,
-      spread: 90,
-      origin: { y: 0.6 },
-      colors: ['#ffd700', '#ffaa00', '#ff8c00', '#ffffff'],
+    import('canvas-confetti').then((m) => {
+      const confetti = m.default || m;
+      confetti({
+        particleCount: 120,
+        spread: 90,
+        origin: { y: 0.6 },
+        colors: ['#ffd700', '#ffaa00', '#ff8c00', '#ffffff'],
+      });
     });
   };
 
