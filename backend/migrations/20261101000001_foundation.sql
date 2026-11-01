@@ -103,6 +103,8 @@ create unique index user_roles_unique_idx on public.user_roles
   (user_id, role, coalesce(committee_id, '00000000-0000-0000-0000-000000000000'::uuid));
 create index user_roles_user_idx on public.user_roles (user_id);
 create index user_roles_committee_idx on public.user_roles (committee_id) where committee_id is not null;
+create index user_roles_season_idx on public.user_roles (season_id);
+create index user_roles_granted_by_idx on public.user_roles (granted_by);
 
 -- ---------------------------------------------------------------------
 -- Memberships: who is in which committee in which season
@@ -122,6 +124,7 @@ create table public.memberships (
 );
 create index memberships_committee_season_idx on public.memberships (committee_id, season_id);
 create index memberships_user_idx on public.memberships (user_id);
+create index memberships_season_idx on public.memberships (season_id);
 create trigger memberships_updated_at before update on public.memberships
   for each row execute function private.set_updated_at();
 
@@ -135,6 +138,7 @@ create table public.settings (
   updated_by  uuid references public.profiles (id) on delete set null,
   updated_at  timestamptz not null default now()
 );
+create index settings_updated_by_idx on public.settings (updated_by);
 
 create table public.audit_logs (
   id          bigint generated always as identity primary key,

@@ -34,6 +34,7 @@ create index applications_season_status_idx on public.applications (season_id, s
 create index applications_first_choice_idx on public.applications (first_choice_id);
 create index applications_second_choice_idx on public.applications (second_choice_id);
 create index applications_reviewer_idx on public.applications (reviewed_by);
+create index applications_converted_user_idx on public.applications (converted_user_id);
 create trigger applications_updated_at before update on public.applications
   for each row execute function private.set_updated_at();
 
@@ -81,6 +82,7 @@ create table public.task_attachments (
   created_at   timestamptz not null default now()
 );
 create index task_attachments_task_idx on public.task_attachments (task_id);
+create index task_attachments_uploader_idx on public.task_attachments (uploaded_by);
 
 -- Assignees may only change status; leaders may change everything.
 create or replace function private.guard_task_update()
@@ -132,6 +134,7 @@ create table public.attendance_sessions (
 );
 create index attendance_sessions_season_start_idx on public.attendance_sessions (season_id, starts_at desc);
 create index attendance_sessions_committee_idx on public.attendance_sessions (committee_id);
+create index attendance_sessions_creator_idx on public.attendance_sessions (created_by);
 create trigger attendance_sessions_updated_at before update on public.attendance_sessions
   for each row execute function private.set_updated_at();
 
@@ -209,6 +212,7 @@ create index point_entries_season_idx on public.point_entries (season_id);
 create index point_entries_committee_idx on public.point_entries (committee_id);
 create index point_entries_given_by_idx on public.point_entries (given_by);
 create index point_entries_rule_idx on public.point_entries (rule_id);
+create index point_entries_voided_by_idx on public.point_entries (voided_by);
 
 -- Ledger rules: never delete, only void.
 create or replace function private.point_entries_immutable()

@@ -22,6 +22,7 @@ create table public.companies (
 );
 create index companies_stage_idx on public.companies (stage);
 create index companies_owner_idx on public.companies (owner_id);
+create index companies_creator_idx on public.companies (created_by);
 create trigger companies_updated_at before update on public.companies
   for each row execute function private.set_updated_at();
 
@@ -84,6 +85,7 @@ create index agreements_company_idx on public.agreements (company_id);
 create index agreements_season_status_idx on public.agreements (season_id, status);
 create index agreements_package_idx on public.agreements (package_id);
 create index agreements_owner_idx on public.agreements (owner_id);
+create index agreements_creator_idx on public.agreements (created_by);
 create trigger agreements_updated_at before update on public.agreements
   for each row execute function private.set_updated_at();
 create trigger audit_agreements after insert or update or delete on public.agreements

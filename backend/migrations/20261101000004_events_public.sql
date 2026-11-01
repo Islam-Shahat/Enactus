@@ -32,6 +32,7 @@ create table public.events (
 create index events_season_start_idx on public.events (season_id, starts_at desc);
 create index events_public_idx on public.events (starts_at desc) where is_public;
 create index events_committee_idx on public.events (organizing_committee_id);
+create index events_creator_idx on public.events (created_by);
 create trigger events_updated_at before update on public.events
   for each row execute function private.set_updated_at();
 
