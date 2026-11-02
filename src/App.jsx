@@ -65,6 +65,34 @@ function PageFallback() {
   );
 }
 
+function DashboardFallback() {
+  return (
+    <div
+      role="status"
+      style={{
+        minHeight: '100vh',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        backgroundColor: '#08080a',
+        color: '#ffd54f',
+      }}
+    >
+      <div
+        style={{
+          width: '40px',
+          height: '40px',
+          border: '3px solid rgba(255, 184, 0, 0.2)',
+          borderTopColor: '#ffb800',
+          borderRadius: '50%',
+          animation: 'spin 0.8s linear infinite',
+        }}
+      />
+      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+    </div>
+  );
+}
+
 function PublicLayout({ onOpenJoinModal }) {
   return (
     <div style={{ position: 'relative', minHeight: '100vh', overflowX: 'hidden' }}>
