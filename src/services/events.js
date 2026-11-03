@@ -1,25 +1,27 @@
 import { supabase } from '../lib/supabase';
 import { unwrap, withFallback } from './helpers';
+import { eventFromRow } from './adapters';
+import { localizeEventsMock } from './mockLocalization';
 
-// Example of the pattern every public page follows.
-// 1) import your old mock:  import mockEvents from '../data/events';
-// 2) keep the same shape the components expect (map here if the column names differ).
-
-export function listPublicEvents(mockEvents = []) {
-  return withFallback(async () => {
-    const rows = unwrap(
-      await supabase
-        .from('events')
-        .select('id, slug, title_ar, title_en, description_ar, description_en, venue_ar, venue_en, starts_at, ends_at, cover_url, status, registration_open')
-        .order('starts_at', { ascending: false }),
-    );
-    return rows; // RLS already limits anonymous visitors to public, published events
-  }, mockEvents);
+// Upcoming events first (soonest first), then past events (most recent first).
+export function sortEvents(events) {
+  const upcoming = events.filter((e) => e.status === 'upcoming').sort((a, b) => new Date(a.startsAt) - new Date(b.startsAt));
+  const past = events.filter((e) => e.status !== 'upcoming').sort((a, b) => new Date(b.startsAt) - new Date(a.startsAt));
+  return [...upcoming, ...past];
 }
 
-export function getEventBySlug(slug, mockEvents = []) {
+export const listPublicEvents = (mock = [], lang = 'ar') => {
+  const localizedFallback = localizeEventsMock(mock, lang);
+  return withFallback(
+    async () => sortEvents((await supabase.from('events').select('*').then(unwrap)).map((r) => eventFromRow(r, lang))),
+    localizedFallback,
+  );
+};
+
+export const getEventBySlug = (slug, mock = [], lang = 'ar') => {
+  const localizedFallback = localizeEventsMock(mock, lang);
   return withFallback(async () => {
-    const row = unwrap(await supabase.from('events').select('*').eq('slug', slug).maybeSingle());
-    return row;
-  }, mockEvents.find((e) => e.slug === slug) ?? null);
-}
+    const row = await supabase.from('events').select('*').eq('slug', slug).maybeSingle().then(unwrap);
+    return row ? eventFromRow(row, lang) : null;
+  }, localizedFallback.find((e) => e.slug === slug) ?? null);
+};

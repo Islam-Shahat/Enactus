@@ -1,26 +1,43 @@
 import React, { useState } from 'react';
-import { Megaphone, Camera, BarChart3, Calendar, Users, Mic, Share2, Sparkles, CheckCircle2, ArrowRight } from 'lucide-react';
+import { Megaphone, Camera, BarChart3, Calendar, Users, Mic, Share2, Sparkles, CheckCircle2, ArrowRight, ArrowLeft } from 'lucide-react';
+import { useCommittees } from '../hooks/usePublicContent';
+import { useLanguage } from '../context/LanguageContext';
 
 export default function CommitteesSection({ onOpenJoinModal }) {
   const [selectedCommittee, setSelectedCommittee] = useState(null);
+  const { lang } = useLanguage();
+  const isAr = lang === 'ar';
+  const ArrowIcon = isAr ? ArrowLeft : ArrowRight;
+  const { data: dbCommittees } = useCommittees();
 
-  const committees = [
+  const defaultCommittees = [
     {
       id: 'pm',
       code: 'PM',
       name: 'Project Management',
       arabicName: 'إدارة المشاريع التنموية',
       icon: BarChart3,
-      badge: 'القلب النابض للحلول',
-      mascotDesc: 'الفرعون صاحب التابلت الرقمي وخرائط الأثر',
-      role: 'العقل المفكر والمسؤول عن ابتكار وتطوير مشاريع ريادة الأعمال المجتمعية التي تحل مشاكل حقيقية في صعيد مصر وتلبي أهداف التنمية المستدامة (SDGs).',
-      skills: [
-        'أبحاث السوق والنزول الميداني للقرى',
-        'دراسات الجدوى الاقتصادية والمالية',
-        'تطبيق معايير استدامة إيناكوس العالمية',
-        'إدارة سلاسل الإمداد والتشغيل للمشاريع',
-      ],
-      quote: '"نحن لا نحلم فقط بالمستقبل.. بل نصممه ونبنيه بأيدينا."',
+      badge: isAr ? 'القلب النابض للحلول' : 'Core Engine of Innovation',
+      mascotDesc: isAr ? 'الفرعون صاحب التابلت الرقمي وخرائط الأثر' : 'The Pharaoh with digital tablet & impact maps',
+      role: isAr
+        ? 'العقل المفكر والمسؤول عن ابتكار وتطوير مشاريع ريادة الأعمال المجتمعية التي تحل مشاكل حقيقية في صعيد مصر وتلبي أهداف التنمية المستدامة (SDGs).'
+        : 'The think tank responsible for conceptualizing and executing sustainable social enterprises that solve critical challenges in Upper Egypt.',
+      skills: isAr
+        ? [
+            'أبحاث السوق والنزول الميداني للقرى',
+            'دراسات الجدوى الاقتصادية والمالية',
+            'تطبيق معايير استدامة إيناكوس العالمية',
+            'إدارة سلاسل الإمداد والتشغيل للمشاريع',
+          ]
+        : [
+            'Market research & village fieldwork',
+            'Financial and feasibility modeling',
+            'Global Enactus impact metrics (SDGs)',
+            'Operations & supply chain management',
+          ],
+      quote: isAr
+        ? '"نحن لا نحلم فقط بالمستقبل.. بل نصممه ونبنيه بأيدينا."'
+        : '"We do not merely imagine the future; we engineer and build it."',
     },
     {
       id: 'multimedia',
@@ -28,16 +45,27 @@ export default function CommitteesSection({ onOpenJoinModal }) {
       name: 'MultiMedia & Creative',
       arabicName: 'المالتي ميديا والتصميم',
       icon: Camera,
-      badge: 'مهندسو الهوية البصرية',
-      mascotDesc: 'الفرعون المبدع بالنظارات والكاميرا الذهبية',
-      role: 'الفنانون وراء كل بوستر، فيديو، وهوية بصرية تخطف الأنظار كما رأيتم في حملات إيناكوس قنا الأسطورية من خلال التصميم ثلاثي الأبعاد وصناعة الأفلام.',
-      skills: [
-        'تصميم الجرافيك والـ Branding (Photoshop, Illustrator)',
-        'صناعة وتعديل الفيديو والموشن جرافيك (Premiere, After Effects)',
-        'التصوير الفوتوغرافي والسينمائي للفعاليات',
-        'التصميم ثلاثي الأبعاد وإخراج الحملات الإعلانية',
-      ],
-      quote: '"نحول الأفكار المجردة إلى تحف بصرية تخلّد في الذاكرة."',
+      badge: isAr ? 'مهندسو الهوية البصرية' : 'Visual Identity Masters',
+      mascotDesc: isAr ? 'الفرعون المبدع بالنظارات والكاميرا الذهبية' : 'The Creative Pharaoh with golden camera & specs',
+      role: isAr
+        ? 'الفنانون وراء كل بوستر، فيديو، وهوية بصرية تخطف الأنظار كما رأيتم في حملات إيناكوس قنا الأسطورية من خلال التصميم ثلاثي الأبعاد وصناعة الأفلام.'
+        : 'The artists behind every viral poster, 3D visual, and cinematic film defining Enactus Qena legendary identity and national stage appearances.',
+      skills: isAr
+        ? [
+            'تصميم الجرافيك والـ Branding (Photoshop, Illustrator)',
+            'صناعة وتعديل الفيديو والموشن جرافيك (Premiere, After Effects)',
+            'التصوير الفوتوغرافي والسينمائي للفعاليات',
+            'التصميم ثلاثي الأبعاد وإخراج الحملات الإعلانية',
+          ]
+        : [
+            'Brand design & visuals (Photoshop, Illustrator)',
+            'Video production & motion graphics (Premiere, AE)',
+            'Cinematography & event documentary',
+            '3D rendering & viral campaign art direction',
+          ],
+      quote: isAr
+        ? '"نحول الأفكار المجردة إلى تحف بصرية تخلّد في الذاكرة."'
+        : '"Transforming abstract concepts into unforgettable visual masterpieces."',
     },
     {
       id: 'pr',
@@ -45,86 +73,127 @@ export default function CommitteesSection({ onOpenJoinModal }) {
       name: 'Public Relations',
       arabicName: 'العلاقات العامة والشراكات',
       icon: Megaphone,
-      badge: 'صوت الكيان وسفراء الرؤية',
-      mascotDesc: 'الفرعون صاحب الميكروفون الذهبي والغمزة الواثقة',
-      role: 'الواجهة الرسمية لإيناكوس قنا أمام المجتمع والشركات؛ المسؤولون عن جلب الرعايات (Sponsorships)، عقد الشراكات الاستراتيجية، وإدارة التغطية الإعلامية.',
-      skills: [
-        'مهارات التفاوض والإقناع رفيعة المستوى',
-        'إعداد وتوقيع بروتوكولات التعاون والرعايات',
-        'بناء شبكة علاقات مع رجال الأعمال والشركات',
-        'التحدث الرسمي وإدارة الظهور الإعلامي',
-      ],
-      quote: '"نبني جسور الثقة مع العالم وننقل صوت قنا لأبعد مدى."',
-    },
-    {
-      id: 'oc',
-      code: 'OC',
-      name: 'Organizing Committee',
-      arabicName: 'لجنة التنظيم واللوجستيات',
-      icon: Calendar,
-      badge: 'أسياد الميدان والتحكم',
-      mascotDesc: 'الفرعون صاحب البردية ومخططات التنفيذ',
-      role: 'القوة الميدانية التي تدير كل إيفنت، ورشة عمل، معسكر تدريبي ومؤتمر على أرض الواقع بأعلى درجات الدقة والنظام والانضباط.',
-      skills: [
-        'إدارة الفعاليات الضخمة والمؤتمرات',
-        'إدارة الحشود وتأمين حركة الضيوف',
-        'التخطيط اللوجستي وإدارة الموارد والمعدات',
-        'التعامل السريع مع المواقف الطارئة والضغوط',
-      ],
-      quote: '"النظام والانضباط هما السر وراء كل نجاح أسطوري."',
+      badge: isAr ? 'صوت الكيان وسفراء الرؤية' : 'Voice of the Battalion',
+      mascotDesc: isAr ? 'الفرعون صاحب الميكروفون الذهبي والغمزة الواثقة' : 'The Pharaoh with golden mic & confident grin',
+      role: isAr
+        ? 'الواجهة الرسمية لإيناكوس قنا أمام المجتمع والشركات؛ المسؤولون عن جلب الرعايات (Sponsorships)، عقد الشراكات الاستراتيجية، وإدارة التغطية الإعلامية.'
+        : 'The official ambassadors bridging Enactus Qena with industry, sponsors, media, and regional business leaders to secure partnerships.',
+      skills: isAr
+        ? [
+            'مهارات التفاوض والإقناع رفيعة المستوى',
+            'إعداد وتوقيع بروتوكولات التعاون والرعايات',
+            'بناء شبكة علاقات مع رجال الأعمال والشركات',
+            'التحدث الرسمي وإدارة الظهور الإعلامي',
+          ]
+        : [
+            'High-stakes negotiation and persuasion',
+            'Corporate sponsorship proposals & agreements',
+            'Strategic networking & stakeholder relations',
+            'Media appearances and press representation',
+          ],
+      quote: isAr
+        ? '"نبني جسور الثقة مع العالم وننقل صوت قنا لأبعد مدى."'
+        : '"Building bridges of trust to amplify Qena\'s voice across borders."',
     },
     {
       id: 'hr',
       code: 'HR',
       name: 'Human Resources',
-      arabicName: 'الموارد البشرية والتطوير',
+      arabicName: 'الموارد البشرية والتدريب',
       icon: Users,
-      badge: 'حراس بيئة العمل وصناع القادة',
-      mascotDesc: 'الفرعون الحكيم حامل سجلات التطوير البشري',
-      role: 'رعاة الطاقة الإيجابية وصناع القادة؛ مسؤولون عن استقطاب المواهب، المقابلات، التقييم، التدريب، وتوفير بيئة عمل تشجع على الإبداع والاستمرار.',
-      skills: [
-        'إجراء المقابلات الشخصية (Interviews)',
-        'تقييم الأداء وقياس مؤشرات النجاح (KPIs)',
-        'تصميم وتنفيذ ورش العمل التدريبية والـ Team Building',
-        'حل النزاعات وبناء الروح المعنوية للفريق',
-      ],
-      quote: '"الإنسان هو جوهر كل تغيير وأثمن ثروات إيناكوس."',
+      badge: isAr ? 'حراس بيئة العمل والتحفيز' : 'Guardians of Culture',
+      mascotDesc: isAr ? 'الفرعون صاحب سجلات الكفاءة والقلب الدافئ' : 'The Pharaoh with talent scrolls & warm presence',
+      role: isAr
+        ? 'حراس الطاقة الإيجابية في الفريق؛ المسؤولون عن استقطاب الكفاءات، تنظيم المقابلات الشخصية، متابعة أداء وتقييم الأعضاء، وتقديم التدريبات المستمرة.'
+        : 'The custodians of battalion morale; leading recruitment, talent interviews, evaluations, points ledger, and continuous capacity building.',
+      skills: isAr
+        ? [
+            'إجراء المقابلات الشخصية وتقييم الكفاءات (Interviewing)',
+            'تنظيم خطط التدريب والـ Team Building',
+            'حل النزاعات وإدارة تحفيز الأفراد والفرق',
+            'إدارة البيانات وملفات تقييم الأداء والمكافآت',
+          ]
+        : [
+            'Competency-based interviews and talent scouting',
+            'Designing training programs & team-building events',
+            'Conflict resolution & motivational coaching',
+            'HR analytics, evaluations, and recognition programs',
+          ],
+      quote: isAr
+        ? '"نجاح أي كيان يبدأ من إيمانه الصادق بقدرات أفراده."'
+        : '"An organization\'s victory begins with profound faith in its people."',
+    },
+    {
+      id: 'oc',
+      code: 'OC',
+      name: 'Organizing Committee',
+      arabicName: 'اللجنة المنظمة واللوجستيات',
+      icon: Calendar,
+      badge: isAr ? 'جنود الميدان وصناع اللحظة' : 'Field Generals',
+      mascotDesc: isAr ? 'الفرعون صاحب ساعة التوقيت وسماعة اللاسلكي' : 'The Pharaoh with stopwatch & walkie-talkie',
+      role: isAr
+        ? 'القوة التنفيذية على الأرض؛ المسؤولون عن هندسة وتجهيز قاعات المؤتمرات، إدارة الحشود، تنظيم الجداول الزمنية، وضمان خروج كل فعالية بمستوى عالمي.'
+        : 'The operational force on the ground; managing event venues, crowd logistics, schedules, and ensuring flawless execution for every public conference.',
+      skills: isAr
+        ? [
+            'التخطيط اللوجستي وإدارة المسارح والقاعات',
+            'التحكم في تدفق الحضور وإدارة الأزمات الميدانية',
+            'الالتزام الصارم بإدارة الوقت وجداول الفعاليات',
+            'التنسيق السريع والعمل الميداني تحت أعلى ضغط',
+          ]
+        : [
+            'Venue logistics & stage management',
+            'Crowd control & emergency contingency',
+            'Strict adherence to schedules and timelines',
+            'High-pressure execution and rapid problem-solving',
+          ],
+      quote: isAr
+        ? '"في الميدان، الثانية تصنع الفارق.. ونحن أسياد التوقيت."'
+        : '"On the ground, seconds make history.. and we master timing."',
     },
     {
       id: 'presentation',
       code: 'PRESENTATION',
-      name: 'Presentation & Pitching',
-      arabicName: 'فرسان المنصة والعرض',
+      name: 'Presentation & Speaking',
+      arabicName: 'العرض التقديمي والمنصة',
       icon: Mic,
-      badge: 'سفراء المنصة أمام حكام الـ NC',
-      mascotDesc: 'الفرعون الخطيب متحدث المنصة وناقل الحلم',
-      role: 'صوت الفريق في المسابقة الوطنية المصرية (National Competition) وأمام كبار المستثمرين ولجان التحكيم؛ ينقلون قصة كفاح وأثر مشاريع قنا بإتقان.',
-      skills: [
-        'الإلقاء والخطابة باللغتين الإنجليزية والعربية',
-        'لغة الجسد والحضور المسرحي والكاريزما',
-        'مهارات الـ Storytelling وإيصال المشاعر والأرقام',
-        'الرد السريع والمقنع على أسئلة لجان التحكيم',
-      ],
-      quote: '"على المنصة تشتعل الكلمات لتتحول إلى كأس وبطولة."',
-    },
-    {
-      id: 'social',
-      code: 'SOCIAL MEDIA',
-      name: 'Social Media & Content',
-      arabicName: 'صناع المحتوى والسوشيال ميديا',
-      icon: Share2,
-      badge: 'We don\'t just post, we purpose',
-      mascotDesc: 'مبتكرو الرسالة والطيارات الورقية الذهبية',
-      role: 'المسؤولون عن نشر الفكرة وصناعة محتوى هادف يلهم الآلاف ويحول المتابعين إلى شركاء في التغيير وصناع أثر حقيقي.',
-      skills: [
-        'كتابة المحتوى الإبداعي (Creative Copywriting)',
-        'إدارة منصات التواصل الاجتماعي (Facebook, Instagram, LinkedIn)',
-        'تحليل الأداء والتفاعل وزيادة الوصول العضوي',
-        'إطلاق حملات التوظيف والترويج للمشاريع',
-      ],
-      quote: '"لا ننشر لمجرد النشر.. ننشر بهدف ونصنع الفرق!"',
+      badge: isAr ? 'فرسان المسرح وصوت المنصة' : 'Stage Orators',
+      mascotDesc: isAr ? 'الفرعون صاحب الرداء الملكي والخطاب البليغ' : 'The Pharaoh with regal poise & persuasive rhetoric',
+      role: isAr
+        ? 'فرسان المنصة الذين يمثلون جامعة جنوب الوادي أمام لجان تحكيم المسابقة الوطنية من كبار الرؤساء التنفيذيين في مصر، لإقناعهم بمشاريعنا والتتويج بالبطولة.'
+        : 'The stage orators representing South Valley University before corporate executive judges at the National Competition, delivering winning pitches.',
+      skills: isAr
+        ? [
+            'الإلقاء والخطابة العامة والتأثير الصوتي (Public Speaking)',
+            'إتقان اللغة الإنجليزية التخصصية والعرض المسرحي',
+            'الثقة الاستثنائية والوقوف أمام المئات ولجان التحكيم',
+            'السرعة والذكاء في الإجابة على أسئلة لجان التحكيم (Q&A)',
+          ]
+        : [
+            'Persuasive storytelling & vocal modulation',
+            'Professional English pitch delivery & stage posture',
+            'Supreme poise before hundreds of executive judges',
+            'Sharp real-time defense during judge Q&A rounds',
+          ],
+      quote: isAr
+        ? '"على المسرح، نحول الأرقام إلى شغف، والمشاريع إلى إلهام."'
+        : '"On stage, we turn numbers into passion and projects into inspiration."',
     },
   ];
+
+  const committees = defaultCommittees.map((comm) => {
+    if (!dbCommittees || !Array.isArray(dbCommittees)) return comm;
+    const match = dbCommittees.find((c) => c.slug === comm.id || c.code?.toLowerCase() === comm.code.toLowerCase());
+    if (!match) return comm;
+    return {
+      ...comm,
+      name: match.name || comm.name,
+      arabicName: match.arabicName || comm.arabicName,
+      mascotDesc: match.mascotDesc || comm.mascotDesc,
+      role: match.brief || match.description || comm.role,
+      quote: match.quote || comm.quote,
+    };
+  });
 
   return (
     <section id="committees" style={{ padding: '110px 0', position: 'relative' }}>
@@ -139,15 +208,25 @@ export default function CommitteesSection({ onOpenJoinModal }) {
           </div>
 
           <h2 style={{ fontSize: 'clamp(2.1rem, 4vw, 3.2rem)', fontWeight: 900, marginBottom: '1rem' }}>
-            كتيبة الفراعنة: <span className="gold-gradient-text">أدوار مختلفة، ومهمة واحدة</span>
+            {isAr ? (
+              <>
+                كتيبة الفراعنة: <span className="gold-gradient-text">أدوار مختلفة، ومهمة واحدة</span>
+              </>
+            ) : (
+              <>
+                Pharaohs Battalion: <span className="gold-gradient-text">Diverse Roles, One Mission</span>
+              </>
+            )}
           </h2>
 
           <p style={{ fontSize: '1.1rem', color: '#b5b5c6', lineHeight: 1.8 }}>
-            في إيناكوس جامعة جنوب الوادي، كل لجنة هي حجر زاوية في صرح الأثر الشامخ. اختر اللقب الذي يتناسب مع شغفك وقدراتك لتترك بصمتك مع فريق العظماء:
+            {isAr
+              ? 'في إيناكوس جامعة جنوب الوادي، كل لجنة هي حجر زاوية في صرح الأثر الشامخ. اختر اللقب الذي يتناسب مع شغفك وقدراتك لتترك بصمتك مع فريق العظماء:'
+              : 'At Enactus South Valley University, every committee is a cornerstone of our enduring impact. Choose your role and unleash your true potential with the team:'}
           </p>
         </div>
 
-        {/* Master Mascot Showcase Poster Image (Image E6) */}
+        {/* Master Mascot Showcase Poster Image */}
         <div
           className="glass-panel gold-border-glow card-shine mascot-banner-card"
           style={{
@@ -183,18 +262,26 @@ export default function CommitteesSection({ onOpenJoinModal }) {
             </div>
 
             {/* Content beside poster */}
-            <div>
+            <div style={{ textAlign: isAr ? 'right' : 'left' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.75rem' }}>
                 <span className="badge-gold font-cinzel">ONE LEGACY</span>
                 <span style={{ color: '#ffb800', fontSize: '0.85rem' }}>Different Roles. Same Mission.</span>
               </div>
 
               <h3 style={{ fontSize: '1.9rem', fontWeight: 900, color: '#fff', marginBottom: '1rem' }}>
-                كتيبة موحدة تصنع فارقاً أسطورياً!
+                {isAr ? 'كتيبة موحدة تصنع فارقاً أسطورياً!' : 'A United Battalion Making Legendary Impact!'}
               </h3>
 
               <p style={{ color: '#c2c2d4', lineHeight: 1.8, fontSize: '1.02rem', marginBottom: '1.5rem' }}>
-                منسقو المشاريع، مصممو الإبداع، رجال العلاقات العامة، منظّمو الميدان، حراس الموارد البشرية، وفرسان المنصة.. معاً نشكل عائلة واحدة تعمل بتناغم كامل لتحقيق هدف واحد: <strong>رفع اسم قنا وجامعة جنوب الوادي عالياً في كل محفل.</strong>
+                {isAr ? (
+                  <>
+                    منسقو المشاريع، مصممو الإبداع، رجال العلاقات العامة، منظّمو الميدان، حراس الموارد البشرية، وفرسان المنصة.. معاً نشكل عائلة واحدة تعمل بتناغم كامل لتحقيق هدف واحد: <strong>رفع اسم قنا وجامعة جنوب الوادي عالياً في كل محفل.</strong>
+                  </>
+                ) : (
+                  <>
+                    Project planners, visual creatives, PR strategists, field coordinators, HR guardians, and stage orators.. Together, we form one family dedicated to a single mission: <strong>elevating Qena and South Valley University on the national and global stage.</strong>
+                  </>
+                )}
               </p>
 
               <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
@@ -204,7 +291,7 @@ export default function CommitteesSection({ onOpenJoinModal }) {
                   style={{ padding: '0.75rem 1.75rem', fontSize: '1rem' }}
                 >
                   <Sparkles size={16} />
-                  <span>انضم إلى إحدى اللجان</span>
+                  <span>{isAr ? 'انضم إلى إحدى اللجان' : 'Join a Committee'}</span>
                 </button>
               </div>
             </div>
@@ -216,6 +303,9 @@ export default function CommitteesSection({ onOpenJoinModal }) {
           {committees.map((comm) => {
             const Icon = comm.icon;
             const isSelected = selectedCommittee?.id === comm.id;
+            const primaryTitle = isAr ? comm.arabicName : comm.name;
+            const secondaryTitle = isAr ? comm.name : comm.arabicName;
+
             return (
               <div
                 key={comm.id}
@@ -239,6 +329,7 @@ export default function CommitteesSection({ onOpenJoinModal }) {
                   flexDirection: 'column',
                   justifyContent: 'space-between',
                   transition: 'all 0.35s cubic-bezier(0.16, 1, 0.3, 1)',
+                  textAlign: isAr ? 'right' : 'left',
                 }}
               >
                 <div>
@@ -264,10 +355,10 @@ export default function CommitteesSection({ onOpenJoinModal }) {
                   </div>
 
                   <h3 style={{ fontSize: '1.3rem', fontWeight: 800, color: '#fff', marginBottom: '0.35rem' }}>
-                    {comm.arabicName}
+                    {primaryTitle}
                   </h3>
                   <div style={{ fontSize: '0.8rem', color: '#ffb800', fontWeight: 700, marginBottom: '0.85rem' }}>
-                    {comm.name}
+                    {secondaryTitle}
                   </div>
 
                   <p className="comm-role-text" style={{ fontSize: '0.9rem', lineHeight: 1.65, marginBottom: '1.25rem' }}>
@@ -284,18 +375,18 @@ export default function CommitteesSection({ onOpenJoinModal }) {
 
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     <span className="comm-details-link" style={{ fontSize: '0.82rem', color: '#ffd54f', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
-                      عرض التفاصيل والمهارات
-                      <ArrowRight size={14} />
+                      <span>{isAr ? 'عرض التفاصيل' : 'View Details'}</span>
+                      <ArrowIcon size={14} />
                     </span>
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
-                        onOpenJoinModal(comm.arabicName);
+                        onOpenJoinModal(primaryTitle);
                       }}
                       className="btn-primary"
                       style={{ padding: '0.4rem 0.9rem', fontSize: '0.8rem' }}
                     >
-                      قدّم للجنة
+                      {isAr ? 'قدّم للجنة' : 'Apply'}
                     </button>
                   </div>
                 </div>
@@ -304,7 +395,7 @@ export default function CommitteesSection({ onOpenJoinModal }) {
           })}
         </div>
 
-        {/* Selected Committee Details Modal / Card */}
+        {/* Selected Committee Details Modal */}
         {selectedCommittee && (
           <div
             className="glass-panel gold-border-glow responsive-panel-p"
@@ -313,6 +404,7 @@ export default function CommitteesSection({ onOpenJoinModal }) {
               padding: '2.5rem',
               position: 'relative',
               boxShadow: '0 25px 60px rgba(0, 0, 0, 0.8)',
+              textAlign: isAr ? 'right' : 'left',
             }}
           >
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '1.5rem', marginBottom: '2rem' }}>
@@ -322,21 +414,21 @@ export default function CommitteesSection({ onOpenJoinModal }) {
                   <span className="badge-gold">{selectedCommittee.badge}</span>
                 </div>
                 <h3 style={{ fontSize: 'clamp(1.5rem, 3vw, 2rem)', fontWeight: 900, color: '#fff', marginBottom: '0.25rem' }}>
-                  {selectedCommittee.arabicName} ({selectedCommittee.name})
+                  {isAr ? `${selectedCommittee.arabicName} (${selectedCommittee.name})` : `${selectedCommittee.name} (${selectedCommittee.arabicName})`}
                 </h3>
                 <p style={{ color: '#ffb800', margin: 0, fontSize: '0.92rem', fontWeight: 600 }}>
-                  الشخصية الفرعونية: {selectedCommittee.mascotDesc}
+                  {isAr ? 'الشخصية الفرعونية:' : 'Pharaonic Mascot:'} {selectedCommittee.mascotDesc}
                 </p>
               </div>
 
               <div className="comm-modal-actions" style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
                 <button
-                  onClick={() => onOpenJoinModal(selectedCommittee.arabicName)}
+                  onClick={() => onOpenJoinModal(isAr ? selectedCommittee.arabicName : selectedCommittee.name)}
                   className="btn-primary"
                   style={{ padding: '0.75rem 1.6rem' }}
                 >
                   <Sparkles size={18} />
-                  <span>سجّل في هذه اللجنة الآن</span>
+                  <span>{isAr ? 'سجّل في هذه اللجنة الآن' : 'Apply to Committee'}</span>
                 </button>
                 <button
                   onClick={() => setSelectedCommittee(null)}
@@ -350,7 +442,7 @@ export default function CommitteesSection({ onOpenJoinModal }) {
                     fontWeight: 600,
                   }}
                 >
-                  إغلاق
+                  {isAr ? 'إغلاق' : 'Close'}
                 </button>
               </div>
             </div>
@@ -358,7 +450,7 @@ export default function CommitteesSection({ onOpenJoinModal }) {
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 280px), 1fr))', gap: '1.25rem' }}>
               <div style={{ background: 'rgba(0, 0, 0, 0.4)', padding: '1.25rem', borderRadius: '16px', border: '1px solid rgba(255, 184, 0, 0.15)' }}>
                 <h4 style={{ fontSize: '1.1rem', color: '#ffd54f', marginBottom: '0.75rem', fontWeight: 800 }}>
-                  ماذا ستكتسب وتتعلم في هذه اللجنة؟
+                  {isAr ? 'ماذا ستكتسب وتتعلم في هذه اللجنة؟' : 'What Will You Learn & Gain?'}
                 </h4>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
                   {selectedCommittee.skills.map((skill, idx) => (
@@ -372,13 +464,15 @@ export default function CommitteesSection({ onOpenJoinModal }) {
 
               <div style={{ background: 'rgba(0, 0, 0, 0.4)', padding: '1.25rem', borderRadius: '16px', border: '1px solid rgba(255, 184, 0, 0.15)' }}>
                 <h4 style={{ fontSize: '1.1rem', color: '#ffd54f', marginBottom: '0.75rem', fontWeight: 800 }}>
-                  رسالة اللجنة لأعضاء الكتيبة:
+                  {isAr ? 'رسالة اللجنة لأعضاء الكتيبة:' : 'Committee Message to the Battalion:'}
                 </h4>
                 <blockquote style={{ fontSize: '1rem', color: '#fff', fontStyle: 'italic', lineHeight: 1.7, margin: '0 0 1rem 0' }}>
                   {selectedCommittee.quote}
                 </blockquote>
                 <p style={{ color: '#a0a0b2', fontSize: '0.88rem', margin: 0, lineHeight: 1.6 }}>
-                  باب التقديم مفتوح لجميع كليات جامعة جنوب الوادي (تجارة، هندسة، علوم، آداب، حاسبات، تربية، زراعة، تمريض، وغيرها). لا يُشترط الخبرة السابقة، الشغف هو معيارنا الأول!
+                  {isAr
+                    ? 'باب التقديم مفتوح لجميع كليات جامعة جنوب الوادي (تجارة، هندسة، علوم، آداب، حاسبات، تربية، زراعة، تمريض، وغيرها). لا يُشترط الخبرة السابقة، الشغف هو معيارنا الأول!'
+                    : 'Applications are open to students across all faculties at South Valley University. Prior experience is not required; genuine passion is our primary qualification!'}
                 </p>
               </div>
             </div>

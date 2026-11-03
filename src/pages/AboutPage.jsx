@@ -1,6 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { Landmark, Compass, Eye, Heart, Trophy, Sparkles, Target, Users, ShieldCheck, ArrowLeft } from 'lucide-react';
+import SEO from '../components/SEO';
 
 export default function AboutPage() {
   const values = [
@@ -51,6 +52,10 @@ export default function AboutPage() {
 
   return (
     <div className="page-container-padding" style={{ paddingTop: '120px', paddingBottom: '100px' }}>
+      <SEO
+        title="عن الفريق (About Us)"
+        description="قصة ورؤية كتيبة إيناكوس قنا - جامعة جنوب الوادي: من شموخ دندرة ونيل قنا الخالد إلى ريادة الأعمال المجتمعية."
+      />
       <div className="container">
         {/* Page Hero */}
         <div style={{ textAlign: 'center', maxWidth: '840px', margin: '0 auto 4rem auto' }}>

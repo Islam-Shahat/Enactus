@@ -6,15 +6,35 @@ import CommitteesSection from '../components/CommitteesSection';
 import ProjectsImpact from '../components/ProjectsImpact';
 import Partnerships from '../components/Partnerships';
 import VisualGallery from '../components/VisualGallery';
-import { Sparkles, Calendar, ArrowLeft, ArrowUpRight, Shield, Award, Users, BookOpen } from 'lucide-react';
+import SEO from '../components/SEO';
+import { Sparkles, Calendar, ArrowLeft, ArrowRight, Award } from 'lucide-react';
 import { eventsData, newsArticles } from '../data/enactusData';
+import { useEvents, useNews } from '../hooks/usePublicContent';
+import { useLanguage } from '../context/LanguageContext';
+import { localizeEventsMock, localizeNewsMock } from '../services/mockLocalization';
 
 export default function HomePage({ onOpenJoinModal }) {
-  const upcomingEvents = eventsData.slice(0, 2);
-  const latestNews = newsArticles.slice(0, 2);
+  const { lang } = useLanguage();
+  const isAr = lang === 'ar';
+  const ArrowIcon = isAr ? ArrowLeft : ArrowRight;
+
+  const fallbackEvents = localizeEventsMock(eventsData, lang);
+  const fallbackNews = localizeNewsMock(newsArticles, lang);
+  const { data: events = fallbackEvents } = useEvents(fallbackEvents);
+  const { data: news = fallbackNews } = useNews(fallbackNews);
+  const upcomingEvents = events.slice(0, 2);
+  const latestNews = news.slice(0, 2);
 
   return (
     <div>
+      <SEO
+        title={isAr ? "الرئيسية" : "Home"}
+        description={
+          isAr
+            ? "الموقع الرسمي لكتيبة إيناكوس قنا - جامعة جنوب الوادي. مشاريع ريادة أعمال مجتمعية، لجان فرعونية، وأثر حقيقي في صعيد مصر."
+            : "Official website of Enactus Qena - South Valley University. Social entrepreneurship ventures, Pharaonic committees, and sustainable impact in Upper Egypt."
+        }
+      />
       {/* Cinematic Hero */}
       <Hero onOpenJoinModal={onOpenJoinModal} />
 
@@ -33,13 +53,21 @@ export default function HomePage({ onOpenJoinModal }) {
                 EVENTS & GATHERINGS
               </span>
               <h2 style={{ fontSize: 'clamp(1.8rem, 3.2vw, 2.5rem)', fontWeight: 900, color: '#fff', margin: 0 }}>
-                أحدث فعاليات <span className="gold-gradient-text">إيناكوس قنا</span>
+                {isAr ? (
+                  <>
+                    أحدث فعاليات <span className="gold-gradient-text">إيناكوس قنا</span>
+                  </>
+                ) : (
+                  <>
+                    Latest <span className="gold-gradient-text">Enactus Qena</span> Events
+                  </>
+                )}
               </h2>
             </div>
 
             <Link to="/events" className="btn-secondary" style={{ fontSize: '0.9rem', padding: '0.65rem 1.4rem' }}>
-              <span>استعرض كل الفعاليات</span>
-              <ArrowLeft size={16} />
+              <span>{isAr ? 'استعرض كل الفعاليات' : 'View All Events'}</span>
+              <ArrowIcon size={16} />
             </Link>
           </div>
 
@@ -54,6 +82,7 @@ export default function HomePage({ onOpenJoinModal }) {
                   display: 'flex',
                   flexDirection: 'column',
                   justifyContent: 'space-between',
+                  textAlign: isAr ? 'right' : 'left',
                 }}
               >
                 <div>
@@ -87,8 +116,8 @@ export default function HomePage({ onOpenJoinModal }) {
                       gap: '0.3rem',
                     }}
                   >
-                    <span>التفاصيل والجدول</span>
-                    <ArrowLeft size={14} />
+                    <span>{isAr ? 'التفاصيل والجدول' : 'Details & Schedule'}</span>
+                    <ArrowIcon size={14} />
                   </Link>
                 </div>
               </div>
@@ -112,13 +141,21 @@ export default function HomePage({ onOpenJoinModal }) {
                 LATEST UPDATES
               </span>
               <h2 style={{ fontSize: 'clamp(1.8rem, 3.2vw, 2.5rem)', fontWeight: 900, color: '#fff', margin: 0 }}>
-                أخبار الكتيبة <span className="gold-gradient-text">والمستجدات</span>
+                {isAr ? (
+                  <>
+                    أخبار الكتيبة <span className="gold-gradient-text">والمستجدات</span>
+                  </>
+                ) : (
+                  <>
+                    Battalion <span className="gold-gradient-text">News & Press</span>
+                  </>
+                )}
               </h2>
             </div>
 
             <Link to="/news" className="btn-secondary" style={{ fontSize: '0.9rem', padding: '0.65rem 1.4rem' }}>
-              <span>جميع الأخبار والبيانات</span>
-              <ArrowLeft size={16} />
+              <span>{isAr ? 'جميع الأخبار والبيانات' : 'All News & Updates'}</span>
+              <ArrowIcon size={16} />
             </Link>
           </div>
 
@@ -132,6 +169,7 @@ export default function HomePage({ onOpenJoinModal }) {
                   overflow: 'hidden',
                   display: 'grid',
                   gridTemplateColumns: '1fr 1.3fr',
+                  textAlign: isAr ? 'right' : 'left',
                 }}
               >
                 <div style={{ height: '100%', minHeight: '180px', overflow: 'hidden' }}>
@@ -155,8 +193,9 @@ export default function HomePage({ onOpenJoinModal }) {
                   </div>
                   <div style={{ marginTop: '1rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     <span className="news-date-tag" style={{ fontSize: '0.75rem' }}>{news.date}</span>
-                    <Link to="/news" style={{ color: '#ffb800', textDecoration: 'none', fontSize: '0.82rem', fontWeight: 700 }}>
-                      اقرأ المزيد ←
+                    <Link to="/news" style={{ color: '#ffb800', textDecoration: 'none', fontSize: '0.82rem', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}>
+                      <span>{isAr ? 'اقرأ المزيد' : 'Read More'}</span>
+                      <ArrowIcon size={13} />
                     </Link>
                   </div>
                 </div>
@@ -186,19 +225,21 @@ export default function HomePage({ onOpenJoinModal }) {
               LEAVE YOUR MARK • 2026
             </span>
             <h2 style={{ fontSize: 'clamp(1.8rem, 4.5vw, 3.6rem)', fontWeight: 900, color: '#fff', marginBottom: '1.25rem' }}>
-              هل أنت مستعد لتكون أحد قادة المستقبل؟
+              {isAr ? 'هل أنت مستعد لتكون أحد قادة المستقبل؟' : 'Ready to Become a Future Leader?'}
             </h2>
             <p style={{ fontSize: '1.15rem', color: '#c5c5d6', maxWidth: '700px', margin: '0 auto 2.5rem auto', lineHeight: 1.8 }}>
-              انضم إلى كتيبة إيناكوس قنا بجامعة جنوب الوادي، واصنع قصة نجاح تخلد اسمك في كبرى المحافل الوطنية والدولية.
+              {isAr
+                ? 'انضم إلى كتيبة إيناكوس قنا بجامعة جنوب الوادي، واصنع قصة نجاح تخلد اسمك في كبرى المحافل الوطنية والدولية.'
+                : 'Join the Enactus Qena battalion at South Valley University, and create an inspiring success story on premier national and international stages.'}
             </p>
             <div className="hero-cta-buttons" style={{ display: 'flex', justifyContent: 'center', gap: '1.25rem', flexWrap: 'wrap' }}>
               <Link to="/join" className="btn-primary" style={{ fontSize: '1.1rem', padding: '0.95rem 2.4rem' }}>
                 <Sparkles size={20} />
-                <span>قدّم الآن (انضم للكتيبة)</span>
+                <span>{isAr ? 'قدّم الآن (انضم للكتيبة)' : 'Apply Now (Join Battalion)'}</span>
               </Link>
               <Link to="/sponsor" className="btn-secondary" style={{ fontSize: '1.1rem', padding: '0.95rem 2.2rem' }}>
                 <Award size={20} />
-                <span>كن راعياً للكتيبة</span>
+                <span>{isAr ? 'كن راعياً للكتيبة' : 'Become a Sponsor'}</span>
               </Link>
             </div>
           </div>

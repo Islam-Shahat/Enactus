@@ -1,5 +1,48 @@
 export const strings = {
   ar: {
+    // Navigation
+    navHome: 'الرئيسية',
+    navAbout: 'من نحن',
+    navCommittees: 'اللجان',
+    navTeam: 'الكتيبة والـ Board',
+    navEvents: 'الفعاليات',
+    navPartners: 'الشركاء والرعاة',
+    navSponsor: 'كن راعياً (Sponsorship)',
+    navImpact: 'الأثر والتنمية (Impact)',
+    navGallery: 'معرض الهوية والميديا',
+    navNews: 'الأخبار والبيانات',
+    navFaq: 'الأسئلة الشائعة (FAQ)',
+    navAlumni: 'شبكة الخريجين (Alumni)',
+    navContact: 'اتصل بنا',
+    navTerms: 'الشروط والخصوصية',
+    navMore: 'المزيد',
+    navLogin: 'دخول الأعضاء',
+    navDashboard: 'لوحة التحكم',
+    navJoin: 'اترك أثرك (سجّل)',
+
+    // Common
+    readMore: 'اقرأ المزيد',
+    viewAll: 'عرض الكل',
+    details: 'التفاصيل',
+    back: 'العودة',
+    register: 'سجل الآن',
+    close: 'إغلاق',
+    search: 'بحث',
+    send: 'إرسال',
+    apply: 'قدّم الآن',
+    loading: 'جاري التحميل...',
+    comingSoon: 'قريباً',
+    comingSoonDesc: 'هذه الوحدة قيد التطوير والتجهيز في المراحل القادمة للمشروع.',
+
+    // Footer
+    footerDesc: 'نشاط طلابي تنموي ريادي في جامعة جنوب الوادي بقنا. نعمل على تمكين الشباب وتطوير حلول مستدامة تخدم صعيد مصر وتصعد بنا نحو العالمية.',
+    footerQuickLinks: 'روابط سريعة',
+    footerCommittees: 'لجان الكتيبة',
+    footerContact: 'تواصل معنا',
+    footerRights: 'جميع الحقوق محفوظة',
+    footerAddress: 'جامعة جنوب الوادي، قنا، مصر',
+    footerTimezone: 'توقيت القاهرة (UTC+2)',
+
     // Auth & Login
     loginTitle: 'بوابة كتيبة إيناكوس قنا',
     loginSubtitle: 'تسجيل الدخول لبوابة الأعضاء ومجلس الإدارة',
@@ -39,21 +82,62 @@ export const strings = {
     contactSupport: 'تواصل مع الدعم / HR',
 
     // Dashboard Shell
+    dashboardTitle: 'لوحة التحكم',
     dashboardHome: 'الرئيسية',
     dashboardWelcome: 'أهلاً بك يا',
     dashboardWelcomeDesc: 'مرحباً بك في لوحة تحكم كتيبة إيناكوس قنا. يمكنك إدارة المهام والعمليات الموكلة إليك وفق صلاحياتك.',
     notificationsPlaceholder: 'التنبيهات',
     languagePlaceholder: 'اللغة',
-    comingSoon: 'قريباً',
-    comingSoonDesc: 'هذه الوحدة قيد التطوير والتجهيز في المراحل القادمة للمشروع.',
     forbiddenTitle: 'غير مصرّح لك بدخول هذه الصفحة',
     forbiddenDesc: 'ليس لديك الصلاحيات الكافية للوصول إلى هذا القسم.',
     notFoundTitle: 'الصفحة غير موجودة',
     notFoundDesc: 'الصفحة التي طلبتها داخل لوحة التحكم غير موجودة.',
     backToDashboard: 'العودة للرئيسية',
-    loading: 'جاري التحميل...',
   },
   en: {
+    // Navigation
+    navHome: 'Home',
+    navAbout: 'About Us',
+    navCommittees: 'Committees',
+    navTeam: 'Board & Leaders',
+    navEvents: 'Events',
+    navPartners: 'Partners & Sponsors',
+    navSponsor: 'Become a Sponsor',
+    navImpact: 'Impact & SDGs',
+    navGallery: 'Media & Gallery',
+    navNews: 'News & Press',
+    navFaq: 'FAQ',
+    navAlumni: 'Alumni Network',
+    navContact: 'Contact Us',
+    navTerms: 'Terms & Privacy',
+    navMore: 'More',
+    navLogin: 'Member Login',
+    navDashboard: 'Dashboard',
+    navJoin: 'Join Us',
+
+    // Common
+    readMore: 'Read More',
+    viewAll: 'View All',
+    details: 'Details',
+    back: 'Back',
+    register: 'Register Now',
+    close: 'Close',
+    search: 'Search',
+    send: 'Send',
+    apply: 'Apply Now',
+    loading: 'Loading...',
+    comingSoon: 'Coming Soon',
+    comingSoonDesc: 'This module is scheduled for implementation in upcoming phases.',
+
+    // Footer
+    footerDesc: 'A premier student-led development platform at South Valley University, Qena. Empowering youth and building sustainable ventures that elevate Upper Egypt to the global stage.',
+    footerQuickLinks: 'Quick Links',
+    footerCommittees: 'Committees',
+    footerContact: 'Contact Us',
+    footerRights: 'All Rights Reserved',
+    footerAddress: 'South Valley University, Qena, Egypt',
+    footerTimezone: 'Cairo Local Time (UTC+2)',
+
     // Auth & Login
     loginTitle: 'Enactus Qena Internal Portal',
     loginSubtitle: 'Sign in to the member and board dashboard',
@@ -93,24 +177,34 @@ export const strings = {
     contactSupport: 'Contact HR Support',
 
     // Dashboard Shell
+    dashboardTitle: 'Dashboard',
     dashboardHome: 'Dashboard Home',
     dashboardWelcome: 'Welcome,',
     dashboardWelcomeDesc: 'Welcome to Enactus Qena dashboard. Manage your assigned tasks and team operations.',
     notificationsPlaceholder: 'Notifications',
     languagePlaceholder: 'Language',
-    comingSoon: 'Coming Soon',
-    comingSoonDesc: 'This module is scheduled for implementation in upcoming phases.',
     forbiddenTitle: 'Access Forbidden',
     forbiddenDesc: 'You do not have the required permissions to view this page.',
     notFoundTitle: 'Page Not Found',
     notFoundDesc: 'The requested dashboard page does not exist.',
     backToDashboard: 'Back to Dashboard',
-    loading: 'Loading...',
   },
 };
 
-/** Helper returning Arabic text by default */
-export function t(key) {
-  return strings.ar[key] ?? strings.en[key] ?? key;
+let activeSystemLang = 'ar';
+
+export function setCurrentLang(lang) {
+  if (lang === 'ar' || lang === 'en') {
+    activeSystemLang = lang;
+  }
 }
 
+export function getCurrentLang() {
+  return activeSystemLang;
+}
+
+/** Helper returning translated string according to current or explicit language */
+export function t(key, lang = activeSystemLang) {
+  const selected = strings[lang] ?? strings.ar;
+  return selected[key] ?? strings.ar[key] ?? strings.en[key] ?? key;
+}

@@ -1,40 +1,93 @@
 import React from 'react';
-import { TrendingUp, Users, Sprout, Palette, Sun, Award, ArrowUpRight } from 'lucide-react';
+import { TrendingUp, Sprout, Palette, Sun, Sparkles } from 'lucide-react';
+import { useStats } from '../hooks/usePublicContent';
+import { useLanguage } from '../context/LanguageContext';
 
 export default function ProjectsImpact({ onOpenJoinModal }) {
-  const stats = [
-    { number: '+11,700', label: 'متابع وداعم للأثر', sub: 'مجتمعنا على فيسبوك وقنا' },
-    { number: '+3,500', label: 'ساعة تدريب وتطوير', sub: 'لطلاب جامعة جنوب الوادي' },
-    { number: '150+', label: 'أسرة مستفيدة مباشرة', sub: 'من مشاريع التمكين الاقتصادي' },
-    { number: '100%', label: 'شغف وعزيمة', sub: 'للمنافسة الوطنية NC 2026' },
+  const { lang } = useLanguage();
+  const isAr = lang === 'ar';
+  const { data: dbStats } = useStats();
+
+  const defaultStats = [
+    {
+      key: 'volunteers',
+      number: '+11,700',
+      label: isAr ? 'متابع وداعم للأثر' : 'Community Followers',
+      sub: isAr ? 'مجتمعنا على فيسبوك وقنا' : 'Across Facebook & Upper Egypt',
+    },
+    {
+      key: 'members',
+      number: '+3,500',
+      label: isAr ? 'ساعة تدريب وتطوير' : 'Hours of Mentorship',
+      sub: isAr ? 'لطلاب جامعة جنوب الوادي' : 'For SVU university students',
+    },
+    {
+      key: 'projects',
+      number: '150+',
+      label: isAr ? 'أسرة مستفيدة مباشرة' : 'Direct Beneficiary Families',
+      sub: isAr ? 'من مشاريع التمكين الاقتصادي' : 'From economic initiatives',
+    },
+    {
+      key: 'impact_pct',
+      number: '100%',
+      label: isAr ? 'شغف وعزيمة' : 'Passion & Resolve',
+      sub: isAr ? 'للمنافسة الوطنية NC 2026' : 'For NC 2026 Competition',
+    },
   ];
+
+  const stats = defaultStats.map((item) => {
+    if (!dbStats || !Array.isArray(dbStats)) return item;
+    const match = dbStats.find((s) => s.key === item.key);
+    if (!match) return item;
+    const numFormatted =
+      match.suffix === '+'
+        ? `+${match.value.toLocaleString()}`
+        : `${match.value.toLocaleString()}${match.suffix || ''}`;
+    return {
+      ...item,
+      number: numFormatted,
+      label: match.label || item.label,
+    };
+  });
 
   const projects = [
     {
       icon: Sprout,
-      title: 'مشروع نَبْتَة (Nabta Green)',
-      category: 'استدامة بيئية وتدوير زراعي',
-      desc: 'قنا تشتهر بزراعة قصب السكر، ومعه تتولد أطنان من المخلفات الزراعية. ابتكر فريق إيناكوس قنا حلاً تقنياً لتحويل هذه المخلفات إلى أسمدة عضوية عالية الخصوبة وألواح صديقة للبيئة كبديل للبلاستيك.',
-      impactTag: 'خفض الانبعاثات وخلق فرص عمل خضراء',
-      sdgs: ['العمل المناخي', 'الاستهلاك المسؤول', 'القضاء على الفقر'],
+      title: isAr ? 'مشروع نَبْتَة (Nabta Green)' : 'Nabta Green Project',
+      category: isAr ? 'استدامة بيئية وتدوير زراعي' : 'Eco Sustainability & Agro-Upcycling',
+      desc: isAr
+        ? 'قنا تشتهر بزراعة قصب السكر، ومعه تتولد أطنان من المخلفات الزراعية. ابتكر فريق إيناكوس قنا حلاً تقنياً لتحويل هذه المخلفات إلى أسمدة عضوية عالية الخصوبة وألواح صديقة للبيئة كبديل للبلاستيك.'
+        : 'Qena is renowned for sugarcane agriculture, which generates massive amounts of agro-waste. Enactus Qena engineered a technical solution turning this waste into organic fertilizers and biodegradable boards.',
+      impactTag: isAr ? 'خفض الانبعاثات وخلق فرص عمل خضراء' : 'Emissions reduction & green job creation',
+      sdgs: isAr
+        ? ['العمل المناخي', 'الاستهلاك المسؤول', 'القضاء على الفقر']
+        : ['Climate Action', 'Responsible Consumption', 'No Poverty'],
       image: '/assets/E9.jpg',
     },
     {
       icon: Palette,
-      title: 'مشروع حِرْفَة (Herfa Heritage)',
-      category: 'تمكين مجتمعي وتراث قناوي',
-      desc: 'إحياء صناعة الفخار والخزف التراثي الشهير في قنا، من خلال تدريب أصحاب الحرف وسيدات القرى على تصميمات عصرية مبتكرة مع ربطهم بسلاسل توريد وتجارة إلكترونية تفتح لهم أسواقاً عالمية.',
-      impactTag: 'تمكين 150+ أسرة وسيدة معيلة في قنا',
-      sdgs: ['العمل اللائق والنمو الاقتصادي', 'المساواة بين الجنسين'],
+      title: isAr ? 'مشروع حِرْفَة (Herfa Heritage)' : 'Herfa Heritage Project',
+      category: isAr ? 'تمكين مجتمعي وتراث قناوي' : 'Community Empowerment & Handicrafts',
+      desc: isAr
+        ? 'إحياء صناعة الفخار والخزف التراثي الشهير في قنا، من خلال تدريب أصحاب الحرف وسيدات القرى على تصميمات عصرية مبتكرة مع ربطهم بسلاسل توريد وتجارة إلكترونية تفتح لهم أسواقاً عالمية.'
+        : 'Revitalizing the historic pottery and ceramics craft of Qena by training rural artisans and women on modern aesthetic designs and connecting them to international e-commerce channels.',
+      impactTag: isAr ? 'تمكين 150+ أسرة وسيدة معيلة في قنا' : 'Empowering 150+ rural breadwinner families',
+      sdgs: isAr
+        ? ['العمل اللائق والنمو الاقتصادي', 'المساواة بين الجنسين']
+        : ['Decent Work & Growth', 'Gender Equality'],
       image: '/assets/E3.jpg',
     },
     {
       icon: Sun,
-      title: 'مشروع شمس الجنوب (Solar Impact)',
-      category: 'طاقة نظيفة وحلول مائية',
-      desc: 'تطبيق حلول ري ذكية ومضخات شمسية بالتعاون مع المزارعين في الظهير الصحراوي بقنا لتقليل تكاليف الوقود وزيادة الإنتاجية الزراعية باستخدام الطاقة المتجددة الوفيرة في صعيد مصر.',
-      impactTag: 'توفير 45% من تكاليف الطاقة لصغار المزارعين',
-      sdgs: ['طاقة نظيفة وبأسعار معقولة', 'ابتكار في الصناعة'],
+      title: isAr ? 'مشروع شمس الجنوب (Solar Impact)' : 'Solar Impact Project',
+      category: isAr ? 'طاقة نظيفة وحلول مائية' : 'Clean Energy & Water Solutions',
+      desc: isAr
+        ? 'تطبيق حلول ري ذكية ومضخات شمسية بالتعاون مع المزارعين في الظهير الصحراوي بقنا لتقليل تكاليف الوقود وزيادة الإنتاجية الزراعية باستخدام الطاقة المتجددة الوفيرة في صعيد مصر.'
+        : 'Deploying smart irrigation pumps powered by solar energy in Qena reclaimed agricultural desert borders, cutting diesel fuel costs and raising crop yields.',
+      impactTag: isAr ? 'توفير 45% من تكاليف الطاقة لصغار المزارعين' : '45% energy cost savings for farmers',
+      sdgs: isAr
+        ? ['طاقة نظيفة وبأسعار معقولة', 'ابتكار في الصناعة']
+        : ['Affordable Clean Energy', 'Industry & Innovation'],
       image: '/assets/E4.jpg',
     },
   ];
@@ -52,11 +105,21 @@ export default function ProjectsImpact({ onOpenJoinModal }) {
           </div>
 
           <h2 style={{ fontSize: 'clamp(2rem, 3.8vw, 3.2rem)', fontWeight: 900, marginBottom: '1rem' }}>
-            أثر يمتد بطول النيل: <span className="gold-gradient-text">مشاريع تصنع فارقاً حقيقياً</span>
+            {isAr ? (
+              <>
+                أثر يمتد بطول النيل: <span className="gold-gradient-text">مشاريع تصنع فارقاً حقيقياً</span>
+              </>
+            ) : (
+              <>
+                Impact Along the Nile: <span className="gold-gradient-text">Ventures Creating Real Change</span>
+              </>
+            )}
           </h2>
 
           <p style={{ fontSize: '1.1rem', color: '#b5b5c6', lineHeight: 1.8 }}>
-            في إيناكوس قنا، لا نكتفي بالأفكار النظرية. نحن نختبر الواقع، نبتكر حلولاً مستدامة، ونحول التحديات إلى فرص استثمارية ذات عائد مجتمعي واقتصادي ملموس.
+            {isAr
+              ? 'في إيناكوس قنا، لا نكتفي بالأفكار النظرية. نحن نختبر الواقع، نبتكر حلولاً مستدامة، ونحول التحديات إلى فرص استثمارية ذات عائد مجتمعي واقتصادي ملموس.'
+              : 'At Enactus Qena, we go far beyond theoretical concepts. We field-test reality, engineer sustainable solutions, and convert regional challenges into high-yield social enterprises.'}
           </p>
         </div>
 
@@ -96,6 +159,8 @@ export default function ProjectsImpact({ onOpenJoinModal }) {
           {projects.map((proj, idx) => {
             const Icon = proj.icon;
             const isEven = idx % 2 === 1;
+            const gridDir = isAr ? (isEven ? 'ltr' : 'rtl') : (isEven ? 'rtl' : 'ltr');
+
             return (
               <div
                 key={idx}
@@ -107,11 +172,11 @@ export default function ProjectsImpact({ onOpenJoinModal }) {
                   gridTemplateColumns: '1.2fr 0.8fr',
                   gap: '2.5rem',
                   alignItems: 'center',
-                  direction: isEven ? 'ltr' : 'rtl',
+                  direction: gridDir,
                 }}
               >
                 {/* Text Content */}
-                <div style={{ direction: 'rtl', textAlign: 'right' }}>
+                <div style={{ direction: isAr ? 'rtl' : 'ltr', textAlign: isAr ? 'right' : 'left' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', marginBottom: '1rem' }}>
                     <div
                       style={{
@@ -132,49 +197,57 @@ export default function ProjectsImpact({ onOpenJoinModal }) {
                     </span>
                   </div>
 
-                  <h3 style={{ fontSize: '1.75rem', fontWeight: 900, color: '#fff', marginBottom: '0.85rem' }}>
+                  <h3 style={{ fontSize: 'clamp(1.4rem, 2.5vw, 1.85rem)', fontWeight: 900, color: '#fff', marginBottom: '0.75rem' }}>
                     {proj.title}
                   </h3>
 
-                  <p style={{ fontSize: '1rem', lineHeight: 1.8, marginBottom: '1.5rem' }}>
+                  <p style={{ color: '#b5b5c6', fontSize: '0.96rem', lineHeight: 1.7, marginBottom: '1.5rem' }}>
                     {proj.desc}
                   </p>
 
-                  <div className="impact-tag-box" style={{ background: 'rgba(255, 184, 0, 0.08)', padding: '0.75rem 1rem', borderRadius: '12px', marginBottom: '1.25rem', borderLeft: '3px solid #ffb800' }}>
-                    <span className="impact-tag-text" style={{ fontSize: '0.88rem', color: '#ffd54f', fontWeight: 700 }}>
-                      مؤشر الأثر: {proj.impactTag}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap', marginBottom: '1.5rem' }}>
+                    <span style={{ fontSize: '0.78rem', color: '#ffb800', fontWeight: 700 }}>
+                      {isAr ? 'الأهداف المستهدفة (SDGs):' : 'Targeted SDGs:'}
                     </span>
-                  </div>
-
-                  <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
                     {proj.sdgs.map((sdg, sIdx) => (
                       <span
                         key={sIdx}
-                        className="sdg-tag-pill"
                         style={{
                           background: 'rgba(255, 255, 255, 0.05)',
-                          border: '1px solid rgba(255, 255, 255, 0.1)',
-                          padding: '0.3rem 0.75rem',
-                          borderRadius: '9999px',
+                          border: '1px solid rgba(255, 184, 0, 0.25)',
+                          color: '#e0e0ec',
                           fontSize: '0.75rem',
-                          color: '#e2e2ee',
+                          padding: '0.2rem 0.55rem',
+                          borderRadius: '6px',
                         }}
                       >
-                        ✓ {sdg}
+                        {sdg}
                       </span>
                     ))}
                   </div>
+
+                  <div style={{ borderTop: '1px solid rgba(255, 255, 255, 0.08)', paddingTop: '1rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span style={{ fontSize: '0.82rem', color: '#ffd54f', fontWeight: 600 }}>
+                      ⚡ {proj.impactTag}
+                    </span>
+                    <button
+                      onClick={onOpenJoinModal}
+                      className="btn-secondary"
+                      style={{ fontSize: '0.82rem', padding: '0.45rem 1rem' }}
+                    >
+                      <span>{isAr ? 'شارك في المشروع' : 'Join Venture'}</span>
+                    </button>
+                  </div>
                 </div>
 
-                {/* Visual / Image thumbnail */}
+                {/* Image */}
                 <div
-                  className="project-img-box"
                   style={{
                     borderRadius: '18px',
                     overflow: 'hidden',
-                    height: '280px',
-                    boxShadow: '0 12px 35px rgba(0, 0, 0, 0.6)',
+                    height: '320px',
                     position: 'relative',
+                    boxShadow: '0 15px 35px rgba(0, 0, 0, 0.6)',
                   }}
                 >
                   <img
@@ -186,7 +259,7 @@ export default function ProjectsImpact({ onOpenJoinModal }) {
                     style={{
                       position: 'absolute',
                       inset: 0,
-                      background: 'linear-gradient(to top, rgba(8, 8, 12, 0.7), transparent)',
+                      background: 'linear-gradient(to top, rgba(8, 8, 12, 0.6) 0%, transparent 60%)',
                     }}
                   />
                 </div>
@@ -197,14 +270,17 @@ export default function ProjectsImpact({ onOpenJoinModal }) {
       </div>
 
       <style>{`
-        @media (max-width: 992px) {
+        @media (max-width: 900px) {
           .project-row {
             grid-template-columns: 1fr !important;
-            gap: 1.5rem !important;
-            direction: rtl !important;
+            direction: ltr !important;
           }
-          .project-img-box {
-            height: 220px !important;
+          .project-row > div:first-child {
+            order: 2;
+          }
+          .project-row > div:last-child {
+            order: 1;
+            height: 240px !important;
           }
         }
       `}</style>

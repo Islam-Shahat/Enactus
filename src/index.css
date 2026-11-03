@@ -34,6 +34,29 @@ html {
   text-rendering: optimizeLegibility;
 }
 
+/* LTR / English Mode typography */
+html[dir="ltr"], body[dir="ltr"], [data-lang="en"] {
+  font-family: var(--font-english), 'Outfit', -apple-system, BlinkMacSystemFont, sans-serif;
+}
+html[dir="ltr"] h1, html[dir="ltr"] h2, html[dir="ltr"] h3, html[dir="ltr"] h4, html[dir="ltr"] h5, html[dir="ltr"] h6 {
+  font-family: var(--font-english), 'Outfit', sans-serif;
+  letter-spacing: -0.01em;
+}
+
+/* Language Toggle styling */
+.language-toggle-pill {
+  font-family: 'Outfit', var(--font-english), sans-serif !important;
+}
+[data-theme="light"] .language-toggle-pill {
+  background: rgba(0, 0, 0, 0.04) !important;
+  color: #14171f !important;
+  border-color: rgba(212, 136, 0, 0.38) !important;
+}
+[data-theme="light"] .language-toggle-pill:hover {
+  background: rgba(212, 136, 0, 0.12) !important;
+  border-color: #d48800 !important;
+}
+
 h1, h2, h3, h4, h5, h6 {
   font-family: var(--font-heading);
   letter-spacing: -0.015em;
@@ -558,6 +581,20 @@ html, body, .glass-panel, header, footer, .btn-secondary, .badge-gold, input, se
 }
 
 /* Inputs & Forms */
+select option {
+  background-color: #12131c !important;
+  color: #ffffff !important;
+}
+
+[data-theme="light"] select option {
+  background-color: #ffffff !important;
+  color: #0f111a !important;
+}
+
+[data-theme="light"] label {
+  color: #8f5800 !important;
+}
+
 [data-theme="light"] input,
 [data-theme="light"] select,
 [data-theme="light"] textarea {

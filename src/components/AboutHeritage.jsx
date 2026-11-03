@@ -1,35 +1,48 @@
 import React from 'react';
-import { Landmark, Lightbulb, Users, Globe2, Sparkles, ChevronLeft } from 'lucide-react';
+import { Landmark, Lightbulb, Users, Globe2, Sparkles, ChevronLeft, ChevronRight } from 'lucide-react';
+import { useLanguage } from '../context/LanguageContext';
 
 export default function AboutHeritage({ onOpenJoinModal }) {
+  const { lang } = useLanguage();
+  const isAr = lang === 'ar';
+  const ChevronIcon = isAr ? ChevronLeft : ChevronRight;
+
   const pillars = [
     {
       icon: Landmark,
-      title: 'إرث دندرة والصعيد',
+      title: isAr ? 'إرث دندرة والصعيد' : 'Dendera Heritage & Upper Egypt',
       english: 'ANCIENT HERITAGE',
-      description: 'نستمد شموخنا من معبد دندرة وعظمة حضارة وادي النيل بقنا. كما شيّد أجدادنا مجداً خالداً بالحجر، نبني نحن مجداً مستداماً بالأثر الإنساني.',
-      tag: 'الجذور الراسخة',
+      description: isAr
+        ? 'نستمد شموخنا من معبد دندرة وعظمة حضارة وادي النيل بقنا. كما شيّد أجدادنا مجداً خالداً بالحجر، نبني نحن مجداً مستداماً بالأثر الإنساني.'
+        : 'Inspired by the majesty of Dendera Temple and ancient Nile civilization. Just as our ancestors carved eternal glory in stone, we build lasting impact through social entrepreneurship.',
+      tag: isAr ? 'الجذور الراسخة' : 'Enduring Roots',
     },
     {
       icon: Lightbulb,
-      title: 'ريادة الأعمال المجتمعية',
+      title: isAr ? 'ريادة الأعمال المجتمعية' : 'Social Entrepreneurship',
       english: 'SOCIAL INNOVATION',
-      description: 'لا نقدم حلولاً مؤقتة؛ بل نبتكر مشاريع تجارية وبيئية مستدامة تحل مشاكل الطاقة، تدوير المخلفات، وتمكين الأسر الأكثر احتياجاً في صعيد مصر.',
-      tag: 'حلول اقتصادية',
+      description: isAr
+        ? 'لا نقدم حلولاً مؤقتة؛ بل نبتكر مشاريع تجارية وبيئية مستدامة تحل مشاكل الطاقة، تدوير المخلفات، وتمكين الأسر الأكثر احتياجاً في صعيد مصر.'
+        : 'We do not offer temporary relief; we pioneer viable business and environmental ventures addressing clean energy, agricultural waste upcycling, and family empowerment in Upper Egypt.',
+      tag: isAr ? 'حلول اقتصادية' : 'Economic Solutions',
     },
     {
       icon: Users,
-      title: 'تمكين الإنسان وصناعة القادة',
+      title: isAr ? 'تمكين الإنسان وصناعة القادة' : 'People-First Leadership',
       english: 'PEOPLE FIRST',
-      description: 'نؤمن أن أعظم استثمار هو الاستثمار في عقول شباب جامعة جنوب الوادي، وتزويدهم بمهارات القيادة، التقنية، وإدارة الأعمال العالمية.',
-      tag: 'بناء الكفاءات',
+      description: isAr
+        ? 'نؤمن أن أعظم استثمار هو الاستثمار في عقول شباب جامعة جنوب الوادي، وتزويدهم بمهارات القيادة، التقنية، وإدارة الأعمال العالمية.'
+        : 'We believe our highest return is investing in the youth of South Valley University, arming them with world-class leadership, technical skills, and management capabilities.',
+      tag: isAr ? 'بناء الكفاءات' : 'Capacity Building',
     },
     {
       icon: Globe2,
-      title: 'من قنا إلى كأس العالم',
+      title: isAr ? 'من قنا إلى كأس العالم' : 'From Qena to World Stage',
       english: 'TO THE WORLD STAGE',
-      description: 'هدفنا ليس فقط التميز المحلي، بل خوض غمار المسابقة الوطنية المصرية Enactus Egypt NC ومواصلة الطريق لتمثيل مصر في Enactus World Cup.',
-      tag: 'المنافسة العالمية',
+      description: isAr
+        ? 'هدفنا ليس فقط التميز المحلي، بل خوض غمار المسابقة الوطنية المصرية Enactus Egypt NC ومواصلة الطريق لتمثيل مصر في Enactus World Cup.'
+        : 'Our ambition transcends local excellence; we compete boldly at the Enactus Egypt National Competition and aim to proudly represent Egypt on the global World Cup stage.',
+      tag: isAr ? 'المنافسة العالمية' : 'Global Arena',
     },
   ];
 
@@ -41,18 +54,36 @@ export default function AboutHeritage({ onOpenJoinModal }) {
           <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem' }}>
             <span className="badge-gold">
               <Sparkles size={14} />
-              هويتنا ورسالتنا
+              {isAr ? 'هويتنا ورسالتنا' : 'Identity & Mission'}
             </span>
           </div>
 
           <h2 style={{ fontSize: 'clamp(2rem, 3.8vw, 3rem)', fontWeight: 900, marginBottom: '1.25rem' }}>
-            شفرة دندرة.. <span className="gold-gradient-text">تاريخ كُتب على الحجر</span>
-            <br />
-            ومستقبل نصنعه بالأثر!
+            {isAr ? (
+              <>
+                شفرة دندرة.. <span className="gold-gradient-text">تاريخ كُتب على الحجر</span>
+                <br />
+                ومستقبل نصنعه بالأثر!
+              </>
+            ) : (
+              <>
+                The Dendera Code.. <span className="gold-gradient-text">History Written in Stone</span>
+                <br />
+                And a Future Forged by Impact!
+              </>
+            )}
           </h2>
 
           <p style={{ fontSize: '1.1rem', color: '#b5b5c6', lineHeight: 1.8 }}>
-            في <strong style={{ color: '#ffd54f' }}>Enactus Qena</strong> ندمج بين جينات الإبداع المصري القديم وحماس ريادة الأعمال الحديثة. نحن مجتمع طلابي شغوف في جامعة جنوب الوادي يؤمن بأن الأفكار الحقيقية هي التي تغير حياة الناس على أرض الواقع.
+            {isAr ? (
+              <>
+                في <strong style={{ color: '#ffd54f' }}>Enactus Qena</strong> ندمج بين جينات الإبداع المصري القديم وحماس ريادة الأعمال الحديثة. نحن مجتمع طلابي شغوف في جامعة جنوب الوادي يؤمن بأن الأفكار الحقيقية هي التي تغير حياة الناس على أرض الواقع.
+              </>
+            ) : (
+              <>
+                At <strong style={{ color: '#ffd54f' }}>Enactus Qena</strong>, we blend ancient Egyptian creative DNA with modern social enterprise. We are a passionate student community at South Valley University proving that real ideas transform communities on the ground.
+              </>
+            )}
           </p>
         </div>
 
@@ -95,7 +126,7 @@ export default function AboutHeritage({ onOpenJoinModal }) {
                     </span>
                   </div>
 
-                  <h3 style={{ fontSize: '1.3rem', fontWeight: 800, color: '#fff', marginBottom: '0.75rem' }}>
+                  <h3 style={{ fontSize: '1.25rem', fontWeight: 800, color: '#fff', marginBottom: '0.75rem' }}>
                     {pillar.title}
                   </h3>
 
@@ -117,7 +148,7 @@ export default function AboutHeritage({ onOpenJoinModal }) {
           })}
         </div>
 
-        {/* Cinematic Heritage Panorama Banner (E1.jpg) */}
+        {/* Cinematic Heritage Panorama Banner */}
         <div
           className="glass-panel gold-border-glow card-shine responsive-panel-p"
           style={{
@@ -136,14 +167,18 @@ export default function AboutHeritage({ onOpenJoinModal }) {
           }}
         >
           <div style={{ maxWidth: '640px' }}>
-            <span className="badge-gold" style={{ marginBottom: '1rem' }}>
+            <span className="badge-gold font-cinzel" style={{ marginBottom: '1rem' }}>
               QENA HERITAGE & INNOVATION
             </span>
             <h3 style={{ fontSize: 'clamp(1.4rem, 2.8vw, 2.2rem)', fontWeight: 900, color: '#fff', marginBottom: '1rem', lineHeight: 1.3 }}>
-              من ضفاف النيل وبهاء دندرة ومسجد سيدي عبد الرحيم القنائي
+              {isAr
+                ? 'من ضفاف النيل وبهاء دندرة ومسجد سيدي عبد الرحيم القنائي'
+                : 'From the Banks of the Nile & the Enduring Splendor of Dendera'}
             </h3>
             <p style={{ color: '#e0e0ec', fontSize: '1rem', lineHeight: 1.7, margin: 0 }}>
-              ننطلق بفخر من هوية قنا الأصيلة. هدفنا ليس مجرد نشاط طلابي عادي؛ بل حركة شبابية تنموية تُثبت للعالم أجمع أن صعيد مصر يمتلك العقول، العزيمة، والموهبة لقيادة المستقبل.
+              {isAr
+                ? 'ننطلق بفخر من هوية قنا الأصيلة. هدفنا ليس مجرد نشاط طلابي عادي؛ بل حركة شبابية تنموية تُثبت للعالم أجمع أن صعيد مصر يمتلك العقول، العزيمة، والموهبة لقيادة المستقبل.'
+                : 'We proudly rise from the profound heritage of Upper Egypt. We prove to the entire world that Upper Egypt possesses the talent, intellect, and resolve to shape the future of sustainable enterprise.'}
             </p>
           </div>
 
@@ -153,8 +188,8 @@ export default function AboutHeritage({ onOpenJoinModal }) {
               className="btn-primary"
               style={{ fontSize: '1.05rem', padding: '0.9rem 2rem', width: '100%', justifyContent: 'center' }}
             >
-              <span>كن جزءاً من الحكاية</span>
-              <ChevronLeft size={18} />
+              <span>{isAr ? 'كن جزءاً من الحكاية' : 'Join the Story'}</span>
+              <ChevronIcon size={18} />
             </button>
           </div>
         </div>

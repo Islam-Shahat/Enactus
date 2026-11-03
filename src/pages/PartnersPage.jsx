@@ -2,6 +2,7 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import Partnerships from '../components/Partnerships';
 import { Handshake, Award, Building2, CheckCircle2, ArrowLeft, Sparkles } from 'lucide-react';
+import SEO from '../components/SEO';
 
 export default function PartnersPage() {
   const pastPartnerships = [
@@ -24,6 +25,10 @@ export default function PartnersPage() {
 
   return (
     <div className="page-container-padding" style={{ paddingTop: '120px', paddingBottom: '100px' }}>
+      <SEO
+        title="شركاء المسيرة ورعاة الأثر"
+        description="شركاء ورعاة إيناكوس قنا - شبكة التعاون الاستراتيجي مع المؤسسات التدريبية والشركات."
+      />
       <div className="container">
         {/* Page Header */}
         <div style={{ textAlign: 'center', maxWidth: '820px', margin: '0 auto 2rem auto' }}>

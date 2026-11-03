@@ -1,79 +1,102 @@
 import React, { useState } from 'react';
-import { Eye, Image as ImageIcon, Sparkles, X, ZoomIn } from 'lucide-react';
+import { Image as ImageIcon, X, ZoomIn } from 'lucide-react';
+import { useLanguage } from '../context/LanguageContext';
 
 export default function VisualGallery() {
   const [activeImage, setActiveImage] = useState(null);
+  const { lang } = useLanguage();
+  const isAr = lang === 'ar';
 
   const galleryItems = [
     {
       src: '/assets/E9.jpg',
-      title: 'قميص معبد دندرة 2026',
+      title: isAr ? 'قميص معبد دندرة 2026' : 'Dendera Temple Kit 2026',
       tag: 'From Qena to the World',
       category: 'Official Kit & National Competition',
-      caption: 'حيث كُتب التاريخ على الحجر، نحمل رؤيتنا لنعبر بها الحدود ونمثل صعيد مصر في المسابقة الوطنية.',
+      caption: isAr
+        ? 'حيث كُتب التاريخ على الحجر، نحمل رؤيتنا لنعبر بها الحدود ونمثل صعيد مصر في المسابقة الوطنية.'
+        : 'Where history was carved in stone, we carry our vision across borders to represent Upper Egypt.',
     },
     {
       src: '/assets/E6.jpg',
-      title: 'كتيبة الفراعنة: فريق واحد، هدف واحد',
+      title: isAr ? 'كتيبة الفراعنة: فريق واحد، هدف واحد' : 'Pharaohs: One Team, One Goal',
       tag: 'One Team • One Legacy',
       category: 'Team & Committees',
-      caption: 'الشخصيات الكرتونية الفرعونية ثلاثية الأبعاد التي تمثل لجان PR, Multimedia, PM, OC, HR, Presentation.',
+      caption: isAr
+        ? 'الشخصيات الكرتونية الفرعونية ثلاثية الأبعاد التي تمثل لجان PR, Multimedia, PM, OC, HR, Presentation.'
+        : 'The 3D Pharaonic mascot characters representing PR, Multimedia, PM, OC, HR, Presentation committees.',
     },
     {
       src: '/assets/E7.jpg',
-      title: 'شفرة المستقبل المدفونة',
+      title: isAr ? 'شفرة المستقبل المدفونة' : 'Buried Code of the Future',
       tag: 'The Future Was Found',
       category: 'Recruitment & Legacy',
-      caption: 'البشر.. الأفكار.. والأثر. اكتشاف بطاقة العضوية التاريخية لإيناكوس قنا بين آثار الماضي العريق.',
+      caption: isAr
+        ? 'البشر.. الأفكار.. والأثر. اكتشاف بطاقة العضوية التاريخية لإيناكوس قنا بين آثار الماضي العريق.'
+        : 'People, ideas, and real impact. The historic membership discovery among the ancient heritage of Qena.',
     },
     {
       src: '/assets/E8.jpg',
-      title: 'حملة استقطاب قادة السوشيال ميديا',
+      title: isAr ? 'حملة استقطاب قادة السوشيال ميديا' : 'Social Media Recruitment',
       tag: 'Head of Social Media',
       category: 'Creatives & Voice',
-      caption: 'We don\'t just post, we purpose! صناعة الأثر وإيصال الرسالة بإبداع الطائرات الورقية الذهبية.',
+      caption: isAr
+        ? 'We don\'t just post, we purpose! صناعة الأثر وإيصال الرسالة بإبداع الطائرات الورقية الذهبية.'
+        : 'We don\'t just post, we purpose! Delivering inspiration through creative storytelling.',
     },
     {
       src: '/assets/E5.jpg',
-      title: 'العد التنازلي: اترك أثرك',
+      title: isAr ? 'العد التنازلي: اترك أثرك' : 'Countdown: Leave Your Mark',
       tag: 'Leave Your Mark',
-      caption: 'Don\'t just apply, leave your mark! الفرعون الصغير يدعو طلاب قنا لعدم تفويت الفرصة.',
+      caption: isAr
+        ? 'Don\'t just apply, leave your mark! الفرعون الصغير يدعو طلاب قنا لعدم تفويت الفرصة.'
+        : 'Don\'t just apply, leave your mark! The young Pharaoh invites SVU students to step forward.',
       category: 'Campaign Deadline',
     },
     {
       src: '/assets/partner_arab_union.png',
-      title: 'إعلان الشراكة مع الاتحاد العربي للتدريب والتنمية',
+      title: isAr ? 'الشراكة مع الاتحاد العربي للتدريب' : 'Arab Union Partnership',
       tag: 'Arab Union Partnership',
       category: 'Strategic Alliance',
-      caption: 'Together, We Create Greater Impact! بروتوكول تعاون تدريبي وتأهيلي رائد لدعم كوادر طلاب قنا.',
+      caption: isAr
+        ? 'Together, We Create Greater Impact! بروتوكول تعاون تدريبي وتأهيلي رائد لدعم كوادر طلاب قنا.'
+        : 'Together, We Create Greater Impact! Pioneering youth training and certifications protocol.',
     },
     {
       src: '/assets/sponsors_list.png',
-      title: 'رعاة إيناكوس قنا الرسميون (Meet Our Sponsors)',
+      title: isAr ? 'رعاة إيناكوس قنا الرسميون' : 'Official Sponsors',
       tag: 'Official Sponsors',
       category: 'Sponsorship Network',
-      caption: 'باقة الرعاة الرسميين: فراندة (VERANDA)، الاتحاد العربي للتدريب والتنمية، الأوائل لتنمية المهارات، ومكتبات الرضا.',
+      caption: isAr
+        ? 'باقة الرعاة الرسميين: فراندة (VERANDA)، الاتحاد العربي للتدريب والتنمية، الأوائل لتنمية المهارات، ومكتبات الرضا.'
+        : 'Official sponsors cohort: VERANDA, Arab Union for Training, Al-Awael, and Al-Reda Printing.',
     },
     {
       src: '/assets/E4.jpg',
-      title: 'شراكة إيناكوس قنا مع يافا للتسويق',
+      title: isAr ? 'شراكة إيناكوس قنا مع يافا للتسويق' : 'Yafa Marketing Alliance',
       tag: 'Together for a Bigger Impact',
       category: 'Strategic Partnership',
-      caption: 'شراكة استراتيجية تفتح آفاقاً رحبة للمشاريع الريادية بالتعاون مع YAFFA E-Marketing.',
+      caption: isAr
+        ? 'شراكة استراتيجية تفتح آفاقاً رحبة للمشاريع الريادية بالتعاون مع YAFFA E-Marketing.'
+        : 'Strategic collaboration opening wide horizons for startup ventures in Upper Egypt.',
     },
     {
       src: '/assets/E1.jpg',
-      title: 'بانوراما قنا: دندرة والجامع والنيل',
+      title: isAr ? 'بانوراما قنا: دندرة والجامع والنيل' : 'Qena Heritage Panorama',
       tag: 'Qena Heritage Panorama',
       category: 'City & Culture',
-      caption: 'توليفة بديعة تجمع معبد دندرة، مسجد سيدي عبد الرحيم القنائي، ونيل قنا الخالد.',
+      caption: isAr
+        ? 'توليفة بديعة تجمع معبد دندرة، مسجد سيدي عبد الرحيم القنائي، ونيل قنا الخالد.'
+        : 'A breathtaking panorama uniting Dendera Temple, Sidi Abdelrahim Mosque, and the eternal Nile.',
     },
     {
       src: '/assets/E3.jpg',
-      title: 'شعار إيناكوس جامعة جنوب الوادي',
+      title: isAr ? 'شعار إيناكوس جامعة جنوب الوادي' : 'Enactus SVU Emblem',
       tag: 'Stone Engraving Mockup',
       category: 'Identity & Stone',
-      caption: 'محفور في ذاكرة الجامعة.. Enactus South Valley University بكل فخر واعتزاز.',
+      caption: isAr
+        ? 'محفور في ذاكرة الجامعة.. Enactus South Valley University بكل فخر واعتزاز.'
+        : 'Carved into the memory of the university.. Enactus South Valley University with pride.',
     },
   ];
 
@@ -90,11 +113,21 @@ export default function VisualGallery() {
           </div>
 
           <h2 style={{ fontSize: 'clamp(2rem, 3.6vw, 3rem)', fontWeight: 900, marginBottom: '1rem' }}>
-            معرض الهوية البصرية: <span className="gold-gradient-text">إبداع فرعوني معاصر</span>
+            {isAr ? (
+              <>
+                معرض الهوية البصرية: <span className="gold-gradient-text">إبداع فرعوني معاصر</span>
+              </>
+            ) : (
+              <>
+                Visual Identity Gallery: <span className="gold-gradient-text">Modern Pharaonic Art</span>
+              </>
+            )}
           </h2>
 
           <p style={{ fontSize: '1.1rem', color: '#b5b5c6', lineHeight: 1.8 }}>
-            استكشف التحف البصرية التي تميز هوية إيناكوس قنا. مزيج ساحر يجمع بين عبق الآثار المصرية ولمسات الديزاين العالمي الحديث.
+            {isAr
+              ? 'استكشف التحف البصرية التي تميز هوية إيناكوس قنا. مزيج ساحر يجمع بين عبق الآثار المصرية ولمسات الديزاين العالمي الحديث.'
+              : 'Explore the visual assets defining Enactus Qena. An inspiring fusion of ancient Egyptian heritage and modern digital aesthetic.'}
           </p>
         </div>
 
@@ -119,6 +152,7 @@ export default function VisualGallery() {
                 position: 'relative',
                 display: 'flex',
                 flexDirection: 'column',
+                textAlign: isAr ? 'right' : 'left',
               }}
             >
               <div className="gallery-card-img-box" style={{ height: '320px', overflow: 'hidden', position: 'relative', background: '#0a0a0f' }}>
@@ -131,44 +165,57 @@ export default function VisualGallery() {
                     objectFit: 'cover',
                     transition: 'transform 0.5s ease',
                   }}
-                  onMouseEnter={(e) => (e.currentTarget.style.transform = 'scale(1.06)')}
-                  onMouseLeave={(e) => (e.currentTarget.style.transform = 'scale(1)')}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.transform = 'scale(1.06)';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.transform = 'scale(1)';
+                  }}
                 />
                 <div
                   style={{
                     position: 'absolute',
                     top: '12px',
-                    right: '12px',
-                    background: 'rgba(8, 8, 12, 0.8)',
-                    backdropFilter: 'blur(8px)',
-                    padding: '0.3rem 0.7rem',
-                    borderRadius: '9999px',
-                    border: '1px solid rgba(255, 184, 0, 0.3)',
-                    fontSize: '0.72rem',
-                    color: '#ffd54f',
-                    fontWeight: 700,
+                    right: isAr ? '12px' : 'auto',
+                    left: isAr ? 'auto' : '12px',
+                    zIndex: 2,
                   }}
                 >
-                  {item.tag}
+                  <span className="badge-gold font-cinzel" style={{ fontSize: '0.68rem', background: 'rgba(8, 8, 12, 0.85)', backdropFilter: 'blur(8px)' }}>
+                    {item.tag}
+                  </span>
                 </div>
-
                 <div
                   style={{
                     position: 'absolute',
-                    bottom: '12px',
-                    left: '12px',
-                    width: '36px',
-                    height: '36px',
-                    borderRadius: '50%',
-                    background: 'rgba(255, 184, 0, 0.9)',
-                    color: '#08080a',
+                    inset: 0,
+                    background: 'rgba(8, 8, 12, 0.35)',
+                    opacity: 0,
+                    transition: 'opacity 0.3s ease',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    boxShadow: '0 4px 15px rgba(255, 184, 0, 0.4)',
+                    color: '#ffb800',
                   }}
+                  className="gallery-zoom-overlay"
+                  onMouseEnter={(e) => { e.currentTarget.style.opacity = '1'; }}
+                  onMouseLeave={(e) => { e.currentTarget.style.opacity = '0'; }}
                 >
-                  <ZoomIn size={18} />
+                  <div
+                    style={{
+                      width: '48px',
+                      height: '48px',
+                      borderRadius: '50%',
+                      background: 'rgba(255, 184, 0, 0.25)',
+                      border: '1.5px solid #ffb800',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      backdropFilter: 'blur(6px)',
+                    }}
+                  >
+                    <ZoomIn size={22} color="#fff" />
+                  </div>
                 </div>
               </div>
 
@@ -179,7 +226,7 @@ export default function VisualGallery() {
                 <h4 style={{ fontSize: '1.15rem', fontWeight: 800, color: '#fff', marginBottom: '0.4rem' }}>
                   {item.title}
                 </h4>
-                <p style={{ fontSize: '0.85rem', color: '#a0a0b2', margin: 0, lineHeight: 1.5 }}>
+                <p style={{ fontSize: '0.82rem', color: '#a5a5b8', lineHeight: 1.5, margin: 0 }}>
                   {item.caption}
                 </p>
               </div>
@@ -190,92 +237,80 @@ export default function VisualGallery() {
         {/* Lightbox Modal */}
         {activeImage && (
           <div
-            onClick={() => setActiveImage(null)}
-            className="modal-overlay-responsive"
             style={{
               position: 'fixed',
               inset: 0,
+              zIndex: 1000,
               background: 'rgba(5, 5, 8, 0.94)',
-              backdropFilter: 'blur(20px)',
-              zIndex: 9999,
+              backdropFilter: 'blur(12px)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              padding: '1.5rem',
+              padding: '2rem',
             }}
+            onClick={() => setActiveImage(null)}
           >
             <div
-              onClick={(e) => e.stopPropagation()}
-              className="glass-panel gold-border-glow modal-dialog-responsive"
               style={{
+                position: 'relative',
                 maxWidth: '900px',
                 width: '100%',
                 maxHeight: '90vh',
-                borderRadius: '24px',
-                overflow: 'hidden',
-                position: 'relative',
                 display: 'flex',
                 flexDirection: 'column',
-                background: '#0d0d14',
+                borderRadius: '24px',
+                overflow: 'hidden',
+                background: '#0e0f16',
+                border: '1.5px solid rgba(255, 184, 0, 0.4)',
+                boxShadow: '0 30px 80px rgba(0,0,0,0.95), 0 0 50px rgba(255, 184, 0, 0.25)',
+                textAlign: isAr ? 'right' : 'left',
               }}
+              onClick={(e) => e.stopPropagation()}
             >
-              {/* Top Bar */}
-              <div
+              <button
+                onClick={() => setActiveImage(null)}
                 style={{
+                  position: 'absolute',
+                  top: '16px',
+                  right: isAr ? 'auto' : '16px',
+                  left: isAr ? '16px' : 'auto',
+                  width: '40px',
+                  height: '40px',
+                  borderRadius: '50%',
+                  background: 'rgba(8, 8, 12, 0.85)',
+                  border: '1px solid rgba(255, 184, 0, 0.4)',
+                  color: '#ffb800',
                   display: 'flex',
-                  justifyContent: 'space-between',
                   alignItems: 'center',
-                  padding: '1rem 1.25rem',
-                  borderBottom: '1px solid rgba(255, 184, 0, 0.2)',
-                  background: 'rgba(15, 16, 24, 0.8)',
+                  justifyContent: 'center',
+                  cursor: 'pointer',
+                  zIndex: 10,
                 }}
               >
-                <div>
-                  <h3 style={{ fontSize: '1.15rem', fontWeight: 800, color: '#fff', margin: 0 }}>
-                    {activeImage.title}
-                  </h3>
-                  <span style={{ fontSize: '0.78rem', color: '#ffd54f' }}>
-                    {activeImage.tag}
-                  </span>
-                </div>
+                <X size={20} />
+              </button>
 
-                <button
-                  onClick={() => setActiveImage(null)}
-                  style={{
-                    background: 'rgba(255, 255, 255, 0.1)',
-                    border: '1px solid rgba(255, 255, 255, 0.2)',
-                    borderRadius: '50%',
-                    width: '36px',
-                    height: '36px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    color: '#fff',
-                    cursor: 'pointer',
-                  }}
-                >
-                  <X size={18} />
-                </button>
-              </div>
-
-              {/* Image View */}
-              <div style={{ flex: 1, overflow: 'auto', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0.75rem', background: '#07070a' }}>
+              <div style={{ flex: 1, minHeight: '300px', maxHeight: '65vh', overflow: 'hidden', background: '#000', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 <img
                   src={activeImage.src}
                   alt={activeImage.title}
-                  style={{
-                    maxWidth: '100%',
-                    maxHeight: '60vh',
-                    objectFit: 'contain',
-                    borderRadius: '12px',
-                    boxShadow: '0 10px 40px rgba(0,0,0,0.8)',
-                  }}
+                  style={{ maxWidth: '100%', maxHeight: '65vh', objectFit: 'contain' }}
                 />
               </div>
 
-              {/* Description */}
-              <div style={{ padding: '1rem 1.25rem', borderTop: '1px solid rgba(255, 255, 255, 0.08)', background: 'rgba(12, 13, 20, 0.95)' }}>
-                <p style={{ margin: 0, color: '#d0d0df', fontSize: '0.9rem', lineHeight: 1.6 }}>
+              <div style={{ padding: '1.5rem', background: '#0e0f16', borderTop: '1px solid rgba(255, 184, 0, 0.2)' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', marginBottom: '0.4rem' }}>
+                  <span className="badge-gold font-cinzel" style={{ fontSize: '0.72rem' }}>
+                    {activeImage.tag}
+                  </span>
+                  <span style={{ fontSize: '0.8rem', color: '#ffb800' }}>
+                    {activeImage.category}
+                  </span>
+                </div>
+                <h3 style={{ fontSize: '1.4rem', fontWeight: 900, color: '#fff', marginBottom: '0.4rem' }}>
+                  {activeImage.title}
+                </h3>
+                <p style={{ color: '#b5b5c6', fontSize: '0.92rem', margin: 0, lineHeight: 1.6 }}>
                   {activeImage.caption}
                 </p>
               </div>
@@ -283,14 +318,6 @@ export default function VisualGallery() {
           </div>
         )}
       </div>
-
-      <style>{`
-        @media (max-width: 640px) {
-          .gallery-card-img-box {
-            height: 240px !important;
-          }
-        }
-      `}</style>
     </section>
   );
 }

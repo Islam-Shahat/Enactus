@@ -1,11 +1,19 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { alumniData } from '../data/enactusData';
-import { GraduationCap, Award, Briefcase, Quote, Sparkles, ArrowLeft } from 'lucide-react';
+import { useAlumni } from '../hooks/usePublicContent';
+import SEO from '../components/SEO';
+import { ArrowLeft, GraduationCap } from 'lucide-react';
 
 export default function AlumniPage() {
+  const { data: alumni = alumniData, isLoading } = useAlumni(alumniData);
+
   return (
     <div className="page-container-padding" style={{ paddingTop: '120px', paddingBottom: '100px' }}>
+      <SEO
+        title="خريجو الفريق وسفراء الأثر"
+        description="شبكة خريجي إيناكوس قنا: سفراء الأثر في كبرى الشركات والمؤسسات الدولية ومراكز ريادة الأعمال."
+      />
       <div className="container">
         {/* Header */}
         <div style={{ textAlign: 'center', maxWidth: '820px', margin: '0 auto 4rem auto' }}>
@@ -20,9 +28,27 @@ export default function AlumniPage() {
           </p>
         </div>
 
+        {/* Loading skeleton when empty & loading */}
+        {isLoading && alumni.length === 0 && (
+          <div className="grid-3" style={{ marginBottom: '5rem' }}>
+            {[1, 2, 3].map((n) => (
+              <div
+                key={n}
+                className="glass-panel"
+                style={{
+                  height: '320px',
+                  borderRadius: '24px',
+                  background: 'rgba(255, 184, 0, 0.04)',
+                  border: '1px dashed rgba(255, 184, 0, 0.25)',
+                }}
+              />
+            ))}
+          </div>
+        )}
+
         {/* Alumni Cards Grid */}
         <div className="grid-3" style={{ marginBottom: '5rem' }}>
-          {alumniData.map((alumnus, idx) => (
+          {alumni.map((alumnus, idx) => (
             <div
               key={idx}
               className="glass-panel gold-glow-hover card-shine responsive-card-p"

@@ -1,10 +1,14 @@
-import React, { useState } from 'react';
+import React from 'react';
 import VisualGallery from '../components/VisualGallery';
-import { Image, Video, Sparkles } from 'lucide-react';
+import SEO from '../components/SEO';
 
 export default function GalleryPage() {
   return (
     <div className="page-container-padding" style={{ paddingTop: '120px', paddingBottom: '100px' }}>
+      <SEO
+        title="معرض الصور والوسائط"
+        description="معرض الوسائط والهوية البصرية لكتيبة إيناكوس قنا: كواليس الحملات وتوثيق لحظات المجد."
+      />
       <div className="container">
         {/* Header */}
         <div style={{ textAlign: 'center', maxWidth: '820px', margin: '0 auto 2rem auto' }}>

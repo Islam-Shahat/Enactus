@@ -1,18 +1,34 @@
 import React from 'react';
 import { useParams, Link, Navigate } from 'react-router-dom';
 import { committeesData } from '../data/enactusData';
-import { Sparkles, CheckCircle2, ArrowRight, UserCheck, Briefcase, Award, ArrowLeft } from 'lucide-react';
+import { useCommittee } from '../hooks/usePublicContent';
+import SEO from '../components/SEO';
+import { Sparkles, CheckCircle2, UserCheck, Briefcase, Award, ArrowLeft } from 'lucide-react';
 
 export default function CommitteeDetailsPage() {
   const { slug } = useParams();
-  const committee = committeesData.find((c) => c.slug === slug);
+  const fallbackCommittee = committeesData.find((c) => c.slug === slug);
+  const { data: committee = fallbackCommittee, isLoading } = useCommittee(slug, committeesData);
 
-  if (!committee) {
+  if (!committee && !isLoading) {
     return <Navigate to="/committees" replace />;
+  }
+
+  if (!committee && isLoading) {
+    return (
+      <div className="page-container-padding" style={{ paddingTop: '140px', minHeight: '60vh', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+        <div style={{ width: '40px', height: '40px', borderRadius: '50%', border: '3px solid rgba(255, 184, 0, 0.2)', borderTopColor: '#ffb800', animation: 'spin 0.8s linear infinite' }} />
+        <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+      </div>
+    );
   }
 
   return (
     <div className="page-container-padding" style={{ paddingTop: '120px', paddingBottom: '100px' }}>
+      <SEO
+        title={`${committee.arabicName} (${committee.code})`}
+        description={committee.brief || committee.description}
+      />
       <div className="container">
         {/* Breadcrumb Navigation */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '2rem', fontSize: '0.9rem', flexWrap: 'wrap' }}>

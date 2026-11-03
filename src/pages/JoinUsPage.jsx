@@ -1,17 +1,28 @@
 import React, { useState, useEffect } from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
-import { Sparkles, User, BookOpen, Phone, CheckCircle2, Copy, Check, ArrowLeft, Shield, Clock, Award } from 'lucide-react';
+import { Sparkles, User, Phone, CheckCircle2, Copy, Check, ArrowLeft, ArrowRight, Clock } from 'lucide-react';
+import { useApplicationsOpen } from '../hooks/usePublicContent';
+import { useLanguage } from '../context/LanguageContext';
+import { FACULTIES, ACADEMIC_YEARS, RECRUITMENT_COMMITTEES } from '../services/mockLocalization';
+import SEO from '../components/SEO';
 
 export default function JoinUsPage() {
   const [searchParams] = useSearchParams();
   const preselectedCommittee = searchParams.get('committee') || '';
+  const { data: applicationsOpen = true } = useApplicationsOpen();
+  const { lang, dir } = useLanguage();
+  const isAr = lang === 'ar';
+
+  const defaultFaculty = isAr ? 'كلية الهندسة' : 'Faculty of Engineering';
+  const defaultYear = isAr ? 'الفرقة الثانية' : '2nd Year (Sophomore)';
+  const defaultComm = isAr ? 'إدارة المشاريع التنموية (PM)' : 'Project Management (PM)';
 
   const [formData, setFormData] = useState({
     name: '',
-    faculty: 'كلية الهندسة',
-    year: 'الفرقة الثانية',
+    faculty: defaultFaculty,
+    year: defaultYear,
     phone: '',
-    committee: preselectedCommittee || 'إدارة المشاريع التنموية (PM)',
+    committee: preselectedCommittee || defaultComm,
     impactGoal: '',
   });
 
@@ -25,39 +36,20 @@ export default function JoinUsPage() {
     }
   }, [preselectedCommittee]);
 
-  const faculties = [
-    'كلية الهندسة',
-    'كلية التجارة',
-    'كلية الحاسبات والمعلومات',
-    'كلية العلوم',
-    'كلية الآداب',
-    'كلية التربية',
-    'كلية الزراعة',
-    'كلية الطب البشري',
-    'كلية العلاج الطبيعي',
-    'كلية التمريض',
-    'كلية الصيدلة',
-    'كلية طب الأسنان',
-    'كلية الآثار بقنا',
-    'كلية الحقوق',
-    'كلية التربية النوعية',
-    'أخرى',
-  ];
-
-  const committeesList = [
-    'إدارة المشاريع التنموية (PM)',
-    'المالتي ميديا والتصميم (MultiMedia)',
-    'العلاقات العامة والشراكات (PR)',
-    'لجنة التنظيم واللوجستيات (OC)',
-    'الموارد البشرية والتطوير (HR)',
-    'فرسان المنصة والعرض (Presentation)',
-    'صناع المحتوى والسوشيال ميديا (Social Media)',
-  ];
+  // Synchronize defaults on language switch
+  useEffect(() => {
+    setFormData((prev) => ({
+      ...prev,
+      faculty: isAr ? 'كلية الهندسة' : 'Faculty of Engineering',
+      year: isAr ? 'الفرقة الثانية' : '2nd Year (Sophomore)',
+      committee: preselectedCommittee || (isAr ? 'إدارة المشاريع التنموية (PM)' : 'Project Management (PM)'),
+    }));
+  }, [lang, preselectedCommittee, isAr]);
 
   const handleSubmit = (e) => {
     e.preventDefault();
     if (!formData.name || !formData.phone) {
-      alert('يرجى ملء الاسم ورقم الهاتف للمتابعة');
+      alert(isAr ? 'يرجى ملء الاسم ورقم الهاتف للمتابعة' : 'Please fill in your name and phone number to continue.');
       return;
     }
 
@@ -86,7 +78,13 @@ export default function JoinUsPage() {
   };
 
   return (
-    <div className="page-container-padding" style={{ paddingTop: '120px', paddingBottom: '100px' }}>
+    <div className="page-container-padding" dir={dir} style={{ paddingTop: '120px', paddingBottom: '100px' }}>
+      <SEO
+        title={isAr ? 'انضم إلينا (Recruitment)' : 'Join Us (Recruitment)'}
+        description={isAr
+          ? 'انضم لكتيبة إيناكوس قنا - جامعة جنوب الوادي للموسم الجديد 2026. قدّم الآن لإحدى اللجان السبع.'
+          : 'Join the Enactus Qena battalion - South Valley University for the 2026 season. Apply now to one of the seven committees.'}
+      />
       <div className="container">
         {/* Header */}
         <div style={{ textAlign: 'center', maxWidth: '820px', margin: '0 auto 3.5rem auto' }}>
@@ -94,10 +92,16 @@ export default function JoinUsPage() {
             RECRUITMENT PORTAL • 2026
           </span>
           <h1 style={{ fontSize: 'clamp(2rem, 4.5vw, 3.8rem)', fontWeight: 900, marginBottom: '1.25rem', color: '#fff' }}>
-            اترك أثرك الخالد: <span className="gold-gradient-text">انضم لكتيبة إيناكوس قنا</span>
+            {isAr ? (
+              <>اترك أثرك الخالد: <span className="gold-gradient-text">انضم لكتيبة إيناكوس قنا</span></>
+            ) : (
+              <>LEAVE YOUR MARK: <span className="gold-gradient-text">Join Enactus Qena Battalion</span></>
+            )}
           </h1>
           <p style={{ fontSize: '1.15rem', color: '#c5c5d8', lineHeight: 1.8 }}>
-            "The future was found, and it's looking for you!" لا تكتفِ بالمشاهدة، كن أحد فرسان التغيير ومبتكري المشاريع التي تخدم صعيد مصر وتصعد للمسابقة الوطنية.
+            {isAr
+              ? '"The future was found, and it\'s looking for you!" لا تكتفِ بالمشاهدة، كن أحد فرسان التغيير ومبتكري المشاريع التي تخدم صعيد مصر وتصعد للمسابقة الوطنية.'
+              : '"The future was found, and it\'s looking for you!" Don\'t just watch; become one of the changemakers driving social startups that uplift Upper Egypt and compete on the national stage.'}
           </p>
         </div>
 
@@ -109,7 +113,7 @@ export default function JoinUsPage() {
             margin: '0 auto 2.5rem auto',
             padding: '1rem 1.25rem',
             borderRadius: '16px',
-            border: '1px solid rgba(255, 184, 0, 0.4)',
+            border: applicationsOpen ? '1px solid rgba(255, 184, 0, 0.4)' : '1px solid rgba(239, 68, 68, 0.4)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
@@ -118,19 +122,68 @@ export default function JoinUsPage() {
           }}
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-            <Clock size={20} color="#ffb800" style={{ flexShrink: 0 }} />
+            <Clock size={20} color={applicationsOpen ? '#ffb800' : '#ef4444'} style={{ flexShrink: 0 }} />
             <span style={{ fontSize: '0.9rem', color: '#fff', fontWeight: 700 }}>
-              باب التقديم مفتوح لجميع كليات جامعة جنوب الوادي
+              {applicationsOpen
+                ? (isAr ? 'باب التقديم مفتوح لجميع كليات جامعة جنوب الوادي' : 'Applications are open to all South Valley University faculties')
+                : (isAr ? 'باب التقديم مغلق حالياً للموسم الجديد' : 'Applications are currently closed for the new season')}
             </span>
           </div>
-          <span className="badge-gold" style={{ background: '#ffd54f', color: '#08080a', fontWeight: 900 }}>
-            FORM OPEN
+          <span
+            className="badge-gold"
+            style={{
+              background: applicationsOpen ? '#ffd54f' : 'rgba(239, 68, 68, 0.15)',
+              color: applicationsOpen ? '#08080a' : '#fca5a5',
+              borderColor: applicationsOpen ? 'transparent' : 'rgba(239, 68, 68, 0.4)',
+              fontWeight: 900,
+            }}
+          >
+            {applicationsOpen ? (isAr ? 'FORM OPEN' : 'APPLICATIONS OPEN') : (isAr ? 'APPLICATIONS CLOSED' : 'CLOSED')}
           </span>
         </div>
 
-        {/* Form or Result Card */}
+        {/* Form or Result Card or Closed Card */}
         <div style={{ maxWidth: '720px', margin: '0 auto' }}>
-          {!isSubmitted ? (
+          {!applicationsOpen ? (
+            <div
+              className="glass-panel gold-border-glow"
+              style={{
+                borderRadius: '24px',
+                padding: '3.5rem 2rem',
+                textAlign: 'center',
+                background: 'linear-gradient(145deg, rgba(22, 24, 34, 0.95), rgba(12, 13, 18, 0.98))',
+              }}
+            >
+              <div
+                style={{
+                  width: '68px',
+                  height: '68px',
+                  borderRadius: '50%',
+                  background: 'rgba(255, 184, 0, 0.15)',
+                  border: '2px solid #ffb800',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  color: '#ffd54f',
+                  margin: '0 auto 1.5rem auto',
+                }}
+              >
+                <Clock size={34} />
+              </div>
+              <h2 style={{ fontSize: '1.75rem', fontWeight: 900, color: '#fff', marginBottom: '0.75rem' }}>
+                {isAr ? 'باب التقديم مغلق حالياً' : 'Applications Are Currently Closed'}
+              </h2>
+              <p style={{ color: '#c5c5d6', fontSize: '1.05rem', lineHeight: 1.8, maxWidth: '520px', margin: '0 auto 2.5rem auto' }}>
+                {isAr
+                  ? 'انتهت فترة استقبال طلبات الانضمام للموسم الحالي. تابع صفحاتنا الرسمية على منصات التواصل الاجتماعي للإعلان عن فتح باب التقديم للمراحل القادمة.'
+                  : 'Recruitment for the current season has ended. Follow our official social media channels for announcements regarding upcoming recruitment waves.'}
+              </p>
+              <Link to="/" className="btn-primary" style={{ display: 'inline-flex', justifyContent: 'center' }}>
+                <span>{isAr ? 'العودة للرئيسية' : 'Back to Home'}</span>
+                {isAr ? <ArrowLeft size={16} /> : <ArrowRight size={16} />}
+              </Link>
+            </div>
+          ) : !isSubmitted ? (
             <div
               className="glass-panel gold-border-glow responsive-form-p"
               style={{
@@ -143,13 +196,13 @@ export default function JoinUsPage() {
                 {/* Full Name */}
                 <div style={{ marginBottom: '1.5rem' }}>
                   <label style={{ display: 'block', color: '#ffd54f', fontSize: '0.92rem', fontWeight: 700, marginBottom: '0.5rem' }}>
-                    الاسم بالكامل (كما في بطاقة الرقم القومي) *
+                    {isAr ? 'الاسم بالكامل (ثلاثي أو رباعي) *' : 'Full Name (3 or 4 names) *'}
                   </label>
                   <div style={{ position: 'relative' }}>
                     <input
                       type="text"
                       required
-                      placeholder="مثال: يوسف محمود عبد الرحيم"
+                      placeholder={isAr ? 'مثال: يوسف محمود عبد الرحيم' : 'e.g. Youssef Mahmoud'}
                       value={formData.name}
                       onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                       style={{
@@ -157,21 +210,21 @@ export default function JoinUsPage() {
                         background: 'rgba(10, 11, 16, 0.85)',
                         border: '1px solid rgba(255, 184, 0, 0.3)',
                         borderRadius: '12px',
-                        padding: '0.9rem 1rem 0.9rem 2.8rem',
+                        padding: isAr ? '0.9rem 1rem 0.9rem 2.8rem' : '0.9rem 2.8rem 0.9rem 1rem',
                         color: '#fff',
                         fontSize: '1rem',
                         outline: 'none',
                       }}
                     />
-                    <User size={18} color="#ffb800" style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)' }} />
+                    <User size={18} color="#ffb800" style={{ position: 'absolute', [isAr ? 'left' : 'right']: '14px', top: '50%', transform: 'translateY(-50%)' }} />
                   </div>
                 </div>
 
-                {/* Faculty & Year */}
+                {/* Faculty & Academic Year */}
                 <div className="form-grid-2" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.25rem', marginBottom: '1.5rem' }}>
                   <div>
                     <label style={{ display: 'block', color: '#ffd54f', fontSize: '0.92rem', fontWeight: 700, marginBottom: '0.5rem' }}>
-                      الكلية بجامعة جنوب الوادي *
+                      {isAr ? 'الكلية بجامعة جنوب الوادي *' : 'Faculty at SVU *'}
                     </label>
                     <select
                       value={formData.faculty}
@@ -187,17 +240,20 @@ export default function JoinUsPage() {
                         outline: 'none',
                       }}
                     >
-                      {faculties.map((f, i) => (
-                        <option key={i} value={f} style={{ background: '#0e0f16', color: '#fff' }}>
-                          {f}
-                        </option>
-                      ))}
+                      {FACULTIES.map((f, i) => {
+                        const val = isAr ? f.ar : f.en;
+                        return (
+                          <option key={i} value={val}>
+                            {val}
+                          </option>
+                        );
+                      })}
                     </select>
                   </div>
 
                   <div>
                     <label style={{ display: 'block', color: '#ffd54f', fontSize: '0.92rem', fontWeight: 700, marginBottom: '0.5rem' }}>
-                      الفرقة الدراسية *
+                      {isAr ? 'الفرقة الدراسية *' : 'Academic Year *'}
                     </label>
                     <select
                       value={formData.year}
@@ -213,11 +269,14 @@ export default function JoinUsPage() {
                         outline: 'none',
                       }}
                     >
-                      <option value="الفرقة الأولى" style={{ background: '#0e0f16' }}>الفرقة الأولى</option>
-                      <option value="الفرقة الثانية" style={{ background: '#0e0f16' }}>الفرقة الثانية</option>
-                      <option value="الفرقة الثالثة" style={{ background: '#0e0f16' }}>الفرقة الثالثة</option>
-                      <option value="الفرقة الرابعة" style={{ background: '#0e0f16' }}>الفرقة الرابعة</option>
-                      <option value="الفرقة الخامسة / دراسات عليا" style={{ background: '#0e0f16' }}>الفرقة الخامسة / دراسات عليا</option>
+                      {ACADEMIC_YEARS.map((yr, i) => {
+                        const val = isAr ? yr.ar : yr.en;
+                        return (
+                          <option key={i} value={val}>
+                            {val}
+                          </option>
+                        );
+                      })}
                     </select>
                   </div>
                 </div>
@@ -225,7 +284,7 @@ export default function JoinUsPage() {
                 {/* Phone */}
                 <div style={{ marginBottom: '1.5rem' }}>
                   <label style={{ display: 'block', color: '#ffd54f', fontSize: '0.92rem', fontWeight: 700, marginBottom: '0.5rem' }}>
-                    رقم الهاتف (الواتساب لتحديد موعد المقابلة) *
+                    {isAr ? 'رقم الهاتف (الواتساب لتحديد موعد المقابلة) *' : 'Phone Number (WhatsApp for interview schedule) *'}
                   </label>
                   <div style={{ position: 'relative' }}>
                     <input
@@ -239,15 +298,15 @@ export default function JoinUsPage() {
                         background: 'rgba(10, 11, 16, 0.85)',
                         border: '1px solid rgba(255, 184, 0, 0.3)',
                         borderRadius: '12px',
-                        padding: '0.9rem 1rem 0.9rem 2.8rem',
+                        padding: isAr ? '0.9rem 1rem 0.9rem 2.8rem' : '0.9rem 2.8rem 0.9rem 1rem',
                         color: '#fff',
                         fontSize: '1rem',
                         outline: 'none',
                         direction: 'ltr',
-                        textAlign: 'right',
+                        textAlign: isAr ? 'right' : 'left',
                       }}
                     />
-                    <Phone size={18} color="#ffb800" style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)' }} />
+                    <Phone size={18} color="#ffb800" style={{ position: 'absolute', [isAr ? 'left' : 'right']: '14px', top: '50%', transform: 'translateY(-50%)' }} />
                   </div>
                 </div>
 
@@ -255,10 +314,10 @@ export default function JoinUsPage() {
                 <div style={{ marginBottom: '1.5rem' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
                     <label style={{ color: '#ffd54f', fontSize: '0.92rem', fontWeight: 700 }}>
-                      اللجنة التي ترغب في الانضمام إليها *
+                      {isAr ? 'اللجنة التي ترغب في الانضمام إليها *' : 'Committee You Wish to Join *'}
                     </label>
                     <Link to="/committees" style={{ color: '#ffb800', fontSize: '0.8rem', textDecoration: 'none' }}>
-                      دليل مهام اللجان ←
+                      {isAr ? 'دليل مهام اللجان ←' : 'Committees Guide →'}
                     </Link>
                   </div>
                   <select
@@ -275,22 +334,27 @@ export default function JoinUsPage() {
                       outline: 'none',
                     }}
                   >
-                    {committeesList.map((c, i) => (
-                      <option key={i} value={c} style={{ background: '#0e0f16', color: '#fff' }}>
-                        {c}
-                      </option>
-                    ))}
+                    {RECRUITMENT_COMMITTEES.map((c, i) => {
+                      const val = isAr ? c.ar : c.en;
+                      return (
+                        <option key={i} value={val}>
+                          {val}
+                        </option>
+                      );
+                    })}
                   </select>
                 </div>
 
                 {/* Impact Goal */}
                 <div style={{ marginBottom: '2.5rem' }}>
                   <label style={{ display: 'block', color: '#ffd54f', fontSize: '0.92rem', fontWeight: 700, marginBottom: '0.5rem' }}>
-                    ما هو الأثر أو المهارة التي تطمح لإضافتها للكتيبة ومجتمع قنا؟
+                    {isAr
+                      ? 'ما هو الأثر أو المهارة التي تطمح لإضافتها للكتيبة ومجتمع قنا؟'
+                      : 'What impact or skills do you aim to bring to the battalion and Qena community?'}
                   </label>
                   <textarea
                     rows="3"
-                    placeholder="حدثنا باختصار عن أفكارك وشغفك..."
+                    placeholder={isAr ? 'حدثنا باختصار عن أفكارك وشغفك...' : 'Briefly tell us about your passion, ideas, and motivation...'}
                     value={formData.impactGoal}
                     onChange={(e) => setFormData({ ...formData, impactGoal: e.target.value })}
                     style={{
@@ -319,7 +383,7 @@ export default function JoinUsPage() {
                   }}
                 >
                   <Sparkles size={22} />
-                  <span>تأكيد التسجيل واستخراج بطاقة العضوية ☥</span>
+                  <span>{isAr ? 'تأكيد التسجيل واستخراج بطاقة العضوية ☥' : 'Confirm Registration & Issue Membership Pass ☥'}</span>
                 </button>
               </form>
             </div>
@@ -352,10 +416,14 @@ export default function JoinUsPage() {
               </div>
 
               <h2 style={{ fontSize: '2.2rem', fontWeight: 900, color: '#fff', marginBottom: '0.5rem' }}>
-                تم استلام طلبك بنجاح!
+                {isAr ? 'تم استلام طلبك بنجاح!' : 'Application Received Successfully!'}
               </h2>
               <p style={{ color: '#c5c5d6', fontSize: '1.05rem', marginBottom: '2.5rem' }}>
-                أهلاً بك في مرحلة الانطلاق. إليك بطاقة عضويتك الرسمية الخاصة بـ <strong style={{ color: '#ffd54f' }}>Enactus Qena</strong>:
+                {isAr ? (
+                  <>أهلاً بك في مرحلة الانطلاق. إليك بطاقة عضويتك الرسمية الخاصة بـ <strong style={{ color: '#ffd54f' }}>Enactus Qena</strong>:</>
+                ) : (
+                  <>Welcome to the launch journey! Here is your official VIP Pass for <strong style={{ color: '#ffd54f' }}>Enactus Qena</strong>:</>
+                )}
               </p>
 
               {/* VIP Card */}
@@ -370,7 +438,7 @@ export default function JoinUsPage() {
                   border: '2px solid rgba(255, 184, 0, 0.65)',
                   boxShadow: '0 20px 50px rgba(0, 0, 0, 0.8), 0 0 35px rgba(255, 184, 0, 0.3)',
                   overflow: 'hidden',
-                  textAlign: 'right',
+                  textAlign: isAr ? 'right' : 'left',
                   position: 'relative',
                 }}
               >
@@ -391,24 +459,26 @@ export default function JoinUsPage() {
                   </div>
 
                   <div style={{ marginBottom: '1.25rem' }}>
-                    <div style={{ fontSize: '0.75rem', color: '#ffd54f', fontWeight: 600 }}>اسم المحارب:</div>
+                    <div style={{ fontSize: '0.75rem', color: '#ffd54f', fontWeight: 600 }}>
+                      {isAr ? 'اسم المحارب:' : 'Member Name:'}
+                    </div>
                     <div style={{ fontSize: '1.45rem', fontWeight: 900, color: '#fff' }}>{formData.name}</div>
                   </div>
 
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', marginBottom: '1.5rem' }}>
                     <div>
-                      <div style={{ fontSize: '0.72rem', color: '#a3a3b2' }}>الكلية:</div>
+                      <div style={{ fontSize: '0.72rem', color: '#a3a3b2' }}>{isAr ? 'الكلية:' : 'Faculty:'}</div>
                       <div style={{ fontSize: '0.92rem', fontWeight: 700, color: '#e0e0ec' }}>{formData.faculty}</div>
                     </div>
                     <div>
-                      <div style={{ fontSize: '0.72rem', color: '#a3a3b2' }}>اللجنة:</div>
+                      <div style={{ fontSize: '0.72rem', color: '#a3a3b2' }}>{isAr ? 'اللجنة:' : 'Committee:'}</div>
                       <div style={{ fontSize: '0.92rem', fontWeight: 700, color: '#ffb800' }}>{formData.committee}</div>
                     </div>
                   </div>
 
                   <div style={{ borderTop: '1px dashed rgba(255, 184, 0, 0.35)', paddingTop: '0.85rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     <div>
-                      <div style={{ fontSize: '0.68rem', color: '#888' }}>كود التسجيل:</div>
+                      <div style={{ fontSize: '0.68rem', color: '#888' }}>{isAr ? 'كود التسجيل:' : 'Pass Serial:'}</div>
                       <div className="font-cinzel" style={{ fontSize: '0.92rem', color: '#ffd54f', fontWeight: 800 }}>{memberId}</div>
                     </div>
                     <div style={{ fontSize: '0.75rem', color: '#ffb800', fontStyle: 'italic', fontWeight: 700 }}>
@@ -417,7 +487,7 @@ export default function JoinUsPage() {
                   </div>
                 </div>
 
-                <div style={{ position: 'absolute', bottom: '-20px', left: '-20px', fontSize: '6rem', color: 'rgba(255, 184, 0, 0.04)', pointerEvents: 'none' }}>
+                <div style={{ position: 'absolute', bottom: '-20px', [isAr ? 'left' : 'right']: '-20px', fontSize: '6rem', color: 'rgba(255, 184, 0, 0.04)', pointerEvents: 'none' }}>
                   ☥
                 </div>
               </div>
@@ -440,7 +510,7 @@ export default function JoinUsPage() {
                   }}
                 >
                   {copied ? <Check size={18} /> : <Copy size={18} />}
-                  <span>{copied ? 'تم نسخ كود العضوية!' : 'نسخ كود العضوية'}</span>
+                  <span>{copied ? (isAr ? 'تم نسخ كود العضوية!' : 'Pass ID Copied!') : (isAr ? 'نسخ كود العضوية' : 'Copy Pass ID')}</span>
                 </button>
 
                 <a
@@ -450,7 +520,7 @@ export default function JoinUsPage() {
                   className="btn-primary"
                   style={{ padding: '0.85rem 2rem' }}
                 >
-                  <span>متابعة إعلان المقابلات على فيسبوك</span>
+                  <span>{isAr ? 'متابعة إعلان المقابلات على فيسبوك' : 'Follow Interviews on Facebook'}</span>
                 </a>
               </div>
             </div>

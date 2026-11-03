@@ -1,13 +1,24 @@
-import React, { useState } from 'react';
-import { X, Sparkles, CheckCircle2, User, BookOpen, Phone, Briefcase, Award, Download, Copy, Check } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { X, Sparkles, CheckCircle2, User, Phone, Copy, Check, Clock } from 'lucide-react';
+import { useApplicationsOpen } from '../hooks/usePublicContent';
+import { useLanguage } from '../context/LanguageContext';
+import { FACULTIES, ACADEMIC_YEARS, RECRUITMENT_COMMITTEES } from '../services/mockLocalization';
 
 export default function RecruitmentModal({ isOpen, onClose, defaultCommittee = '' }) {
+  const { data: applicationsOpen = true } = useApplicationsOpen();
+  const { lang, dir } = useLanguage();
+  const isAr = lang === 'ar';
+
+  const defaultFaculty = isAr ? 'كلية التجارة' : 'Faculty of Commerce';
+  const defaultYear = isAr ? 'الفرقة الثانية' : '2nd Year (Sophomore)';
+  const defaultComm = isAr ? 'إدارة المشاريع التنموية (PM)' : 'Project Management (PM)';
+
   const [formData, setFormData] = useState({
     name: '',
-    faculty: 'كلية التجارة',
-    year: 'الفرقة الثانية',
+    faculty: defaultFaculty,
+    year: defaultYear,
     phone: '',
-    committee: defaultCommittee || 'إدارة المشاريع التنموية (PM)',
+    committee: defaultCommittee || defaultComm,
     impactGoal: '',
   });
 
@@ -15,19 +26,22 @@ export default function RecruitmentModal({ isOpen, onClose, defaultCommittee = '
   const [memberId, setMemberId] = useState('');
   const [copied, setCopied] = useState(false);
 
-  // Update default committee if changed from props
-  React.useEffect(() => {
-    if (defaultCommittee) {
-      setFormData((prev) => ({ ...prev, committee: defaultCommittee }));
-    }
-  }, [defaultCommittee]);
+  // Synchronize defaults on language switch
+  useEffect(() => {
+    setFormData((prev) => ({
+      ...prev,
+      faculty: isAr ? 'كلية التجارة' : 'Faculty of Commerce',
+      year: isAr ? 'الفرقة الثانية' : '2nd Year (Sophomore)',
+      committee: defaultCommittee || (isAr ? 'إدارة المشاريع التنموية (PM)' : 'Project Management (PM)'),
+    }));
+  }, [lang, defaultCommittee, isAr]);
 
   if (!isOpen) return null;
 
   const handleSubmit = (e) => {
     e.preventDefault();
     if (!formData.name || !formData.phone) {
-      alert('يرجى ملء الاسم ورقم الهاتف للمتابعة');
+      alert(isAr ? 'يرجى ملء الاسم ورقم الهاتف للمتابعة' : 'Please enter your full name and phone number to continue.');
       return;
     }
 
@@ -55,35 +69,6 @@ export default function RecruitmentModal({ isOpen, onClose, defaultCommittee = '
     setTimeout(() => setCopied(false), 2000);
   };
 
-  const faculties = [
-    'كلية التجارة',
-    'كلية الهندسة',
-    'كلية الحاسبات والمعلومات',
-    'كلية العلوم',
-    'كلية الآداب',
-    'كلية التربية',
-    'كلية الزراعة',
-    'كلية الطب البشري',
-    'كلية العلاج الطبيعي',
-    'كلية التمريض',
-    'كلية الصيدلة',
-    'كلية طب الأسنان',
-    'كلية الآثار بقنا',
-    'كلية الحقوق',
-    'كلية التربية النوعية',
-    'أخرى',
-  ];
-
-  const committeesList = [
-    'إدارة المشاريع التنموية (PM)',
-    'المالتي ميديا والتصميم (MultiMedia)',
-    'العلاقات العامة والشراكات (PR)',
-    'لجنة التنظيم واللوجستيات (OC)',
-    'الموارد البشرية والتطوير (HR)',
-    'فرسان المنصة والعرض (Presentation)',
-    'صناع المحتوى والسوشيال ميديا (Social Media)',
-  ];
-
   return (
     <div
       className="modal-overlay-responsive"
@@ -102,6 +87,7 @@ export default function RecruitmentModal({ isOpen, onClose, defaultCommittee = '
     >
       <div
         className="glass-panel gold-border-glow modal-dialog-responsive"
+        dir={dir}
         style={{
           width: '100%',
           maxWidth: '680px',
@@ -141,7 +127,9 @@ export default function RecruitmentModal({ isOpen, onClose, defaultCommittee = '
             </div>
             <div style={{ minWidth: 0 }}>
               <h3 style={{ fontSize: 'clamp(1rem, 2.8vw, 1.25rem)', fontWeight: 900, color: '#fff', margin: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                {isSubmitted ? 'بطاقة عضوية إيناكوس قنا الرسمية' : 'استمارة الانضمام - LEAVE YOUR MARK'}
+                {isSubmitted
+                  ? (isAr ? 'بطاقة عضوية إيناكوس قنا الرسمية' : 'Official Enactus Qena VIP Pass')
+                  : (isAr ? 'استمارة الانضمام - LEAVE YOUR MARK' : 'Application Form - LEAVE YOUR MARK')}
               </h3>
               <span style={{ fontSize: '0.75rem', color: '#ffb800' }}>
                 Enactus South Valley University • 2026
@@ -151,6 +139,7 @@ export default function RecruitmentModal({ isOpen, onClose, defaultCommittee = '
 
           <button
             onClick={onClose}
+            aria-label={isAr ? 'إغلاق' : 'Close'}
             style={{
               background: 'rgba(255, 255, 255, 0.08)',
               border: '1px solid rgba(255, 255, 255, 0.15)',
@@ -171,30 +160,71 @@ export default function RecruitmentModal({ isOpen, onClose, defaultCommittee = '
 
         {/* Modal Body */}
         <div className="modal-body-responsive" style={{ padding: '2rem', overflowY: 'auto' }}>
-          {!isSubmitted ? (
+          {!applicationsOpen ? (
+            <div style={{ textAlign: 'center', padding: '2rem 1rem' }}>
+              <div
+                style={{
+                  width: '64px',
+                  height: '64px',
+                  borderRadius: '50%',
+                  background: 'rgba(255, 184, 0, 0.15)',
+                  border: '2px solid #ffb800',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  color: '#ffd54f',
+                  margin: '0 auto 1.25rem auto',
+                }}
+              >
+                <Clock size={32} />
+              </div>
+              <h4 style={{ fontSize: '1.4rem', fontWeight: 900, color: '#fff', marginBottom: '0.6rem' }}>
+                {isAr ? 'باب التقديم مغلق حالياً' : 'Applications Are Currently Closed'}
+              </h4>
+              <p style={{ fontSize: '0.92rem', color: '#c5c5d6', lineHeight: 1.7, maxWidth: '420px', margin: '0 auto 1.75rem auto' }}>
+                {isAr
+                  ? 'تم إغلاق استمارة التقديم للموسم الحالي. تابع قنواتنا الرسمية لمعرفة مواعيد فتح باب التقديم للمراحل القادمة.'
+                  : 'Recruitment for the current season is now closed. Follow our official channels for future announcements.'}
+              </p>
+              <button
+                type="button"
+                onClick={onClose}
+                className="btn-primary"
+                style={{ margin: '0 auto', padding: '0.65rem 1.8rem' }}
+              >
+                {isAr ? 'إغلاق' : 'Close'}
+              </button>
+            </div>
+          ) : !isSubmitted ? (
             <form onSubmit={handleSubmit}>
               <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
                 <span className="badge-gold font-cinzel" style={{ marginBottom: '0.5rem' }}>
                   THE FUTURE WAS FOUND
                 </span>
                 <h4 style={{ fontSize: '1.5rem', fontWeight: 900, color: '#fff', marginBottom: '0.4rem' }}>
-                  لا تكتفِ بالتقديم.. <span className="gold-gradient-text">اترك أثرك الخالد!</span>
+                  {isAr ? (
+                    <>لا تكتفِ بالتقديم.. <span className="gold-gradient-text">اترك أثرك الخالد!</span></>
+                  ) : (
+                    <>Don't Just Apply.. <span className="gold-gradient-text">LEAVE YOUR MARK!</span></>
+                  )}
                 </h4>
                 <p style={{ fontSize: '0.9rem', color: '#a0a0b2', margin: 0 }}>
-                  املأ بياناتك لتنضم لكتيبة قنا المنافسة على درع مصر للمشاريع الريادية.
+                  {isAr
+                    ? 'املأ بياناتك لتنضم لكتيبة قنا المنافسة على درع مصر للمشاريع الريادية.'
+                    : 'Fill in your details to join the Qena battalion competing for the Egypt National Cup.'}
                 </p>
               </div>
 
               {/* Field 1: Name */}
               <div style={{ marginBottom: '1.25rem' }}>
                 <label style={{ display: 'block', color: '#ffd54f', fontSize: '0.88rem', fontWeight: 700, marginBottom: '0.4rem' }}>
-                  الاسم بالكامل (ثلاثي أو رباعي) *
+                  {isAr ? 'الاسم بالكامل (ثلاثي أو رباعي) *' : 'Full Name (3 or 4 names) *'}
                 </label>
                 <div style={{ position: 'relative' }}>
                   <input
                     type="text"
                     required
-                    placeholder="مثال: أحمد محمود عبد الرحيم"
+                    placeholder={isAr ? 'مثال: أحمد محمود عبد الرحيم' : 'e.g. Ahmed Mahmoud'}
                     value={formData.name}
                     onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                     style={{
@@ -202,13 +232,13 @@ export default function RecruitmentModal({ isOpen, onClose, defaultCommittee = '
                       background: 'rgba(10, 11, 16, 0.8)',
                       border: '1px solid rgba(255, 184, 0, 0.3)',
                       borderRadius: '12px',
-                      padding: '0.85rem 1rem 0.85rem 2.5rem',
+                      padding: isAr ? '0.85rem 1rem 0.85rem 2.5rem' : '0.85rem 2.5rem 0.85rem 1rem',
                       color: '#fff',
                       fontSize: '0.95rem',
                       outline: 'none',
                     }}
                   />
-                  <User size={18} color="#ffb800" style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)' }} />
+                  <User size={18} color="#ffb800" style={{ position: 'absolute', [isAr ? 'left' : 'right']: '12px', top: '50%', transform: 'translateY(-50%)' }} />
                 </div>
               </div>
 
@@ -216,7 +246,7 @@ export default function RecruitmentModal({ isOpen, onClose, defaultCommittee = '
               <div className="form-grid-2" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1.25rem' }}>
                 <div>
                   <label style={{ display: 'block', color: '#ffd54f', fontSize: '0.88rem', fontWeight: 700, marginBottom: '0.4rem' }}>
-                    الكلية بجامعة جنوب الوادي *
+                    {isAr ? 'الكلية بجامعة جنوب الوادي *' : 'Faculty at SVU *'}
                   </label>
                   <select
                     value={formData.faculty}
@@ -232,17 +262,20 @@ export default function RecruitmentModal({ isOpen, onClose, defaultCommittee = '
                       outline: 'none',
                     }}
                   >
-                    {faculties.map((f, i) => (
-                      <option key={i} value={f} style={{ background: '#0e0f16', color: '#fff' }}>
-                        {f}
-                      </option>
-                    ))}
+                    {FACULTIES.map((f, i) => {
+                      const val = isAr ? f.ar : f.en;
+                      return (
+                        <option key={i} value={val}>
+                          {val}
+                        </option>
+                      );
+                    })}
                   </select>
                 </div>
 
                 <div>
                   <label style={{ display: 'block', color: '#ffd54f', fontSize: '0.88rem', fontWeight: 700, marginBottom: '0.4rem' }}>
-                    الفرقة الدراسية *
+                    {isAr ? 'الفرقة الدراسية *' : 'Academic Year *'}
                   </label>
                   <select
                     value={formData.year}
@@ -258,11 +291,14 @@ export default function RecruitmentModal({ isOpen, onClose, defaultCommittee = '
                       outline: 'none',
                     }}
                   >
-                    <option value="الفرقة الأولى" style={{ background: '#0e0f16' }}>الفرقة الأولى</option>
-                    <option value="الفرقة الثانية" style={{ background: '#0e0f16' }}>الفرقة الثانية</option>
-                    <option value="الفرقة الثالثة" style={{ background: '#0e0f16' }}>الفرقة الثالثة</option>
-                    <option value="الفرقة الرابعة" style={{ background: '#0e0f16' }}>الفرقة الرابعة</option>
-                    <option value="الفرقة الخامسة / دراسات عليا" style={{ background: '#0e0f16' }}>الفرقة الخامسة / دراسات عليا</option>
+                    {ACADEMIC_YEARS.map((yr, i) => {
+                      const val = isAr ? yr.ar : yr.en;
+                      return (
+                        <option key={i} value={val}>
+                          {val}
+                        </option>
+                      );
+                    })}
                   </select>
                 </div>
               </div>
@@ -270,13 +306,13 @@ export default function RecruitmentModal({ isOpen, onClose, defaultCommittee = '
               {/* Field 4: Phone / WhatsApp */}
               <div style={{ marginBottom: '1.25rem' }}>
                 <label style={{ display: 'block', color: '#ffd54f', fontSize: '0.88rem', fontWeight: 700, marginBottom: '0.4rem' }}>
-                  رقم الهاتف (الواتساب للتواصل) *
+                  {isAr ? 'رقم الهاتف (الواتساب للتواصل) *' : 'Phone Number (WhatsApp for interview contact) *'}
                 </label>
                 <div style={{ position: 'relative' }}>
                   <input
                     type="tel"
                     required
-                    placeholder="مثال: 01012345678"
+                    placeholder={isAr ? 'مثال: 01012345678' : 'e.g. 01012345678'}
                     value={formData.phone}
                     onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
                     style={{
@@ -284,22 +320,22 @@ export default function RecruitmentModal({ isOpen, onClose, defaultCommittee = '
                       background: 'rgba(10, 11, 16, 0.8)',
                       border: '1px solid rgba(255, 184, 0, 0.3)',
                       borderRadius: '12px',
-                      padding: '0.85rem 1rem 0.85rem 2.5rem',
+                      padding: isAr ? '0.85rem 1rem 0.85rem 2.5rem' : '0.85rem 2.5rem 0.85rem 1rem',
                       color: '#fff',
                       fontSize: '0.95rem',
                       outline: 'none',
                       direction: 'ltr',
-                      textAlign: 'right',
+                      textAlign: isAr ? 'right' : 'left',
                     }}
                   />
-                  <Phone size={18} color="#ffb800" style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)' }} />
+                  <Phone size={18} color="#ffb800" style={{ position: 'absolute', [isAr ? 'left' : 'right']: '12px', top: '50%', transform: 'translateY(-50%)' }} />
                 </div>
               </div>
 
               {/* Field 5: Committee Selection */}
               <div style={{ marginBottom: '1.25rem' }}>
                 <label style={{ display: 'block', color: '#ffd54f', fontSize: '0.88rem', fontWeight: 700, marginBottom: '0.4rem' }}>
-                  اللجنة التي ترغب في الانضمام إليها *
+                  {isAr ? 'اللجنة التي ترغب في الانضمام إليها *' : 'Committee You Wish to Join *'}
                 </label>
                 <select
                   value={formData.committee}
@@ -315,22 +351,25 @@ export default function RecruitmentModal({ isOpen, onClose, defaultCommittee = '
                     outline: 'none',
                   }}
                 >
-                  {committeesList.map((c, i) => (
-                    <option key={i} value={c} style={{ background: '#0e0f16', color: '#fff' }}>
-                      {c}
-                    </option>
-                  ))}
+                  {RECRUITMENT_COMMITTEES.map((c, i) => {
+                    const val = isAr ? c.ar : c.en;
+                    return (
+                      <option key={i} value={val}>
+                        {val}
+                      </option>
+                    );
+                  })}
                 </select>
               </div>
 
               {/* Field 6: Personal Impact Vision */}
               <div style={{ marginBottom: '2rem' }}>
                 <label style={{ display: 'block', color: '#ffd54f', fontSize: '0.88rem', fontWeight: 700, marginBottom: '0.4rem' }}>
-                  ما هو الأثر أو المهارة التي تريد إضافتها للفريق؟ (اختياري)
+                  {isAr ? 'ما هو الأثر أو المهارة التي تريد إضافتها للفريق؟ (اختياري)' : 'What impact or skills do you hope to bring to the team? (Optional)'}
                 </label>
                 <textarea
                   rows="3"
-                  placeholder="حدثنا باختصار عن شغفك وتطلعاتك في إيناكوس قنا..."
+                  placeholder={isAr ? 'حدثنا باختصار عن شغفك وتطلعاتك في إيناكوس قنا...' : 'Briefly tell us about your passion, skills, and goals with Enactus Qena...'}
                   value={formData.impactGoal}
                   onChange={(e) => setFormData({ ...formData, impactGoal: e.target.value })}
                   style={{
@@ -359,11 +398,11 @@ export default function RecruitmentModal({ isOpen, onClose, defaultCommittee = '
                 }}
               >
                 <Sparkles size={20} />
-                <span>تأكيد التسجيل واستخراج بطاقة العضوية ☥</span>
+                <span>{isAr ? 'تأكيد التسجيل واستخراج بطاقة العضوية ☥' : 'Confirm Registration & Issue Membership Pass ☥'}</span>
               </button>
             </form>
           ) : (
-            /* Digital Enactus Qena VIP Pass (Inspired by Image E7) */
+            /* Digital Enactus Qena VIP Pass */
             <div style={{ textAlign: 'center' }}>
               <div
                 style={{
@@ -383,13 +422,17 @@ export default function RecruitmentModal({ isOpen, onClose, defaultCommittee = '
               </div>
 
               <h3 style={{ fontSize: '1.8rem', fontWeight: 900, color: '#fff', marginBottom: '0.5rem' }}>
-                مرحباً بك في كتيبة الفراعنة!
+                {isAr ? 'مرحباً بك في كتيبة الفراعنة!' : 'Welcome to the Pharaohs Battalion!'}
               </h3>
               <p style={{ color: '#c5c5d6', fontSize: '0.95rem', marginBottom: '2rem' }}>
-                تم استلام طلبك بنجاح. إليك بطاقة عضويتك الرقمية الخاصة بـ <strong style={{ color: '#ffd54f' }}>Enactus Qena</strong>:
+                {isAr ? (
+                  <>تم استلام طلبك بنجاح. إليك بطاقة عضويتك الرقمية الخاصة بـ <strong style={{ color: '#ffd54f' }}>Enactus Qena</strong>:</>
+                ) : (
+                  <>Your application has been received successfully. Here is your digital VIP pass for <strong style={{ color: '#ffd54f' }}>Enactus Qena</strong>:</>
+                )}
               </p>
 
-              {/* The Excavated VIP Badge (Inspired by Image E7: The Future Was Found) */}
+              {/* The Excavated VIP Badge */}
               <div
                 className="gold-border-glow card-shine"
                 style={{
@@ -400,7 +443,7 @@ export default function RecruitmentModal({ isOpen, onClose, defaultCommittee = '
                   border: '2px solid rgba(255, 184, 0, 0.6)',
                   boxShadow: '0 20px 50px rgba(0, 0, 0, 0.8), 0 0 30px rgba(255, 184, 0, 0.25)',
                   overflow: 'hidden',
-                  textAlign: 'right',
+                  textAlign: isAr ? 'right' : 'left',
                   position: 'relative',
                 }}
               >
@@ -436,7 +479,9 @@ export default function RecruitmentModal({ isOpen, onClose, defaultCommittee = '
 
                   {/* Candidate Name */}
                   <div style={{ marginBottom: '1rem' }}>
-                    <div style={{ fontSize: '0.72rem', color: '#ffd54f', fontWeight: 600 }}>اسم المحارب:</div>
+                    <div style={{ fontSize: '0.72rem', color: '#ffd54f', fontWeight: 600 }}>
+                      {isAr ? 'اسم المحارب:' : 'Member Name:'}
+                    </div>
                     <div style={{ fontSize: '1.35rem', fontWeight: 900, color: '#fff' }}>
                       {formData.name}
                     </div>
@@ -445,11 +490,11 @@ export default function RecruitmentModal({ isOpen, onClose, defaultCommittee = '
                   {/* Faculty & Committee */}
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', marginBottom: '1.25rem' }}>
                     <div>
-                      <div style={{ fontSize: '0.7rem', color: '#a3a3b2' }}>الكلية:</div>
+                      <div style={{ fontSize: '0.7rem', color: '#a3a3b2' }}>{isAr ? 'الكلية:' : 'Faculty:'}</div>
                       <div style={{ fontSize: '0.88rem', fontWeight: 700, color: '#e0e0ec' }}>{formData.faculty}</div>
                     </div>
                     <div>
-                      <div style={{ fontSize: '0.7rem', color: '#a3a3b2' }}>اللجنة:</div>
+                      <div style={{ fontSize: '0.7rem', color: '#a3a3b2' }}>{isAr ? 'اللجنة:' : 'Committee:'}</div>
                       <div style={{ fontSize: '0.88rem', fontWeight: 700, color: '#ffb800' }}>{formData.committee}</div>
                     </div>
                   </div>
@@ -457,7 +502,7 @@ export default function RecruitmentModal({ isOpen, onClose, defaultCommittee = '
                   {/* Pass Serial & Motto */}
                   <div style={{ borderTop: '1px dashed rgba(255, 184, 0, 0.3)', paddingTop: '0.75rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     <div>
-                      <div style={{ fontSize: '0.65rem', color: '#888' }}>كود التسجيل:</div>
+                      <div style={{ fontSize: '0.65rem', color: '#888' }}>{isAr ? 'كود التسجيل:' : 'Pass Serial:'}</div>
                       <div className="font-cinzel" style={{ fontSize: '0.82rem', color: '#ffd54f', fontWeight: 800 }}>
                         {memberId}
                       </div>
@@ -469,7 +514,7 @@ export default function RecruitmentModal({ isOpen, onClose, defaultCommittee = '
                 </div>
 
                 {/* Golden Watermark */}
-                <div style={{ position: 'absolute', bottom: '-15px', left: '-15px', fontSize: '5rem', color: 'rgba(255, 184, 0, 0.04)', pointerEvents: 'none' }}>
+                <div style={{ position: 'absolute', bottom: '-15px', [isAr ? 'left' : 'right']: '-15px', fontSize: '5rem', color: 'rgba(255, 184, 0, 0.04)', pointerEvents: 'none' }}>
                   ☥
                 </div>
               </div>
@@ -492,7 +537,7 @@ export default function RecruitmentModal({ isOpen, onClose, defaultCommittee = '
                   }}
                 >
                   {copied ? <Check size={18} /> : <Copy size={18} />}
-                  <span>{copied ? 'تم نسخ كود العضوية!' : 'نسخ كود العضوية'}</span>
+                  <span>{copied ? (isAr ? 'تم نسخ كود العضوية!' : 'Pass ID Copied!') : (isAr ? 'نسخ كود العضوية' : 'Copy Pass ID')}</span>
                 </button>
 
                 <a
@@ -502,7 +547,7 @@ export default function RecruitmentModal({ isOpen, onClose, defaultCommittee = '
                   className="btn-primary"
                   style={{ padding: '0.75rem 1.75rem' }}
                 >
-                  <span>متابعة إعلان المقابلات على فيسبوك</span>
+                  <span>{isAr ? 'متابعة إعلان المقابلات على فيسبوك' : 'Follow Interviews on Facebook'}</span>
                 </a>
               </div>
             </div>

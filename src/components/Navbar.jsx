@@ -1,13 +1,17 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Menu, X, Sparkles, Compass, Shield, Rocket, Image, Award, Users, Calendar, LogIn, ChevronDown } from 'lucide-react';
+import { Menu, X, Sparkles, LogIn, ChevronDown } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../context/AuthContext';
+import { useLanguage } from '../context/LanguageContext';
 import ThemeToggle from './ThemeToggle';
+import LanguageToggle from './LanguageToggle';
 
 export default function Navbar() {
   const { isDark } = useTheme();
   const { isAuthenticated } = useAuth();
+  const { lang } = useLanguage();
+  const isAr = lang === 'ar';
   const [isScrolled, setIsScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [moreDropdownOpen, setMoreDropdownOpen] = useState(false);
@@ -28,25 +32,24 @@ export default function Navbar() {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }, [location.pathname]);
 
-
   const mainLinks = [
-    { label: 'الرئيسية', to: '/' },
-    { label: 'من نحن', to: '/about' },
-    { label: 'اللجان', to: '/committees' },
-    { label: 'الكتيبة والـ Board', to: '/team' },
-    { label: 'الفعاليات', to: '/events' },
-    { label: 'الشركاء والرعاة', to: '/partners' },
+    { label: isAr ? 'الرئيسية' : 'Home', to: '/' },
+    { label: isAr ? 'من نحن' : 'About', to: '/about' },
+    { label: isAr ? 'اللجان' : 'Committees', to: '/committees' },
+    { label: isAr ? 'الكتيبة والـ Board' : 'Board & Team', to: '/team' },
+    { label: isAr ? 'الفعاليات' : 'Events', to: '/events' },
+    { label: isAr ? 'الشركاء والرعاة' : 'Partners', to: '/partners' },
   ];
 
   const moreLinks = [
-    { label: 'كن راعياً (Sponsorship)', to: '/sponsor' },
-    { label: 'الأثر والتنمية (Impact)', to: '/impact' },
-    { label: 'معرض الهوية والميديا', to: '/gallery' },
-    { label: 'الأخبار والبيانات', to: '/news' },
-    { label: 'الأسئلة الشائعة (FAQ)', to: '/faq' },
-    { label: 'شبكة الخريجين (Alumni)', to: '/alumni' },
-    { label: 'اتصل بنا', to: '/contact' },
-    { label: 'سياسة الخصوصية والشروط', to: '/terms' },
+    { label: isAr ? 'كن راعياً (Sponsorship)' : 'Become a Sponsor', to: '/sponsor' },
+    { label: isAr ? 'الأثر والتنمية (Impact)' : 'Impact & SDGs', to: '/impact' },
+    { label: isAr ? 'معرض الهوية والميديا' : 'Media & Gallery', to: '/gallery' },
+    { label: isAr ? 'الأخبار والبيانات' : 'News & Press', to: '/news' },
+    { label: isAr ? 'الأسئلة الشائعة (FAQ)' : 'FAQ', to: '/faq' },
+    { label: isAr ? 'شبكة الخريجين (Alumni)' : 'Alumni Network', to: '/alumni' },
+    { label: isAr ? 'اتصل بنا' : 'Contact Us', to: '/contact' },
+    { label: isAr ? 'الشروط والخصوصية' : 'Terms & Privacy', to: '/terms' },
   ];
 
   return (
@@ -70,25 +73,36 @@ export default function Navbar() {
           : 'none',
       }}
     >
-      <div className="container navbar-container" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', height: '80px' }}>
+      <div
+        className="container navbar-container"
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          height: '80px',
+          maxWidth: '1400px',
+          padding: '0 1.25rem',
+          gap: '1rem',
+        }}
+      >
         {/* Brand Logo & Title */}
         <Link
           to="/"
           style={{
             display: 'flex',
             alignItems: 'center',
-            gap: '0.75rem',
+            gap: '0.65rem',
             textDecoration: 'none',
             color: isDark ? '#fff' : '#141722',
-            minWidth: 0,
+            flexShrink: 0,
           }}
         >
           <div
             className="navbar-brand-logo"
             style={{
               position: 'relative',
-              width: '46px',
-              height: '46px',
+              width: '44px',
+              height: '44px',
               borderRadius: '12px',
               overflow: 'hidden',
               border: '1.5px solid rgba(255, 184, 0, 0.5)',
@@ -107,15 +121,15 @@ export default function Navbar() {
             />
           </div>
           <div style={{ minWidth: 0 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', flexWrap: 'wrap' }}>
-              <span className="font-cinzel navbar-title-text" style={{ fontWeight: 800, fontSize: '1.2rem', color: isDark ? '#ffb800' : '#c98500' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+              <span className="font-cinzel navbar-title-text" style={{ fontWeight: 800, fontSize: '1.18rem', color: isDark ? '#ffb800' : '#c98500', whiteSpace: 'nowrap' }}>
                 ENACTUS
               </span>
-              <span className="badge-gold" style={{ fontSize: '0.68rem', padding: '0.15rem 0.45rem' }}>
+              <span className="badge-gold" style={{ fontSize: '0.65rem', padding: '0.12rem 0.4rem', whiteSpace: 'nowrap' }}>
                 QENA
               </span>
             </div>
-            <p style={{ fontSize: '0.7rem', color: isDark ? '#a3a3b2' : '#6b7280', margin: 0, fontWeight: 500, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+            <p style={{ fontSize: '0.68rem', color: isDark ? '#a3a3b2' : '#6b7280', margin: 0, fontWeight: 500, whiteSpace: 'nowrap' }}>
               South Valley University
             </p>
           </div>
@@ -126,7 +140,8 @@ export default function Navbar() {
           style={{
             display: 'none',
             alignItems: 'center',
-            gap: '1.35rem',
+            gap: 'clamp(0.6rem, 1vw, 1.2rem)',
+            margin: '0 auto',
           }}
           className="desktop-nav"
         >
@@ -139,11 +154,13 @@ export default function Navbar() {
                 style={{
                   color: isActive ? (isDark ? '#ffd54f' : '#c98500') : (isDark ? '#d4d4dc' : '#3d4052'),
                   textDecoration: 'none',
-                  fontSize: '0.92rem',
+                  fontSize: '0.88rem',
                   fontWeight: isActive ? 800 : 600,
                   transition: 'all 0.25s ease',
                   borderBottom: isActive ? (isDark ? '2px solid #ffb800' : '2px solid #c98500') : '2px solid transparent',
-                  paddingBottom: '4px',
+                  paddingBottom: '3px',
+                  whiteSpace: 'nowrap',
+                  flexShrink: 0,
                 }}
               >
                 {link.label}
@@ -159,16 +176,17 @@ export default function Navbar() {
                 background: 'transparent',
                 border: 'none',
                 color: isDark ? '#d4d4dc' : '#3d4052',
-                fontSize: '0.92rem',
+                fontSize: '0.88rem',
                 fontWeight: 600,
                 display: 'flex',
                 alignItems: 'center',
-                gap: '0.3rem',
+                gap: '0.25rem',
                 cursor: 'pointer',
-                padding: '4px 0',
+                padding: '3px 0',
+                whiteSpace: 'nowrap',
               }}
             >
-              <span>المزيد</span>
+              <span>{isAr ? 'المزيد' : 'More'}</span>
               <ChevronDown size={14} />
             </button>
 
@@ -178,7 +196,7 @@ export default function Navbar() {
                 style={{
                   position: 'absolute',
                   top: '40px',
-                  right: '0',
+                  insetInlineEnd: '0',
                   width: '230px',
                   borderRadius: '16px',
                   padding: '0.75rem',
@@ -203,6 +221,7 @@ export default function Navbar() {
                       borderRadius: '8px',
                       fontWeight: 600,
                       background: location.pathname === link.to ? (isDark ? 'rgba(255, 184, 0, 0.15)' : 'rgba(201, 133, 0, 0.1)') : 'transparent',
+                      whiteSpace: 'nowrap',
                     }}
                   >
                     {link.label}
@@ -214,7 +233,10 @@ export default function Navbar() {
         </nav>
 
         {/* Action Controls */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.55rem', flexShrink: 0 }}>
+          {/* Language Toggle Button */}
+          <LanguageToggle />
+
           {/* Light / Dark Mode Toggle Button */}
           <ThemeToggle variant="compact" />
 
@@ -224,20 +246,21 @@ export default function Navbar() {
             style={{
               display: 'none',
               alignItems: 'center',
-              gap: '0.4rem',
+              gap: '0.35rem',
               color: isDark ? '#d4d4dc' : '#2b2e3e',
               textDecoration: 'none',
-              fontSize: '0.85rem',
+              fontSize: '0.82rem',
               fontWeight: 700,
-              padding: '0.55rem 0.9rem',
+              padding: '0.45rem 0.8rem',
               borderRadius: '9999px',
               background: isDark ? 'rgba(255, 255, 255, 0.04)' : 'rgba(0, 0, 0, 0.04)',
               border: '1px solid rgba(255, 184, 0, 0.25)',
+              whiteSpace: 'nowrap',
             }}
             className="login-btn-desktop"
           >
-            <LogIn size={15} color={isDark ? '#ffb800' : '#c98500'} />
-            <span>{isAuthenticated ? 'لوحة التحكم' : 'دخول الأعضاء'}</span>
+            <LogIn size={14} color={isDark ? '#ffb800' : '#c98500'} />
+            <span>{isAuthenticated ? (isAr ? 'لوحة التحكم' : 'Dashboard') : (isAr ? 'دخول الأعضاء' : 'Member Login')}</span>
           </Link>
 
           {/* Join CTA */}
@@ -245,14 +268,15 @@ export default function Navbar() {
             to="/join"
             className="btn-primary animate-pulse-glow"
             style={{
-              padding: '0.6rem 1.25rem',
-              fontSize: '0.88rem',
+              padding: '0.48rem 1rem',
+              fontSize: '0.84rem',
               display: 'none',
+              whiteSpace: 'nowrap',
             }}
             id="nav-join-btn"
           >
-            <Sparkles size={15} />
-            <span>اترك أثرك (سجّل)</span>
+            <Sparkles size={14} />
+            <span>{isAr ? 'اترك أثرك (سجّل)' : 'Join Us'}</span>
           </Link>
 
           {/* Mobile Hamburger Button */}
@@ -266,7 +290,7 @@ export default function Navbar() {
               border: 'none',
               color: isDark ? '#ffb800' : '#c98500',
               cursor: 'pointer',
-              padding: '0.5rem',
+              padding: '0.4rem',
             }}
             className="mobile-toggle-btn"
             aria-label="Toggle Navigation Menu"
@@ -296,8 +320,9 @@ export default function Navbar() {
             overflowY: 'auto',
           }}
         >
-          {/* Mobile Theme Toggle Card */}
-          <div style={{ marginBottom: '0.4rem' }}>
+          {/* Mobile Controls: Language & Theme Toggles */}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.6rem', marginBottom: '0.4rem' }}>
+            <LanguageToggle variant="mobile" />
             <ThemeToggle variant="mobile" />
           </div>
 
@@ -327,7 +352,7 @@ export default function Navbar() {
               style={{ justifyContent: 'center', fontSize: '0.88rem', padding: '0.65rem 0.75rem' }}
             >
               <LogIn size={15} />
-              <span>{isAuthenticated ? 'لوحة التحكم' : 'دخول الأعضاء'}</span>
+              <span>{isAuthenticated ? (isAr ? 'لوحة التحكم' : 'Dashboard') : (isAr ? 'دخول الأعضاء' : 'Sign In')}</span>
             </Link>
 
             <Link
@@ -337,7 +362,7 @@ export default function Navbar() {
               style={{ justifyContent: 'center', fontSize: '0.88rem', padding: '0.65rem 0.75rem' }}
             >
               <Sparkles size={15} />
-              <span>انضم الآن</span>
+              <span>{isAr ? 'انضم الآن' : 'Join Us'}</span>
             </Link>
           </div>
         </div>
@@ -354,7 +379,7 @@ export default function Navbar() {
         @media (max-width: 400px) {
           .mobile-drawer-actions { grid-template-columns: 1fr !important; }
         }
-        @media (min-width: 1080px) {
+        @media (min-width: 1140px) {
           .desktop-nav { display: flex !important; }
           #nav-join-btn { display: inline-flex !important; }
           .login-btn-desktop { display: inline-flex !important; }

@@ -1,8 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import { Sparkles, ArrowLeft, Clock, Flame, ExternalLink, ShieldCheck } from 'lucide-react';
+import { Sparkles, ArrowLeft, ArrowRight, Clock, Flame, ExternalLink, ShieldCheck } from 'lucide-react';
 import { FacebookIcon } from './Icons';
+import { useLanguage } from '../context/LanguageContext';
 
 export default function Hero({ onOpenJoinModal }) {
+  const { lang } = useLanguage();
+  const isAr = lang === 'ar';
+  const ArrowIcon = isAr ? ArrowLeft : ArrowRight;
+
   // Countdown timer simulation for recruitment
   const [timeLeft, setTimeLeft] = useState({ hours: 23, minutes: 48, seconds: 12 });
   const [activeVisual, setActiveVisual] = useState(0);
@@ -25,23 +30,29 @@ export default function Hero({ onOpenJoinModal }) {
 
   const visualCards = [
     {
-      title: "قميص معبد دندرة 2026",
+      title: isAr ? "قميص معبد دندرة 2026" : "Dendera Temple Kit 2026",
       subtitle: "FROM QENA TO THE WORLD",
-      desc: "من قلب الصعيد، حيث كُتب التاريخ على الحجر.. قادمون للمنافسة الوطنية NC بكل قوة.",
+      desc: isAr
+        ? "من قلب الصعيد، حيث كُتب التاريخ على الحجر.. قادمون للمنافسة الوطنية NC بكل قوة."
+        : "From the heart of Upper Egypt, where history is etched in stone.. Competing fiercely in the National Competition.",
       tag: "THE EMBLEM",
       img: "/assets/E9.jpg",
     },
     {
-      title: "كتيبة الفراعنة: فريق واحد، هدف واحد",
+      title: isAr ? "كتيبة الفراعنة: فريق واحد، هدف واحد" : "Pharaohs Battalion: One Team, One Goal",
       subtitle: "ONE TEAM. ONE GOAL.",
-      desc: "أدوار مختلفة، ومهمة واحدة.. أثر أكبر معاً لكل لجان ومبدعي إيناكوس قنا.",
+      desc: isAr
+        ? "أدوار مختلفة، ومهمة واحدة.. أثر أكبر معاً لكل لجان ومبدعي إيناكوس قنا."
+        : "Diverse roles, one unified mission.. Crafting greater impact together across all Enactus Qena committees.",
       tag: "THE PHARAOHS",
       img: "/assets/E6.jpg",
     },
     {
-      title: "شفرة المستقبل المدفونة",
+      title: isAr ? "شفرة المستقبل المدفونة" : "The Buried Code of the Future",
       subtitle: "THE FUTURE WAS FOUND",
-      desc: "اكتشف بطاقة عضويتك في إيناكوس.. البشر، الأفكار، والأثر الحقيقي.",
+      desc: isAr
+        ? "اكتشف بطاقة عضويتك في إيناكوس.. البشر، الأفكار، والأثر الحقيقي."
+        : "Discover your Enactus membership card.. The people, the ideas, and real sustainable impact.",
       tag: "THE DISCOVERY",
       img: "/assets/E7.jpg",
     },
@@ -69,7 +80,8 @@ export default function Hero({ onOpenJoinModal }) {
         style={{
           position: 'absolute',
           top: '20%',
-          right: '5%',
+          right: isAr ? '5%' : 'auto',
+          left: isAr ? 'auto' : '5%',
           fontSize: '12rem',
           color: 'rgba(255, 184, 0, 0.02)',
           userSelect: 'none',
@@ -83,7 +95,8 @@ export default function Hero({ onOpenJoinModal }) {
         style={{
           position: 'absolute',
           bottom: '10%',
-          left: '5%',
+          left: isAr ? '5%' : 'auto',
+          right: isAr ? 'auto' : '5%',
           fontSize: '14rem',
           color: 'rgba(255, 184, 0, 0.02)',
           userSelect: 'none',
@@ -115,7 +128,7 @@ export default function Hero({ onOpenJoinModal }) {
             </span>
             <span style={{ color: '#ffb800' }}>•</span>
             <span style={{ fontSize: '0.85rem', color: '#fff', fontWeight: 600 }}>
-              قنا، صعيد مصر
+              {isAr ? 'قنا، صعيد مصر' : 'Qena, Upper Egypt'}
             </span>
           </div>
         </div>
@@ -130,12 +143,12 @@ export default function Hero({ onOpenJoinModal }) {
           }}
           className="hero-grid"
         >
-          {/* Left Column (Text & Urgency) */}
-          <div style={{ textAlign: 'right' }}>
+          {/* Column 1 (Text & Urgency) */}
+          <div style={{ textAlign: isAr ? 'right' : 'left' }}>
             <div style={{ marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
               <span className="badge-gold">
                 <Flame size={14} color="#ffb800" />
-                استعدوا.. قادمون للـ NC
+                {isAr ? 'استعدوا.. قادمون للـ NC' : 'Get Ready.. NC 2026'}
               </span>
               <span className="badge-gold">
                 <ShieldCheck size={14} color="#ffd54f" />
@@ -152,11 +165,23 @@ export default function Hero({ onOpenJoinModal }) {
                 color: '#fff',
               }}
             >
-              من قلب الصعيد..
-              <br />
-              <span className="gold-gradient-text font-cinzel" style={{ letterSpacing: '0.02em' }}>
-                نحمل أثرنا للعالم!
-              </span>
+              {isAr ? (
+                <>
+                  من قلب الصعيد..
+                  <br />
+                  <span className="gold-gradient-text font-cinzel" style={{ letterSpacing: '0.02em' }}>
+                    نحمل أثرنا للعالم!
+                  </span>
+                </>
+              ) : (
+                <>
+                  From Upper Egypt..
+                  <br />
+                  <span className="gold-gradient-text font-cinzel" style={{ letterSpacing: '0.02em' }}>
+                    Carrying Our Impact Global!
+                  </span>
+                </>
+              )}
             </h1>
 
             <p
@@ -168,7 +193,15 @@ export default function Hero({ onOpenJoinModal }) {
                 maxWidth: '620px',
               }}
             >
-              حيث كُتب التاريخ على جدران معبد دندرة بحجر لا يزول.. نطلق في <strong style={{ color: '#ffd54f' }}>Enactus Qena</strong> إبداع طلاب جامعة جنوب الوادي لنبني مشاريع ريادية تغير حياة آلاف الأسر ونصعد بها إلى العالمية.
+              {isAr ? (
+                <>
+                  حيث كُتب التاريخ على جدران معبد دندرة بحجر لا يزول.. نطلق في <strong style={{ color: '#ffd54f' }}>Enactus Qena</strong> إبداع طلاب جامعة جنوب الوادي لنبني مشاريع ريادية تغير حياة آلاف الأسر ونصعد بها إلى العالمية.
+                </>
+              ) : (
+                <>
+                  Where history was carved into the enduring stone of Dendera Temple, <strong style={{ color: '#ffd54f' }}>Enactus Qena</strong> channels the ingenuity of South Valley University students to build sustainable enterprises that elevate our community to the world stage.
+                </>
+              )}
             </p>
 
             {/* Countdown Urgency Banner */}
@@ -192,7 +225,7 @@ export default function Hero({ onOpenJoinModal }) {
                 <div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', marginBottom: '0.25rem', flexWrap: 'wrap' }}>
                     <span className="countdown-banner-title">
-                      باب التقديم مفتوح الآن!
+                      {isAr ? 'باب التقديم مفتوح الآن!' : 'Recruitment Is Open!'}
                     </span>
                     <span className="countdown-status-badge">
                       <span className="countdown-live-pulse" />
@@ -200,7 +233,9 @@ export default function Hero({ onOpenJoinModal }) {
                     </span>
                   </div>
                   <p className="countdown-banner-subtitle">
-                    "Don't just apply... LEAVE YOUR MARK!" لا تكتفِ بالتقديم، اترك أثرك.
+                    {isAr
+                      ? '"Don\'t just apply... LEAVE YOUR MARK!" لا تكتفِ بالتقديم، اترك أثرك.'
+                      : '"Don\'t just apply... LEAVE YOUR MARK!"'}
                   </p>
                 </div>
               </div>
@@ -211,21 +246,21 @@ export default function Hero({ onOpenJoinModal }) {
                   <div className="countdown-digit-num">
                     {String(timeLeft.hours).padStart(2, '0')}
                   </div>
-                  <div className="countdown-digit-label">ساعة</div>
+                  <div className="countdown-digit-label">{isAr ? 'ساعة' : 'Hours'}</div>
                 </div>
                 <span className="countdown-digit-sep">:</span>
                 <div className="countdown-digit-box">
                   <div className="countdown-digit-num">
                     {String(timeLeft.minutes).padStart(2, '0')}
                   </div>
-                  <div className="countdown-digit-label">دقيقة</div>
+                  <div className="countdown-digit-label">{isAr ? 'دقيقة' : 'Mins'}</div>
                 </div>
                 <span className="countdown-digit-sep">:</span>
                 <div className="countdown-digit-box">
                   <div className="countdown-digit-num">
                     {String(timeLeft.seconds).padStart(2, '0')}
                   </div>
-                  <div className="countdown-digit-label">ثانية</div>
+                  <div className="countdown-digit-label">{isAr ? 'ثانية' : 'Secs'}</div>
                 </div>
               </div>
             </div>
@@ -238,12 +273,12 @@ export default function Hero({ onOpenJoinModal }) {
                 style={{ fontSize: '1.05rem', padding: '0.9rem 2rem' }}
               >
                 <Sparkles size={20} />
-                <span>انضم للأسطورة (سجل الآن)</span>
+                <span>{isAr ? 'انضم للأسطورة (سجل الآن)' : 'Join the Legacy (Apply)'}</span>
               </button>
 
               <a href="#committees" className="btn-secondary">
-                <span>استكشف كتيبة الفراعنة</span>
-                <ArrowLeft size={18} />
+                <span>{isAr ? 'استكشف كتيبة الفراعنة' : 'Explore Committees'}</span>
+                <ArrowIcon size={18} />
               </a>
 
               <a
@@ -263,7 +298,7 @@ export default function Hero({ onOpenJoinModal }) {
                 }}
               >
                 <FacebookIcon size={16} />
-                <span>11,700+ متابع على فيسبوك</span>
+                <span>{isAr ? '11,700+ متابع على فيسبوك' : '+11,700 Facebook Followers'}</span>
                 <ExternalLink size={14} />
               </a>
             </div>
@@ -300,46 +335,44 @@ export default function Hero({ onOpenJoinModal }) {
                     width: '100%',
                     height: '100%',
                     objectFit: 'cover',
-                    transition: 'transform 0.6s cubic-bezier(0.16, 1, 0.3, 1)',
+                    transition: 'all 0.5s ease',
                   }}
-                  className="card-zoom"
                 />
 
-                {/* Gradient vignette */}
                 <div
                   style={{
                     position: 'absolute',
                     inset: 0,
-                    background: 'linear-gradient(to top, rgba(8,8,12,0.95) 0%, rgba(8,8,12,0.2) 60%, transparent 100%)',
+                    background: 'linear-gradient(to top, rgba(9, 9, 13, 0.95) 0%, rgba(9, 9, 13, 0.2) 50%, transparent 100%)',
                     display: 'flex',
                     flexDirection: 'column',
                     justifyContent: 'flex-end',
-                    padding: '1.25rem',
+                    padding: '1.5rem',
                   }}
                 >
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.35rem' }}>
-                    <span className="badge-gold font-cinzel" style={{ fontSize: '0.72rem' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.4rem' }}>
+                    <span className="badge-gold font-cinzel" style={{ fontSize: '0.7rem' }}>
                       {visualCards[activeVisual].tag}
                     </span>
-                    <span className="font-outfit" style={{ fontSize: '0.8rem', color: '#ffb800', fontWeight: 700 }}>
+                    <span style={{ fontSize: '0.75rem', color: '#ffb800' }}>
                       0{activeVisual + 1} / 03
                     </span>
                   </div>
-                  <h3 style={{ fontSize: 'clamp(1.1rem, 2.5vw, 1.35rem)', fontWeight: 800, color: '#fff', marginBottom: '0.25rem' }}>
+                  <h3 style={{ fontSize: '1.35rem', fontWeight: 800, color: '#fff', marginBottom: '0.3rem' }}>
                     {visualCards[activeVisual].title}
                   </h3>
-                  <p style={{ fontSize: '0.82rem', color: '#d1d1de', margin: 0, lineHeight: 1.45 }}>
+                  <p style={{ fontSize: '0.86rem', color: '#b5b5c6', margin: 0, lineHeight: 1.5 }}>
                     {visualCards[activeVisual].desc}
                   </p>
                 </div>
               </div>
 
-              {/* Navigation Thumbnails below main image */}
+              {/* Thumbnails Navigator */}
               <div
                 style={{
                   display: 'grid',
                   gridTemplateColumns: 'repeat(3, 1fr)',
-                  gap: '0.6rem',
+                  gap: '0.65rem',
                   marginTop: '0.85rem',
                 }}
               >
@@ -348,79 +381,54 @@ export default function Hero({ onOpenJoinModal }) {
                     key={idx}
                     onClick={() => setActiveVisual(idx)}
                     style={{
-                      padding: '0.5rem 0.3rem',
-                      borderRadius: '12px',
-                      background: activeVisual === idx ? 'rgba(255, 184, 0, 0.2)' : 'rgba(255, 255, 255, 0.04)',
-                      border: `1.5px solid ${activeVisual === idx ? '#ffb800' : 'rgba(255, 184, 0, 0.15)'}`,
+                      background: activeVisual === idx ? 'rgba(255, 184, 0, 0.18)' : 'rgba(255, 255, 255, 0.04)',
+                      border: activeVisual === idx ? '1.5px solid #ffb800' : '1px solid rgba(255, 255, 255, 0.08)',
+                      borderRadius: '10px',
+                      padding: '0.6rem 0.5rem',
                       cursor: 'pointer',
                       textAlign: 'center',
-                      transition: 'all 0.3s ease',
-                      boxShadow: activeVisual === idx ? '0 0 15px rgba(255, 184, 0, 0.3)' : 'none',
+                      transition: 'all 0.25s ease',
+                      boxShadow: activeVisual === idx ? '0 0 15px rgba(255, 184, 0, 0.25)' : 'none',
                     }}
                   >
-                    <div style={{ fontSize: '0.72rem', fontWeight: 700, color: activeVisual === idx ? '#ffd54f' : '#a3a3b2', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                    <span className="font-cinzel" style={{ fontSize: '0.68rem', fontWeight: 800, color: activeVisual === idx ? '#ffd54f' : '#a3a3b2', display: 'block', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                       {card.tag}
-                    </div>
+                    </span>
                   </button>
                 ))}
               </div>
             </div>
 
-            {/* Floating emblem stamp */}
+            {/* Glowing Pharaoh Stamp Badge */}
             <div
-              className="animate-float-reverse hero-emblem-stamp"
+              className="badge-glow"
               style={{
                 position: 'absolute',
-                top: '-25px',
-                left: '-25px',
-                width: '85px',
-                height: '85px',
+                top: '-20px',
+                right: isAr ? '-15px' : 'auto',
+                left: isAr ? 'auto' : '-15px',
+                width: '72px',
+                height: '72px',
                 borderRadius: '50%',
-                background: 'linear-gradient(135deg, #ffd752, #c47c00)',
+                background: 'linear-gradient(135deg, #ffd752 0%, #ffaa00 50%, #b37400 100%)',
                 display: 'flex',
-                flexDirection: 'column',
                 alignItems: 'center',
                 justifyContent: 'center',
-                boxShadow: '0 8px 25px rgba(255, 184, 0, 0.5)',
-                color: '#08080a',
+                flexDirection: 'column',
+                boxShadow: '0 0 30px rgba(255, 184, 0, 0.6)',
                 zIndex: 20,
-                border: '2px solid #fff',
               }}
             >
-              <span className="font-cinzel" style={{ fontWeight: 900, fontSize: '0.85rem' }}>NC</span>
-              <span style={{ fontWeight: 900, fontSize: '0.65rem' }}>2026</span>
+              <span className="font-cinzel" style={{ fontSize: '0.75rem', fontWeight: 900, color: '#09090c', lineHeight: 1 }}>
+                NC
+              </span>
+              <span style={{ fontSize: '0.65rem', fontWeight: 800, color: '#16161a' }}>
+                2026
+              </span>
             </div>
           </div>
         </div>
       </div>
-
-      <style>{`
-        @media (max-width: 992px) {
-          .hero-grid {
-            grid-template-columns: 1fr !important;
-            gap: 2.5rem !important;
-          }
-        }
-        @media (max-width: 768px) {
-          .hero-section-responsive {
-            padding-top: 100px !important;
-            padding-bottom: 50px !important;
-            min-height: auto !important;
-          }
-          .hero-emblem-stamp {
-            left: 10px !important;
-            top: -15px !important;
-            width: 65px !important;
-            height: 65px !important;
-          }
-        }
-        @media (max-width: 480px) {
-          .hero-cta-buttons > * {
-            width: 100% !important;
-            justify-content: center !important;
-          }
-        }
-      `}</style>
     </section>
   );
 }

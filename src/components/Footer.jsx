@@ -1,9 +1,13 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowUp, Heart, Sparkles, MapPin, Globe, Shield, Lock } from 'lucide-react';
+import { ArrowUp, Sparkles, MapPin, Globe, Lock } from 'lucide-react';
 import { FacebookIcon } from './Icons';
+import { useLanguage } from '../context/LanguageContext';
 
 export default function Footer({ onOpenJoinModal }) {
+  const { lang, t } = useLanguage();
+  const isAr = lang === 'ar';
+
   const scrollToTop = () => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
@@ -72,7 +76,7 @@ export default function Footer({ onOpenJoinModal }) {
             </div>
 
             <p style={{ color: '#b5b5c6', fontSize: '0.92rem', lineHeight: 1.8, marginBottom: '1.5rem', maxWidth: '360px' }}>
-              نشاط طلابي تنموي ريادي في جامعة جنوب الوادي بقنا. نعمل على تمكين الشباب وتطوير حلول مستدامة تخدم صعيد مصر وتصعد بنا نحو العالمية.
+              {t('footerDesc')}
             </p>
 
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
@@ -103,7 +107,7 @@ export default function Footer({ onOpenJoinModal }) {
                   e.currentTarget.style.color = '#ffb800';
                   e.currentTarget.style.borderColor = 'rgba(255, 184, 0, 0.3)';
                 }}
-                title="صفحة إيناكوس قنا على فيسبوك"
+                title={isAr ? 'صفحة إيناكوس قنا على فيسبوك' : 'Enactus Qena Facebook Page'}
               >
                 <FacebookIcon size={20} />
               </a>
@@ -125,7 +129,7 @@ export default function Footer({ onOpenJoinModal }) {
                   textDecoration: 'none',
                   transition: 'all 0.3s ease',
                 }}
-                title="موقع جامعة جنوب الوادي"
+                title={isAr ? 'موقع جامعة جنوب الوادي' : 'South Valley University Website'}
               >
                 <Globe size={20} />
               </a>
@@ -135,42 +139,42 @@ export default function Footer({ onOpenJoinModal }) {
           {/* Quick Links */}
           <div>
             <h4 style={{ fontSize: '1.1rem', fontWeight: 800, color: '#fff', marginBottom: '1.25rem' }}>
-              أقسام الموقع
+              {t('footerQuickLinks')}
             </h4>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
-              <Link to="/about" style={{ color: '#a0a0b2', textDecoration: 'none', fontSize: '0.9rem' }}>من نحن والأسطورة</Link>
-              <Link to="/committees" style={{ color: '#a0a0b2', textDecoration: 'none', fontSize: '0.9rem' }}>كتيبة اللجان (Committees)</Link>
-              <Link to="/team" style={{ color: '#a0a0b2', textDecoration: 'none', fontSize: '0.9rem' }}>مجلس الإدارة (The Board)</Link>
-              <Link to="/events" style={{ color: '#a0a0b2', textDecoration: 'none', fontSize: '0.9rem' }}>الفعاليات والمؤتمرات</Link>
-              <Link to="/partners" style={{ color: '#a0a0b2', textDecoration: 'none', fontSize: '0.9rem' }}>الشركاء والرعاة</Link>
-              <Link to="/sponsor" style={{ color: '#a0a0b2', textDecoration: 'none', fontSize: '0.9rem' }}>باقات الرعاية (Sponsor)</Link>
+              <Link to="/about" style={{ color: '#a0a0b2', textDecoration: 'none', fontSize: '0.9rem' }}>{t('navAbout')}</Link>
+              <Link to="/committees" style={{ color: '#a0a0b2', textDecoration: 'none', fontSize: '0.9rem' }}>{t('navCommittees')}</Link>
+              <Link to="/team" style={{ color: '#a0a0b2', textDecoration: 'none', fontSize: '0.9rem' }}>{t('navTeam')}</Link>
+              <Link to="/events" style={{ color: '#a0a0b2', textDecoration: 'none', fontSize: '0.9rem' }}>{t('navEvents')}</Link>
+              <Link to="/partners" style={{ color: '#a0a0b2', textDecoration: 'none', fontSize: '0.9rem' }}>{t('navPartners')}</Link>
+              <Link to="/sponsor" style={{ color: '#a0a0b2', textDecoration: 'none', fontSize: '0.9rem' }}>{t('navSponsor')}</Link>
             </div>
           </div>
 
           {/* Resources & Additional Pages */}
           <div>
             <h4 style={{ fontSize: '1.1rem', fontWeight: 800, color: '#fff', marginBottom: '1.25rem' }}>
-              المحتوى والتواصل
+              {isAr ? 'المحتوى والتواصل' : 'Content & Reach'}
             </h4>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
-              <Link to="/impact" style={{ color: '#a0a0b2', textDecoration: 'none', fontSize: '0.9rem' }}>الأثر المجتمعي (Impact)</Link>
-              <Link to="/gallery" style={{ color: '#a0a0b2', textDecoration: 'none', fontSize: '0.9rem' }}>معرض الهوية البصرية</Link>
-              <Link to="/news" style={{ color: '#a0a0b2', textDecoration: 'none', fontSize: '0.9rem' }}>الأخبار والبيانات الصحفية</Link>
-              <Link to="/faq" style={{ color: '#a0a0b2', textDecoration: 'none', fontSize: '0.9rem' }}>الأسئلة الشائعة (FAQ)</Link>
-              <Link to="/alumni" style={{ color: '#a0a0b2', textDecoration: 'none', fontSize: '0.9rem' }}>شبكة الخريجين (Alumni)</Link>
-              <Link to="/contact" style={{ color: '#a0a0b2', textDecoration: 'none', fontSize: '0.9rem' }}>اتصل بنا</Link>
-              <Link to="/terms" style={{ color: '#a0a0b2', textDecoration: 'none', fontSize: '0.9rem' }}>سياسة الخصوصية والشروط</Link>
+              <Link to="/impact" style={{ color: '#a0a0b2', textDecoration: 'none', fontSize: '0.9rem' }}>{t('navImpact')}</Link>
+              <Link to="/gallery" style={{ color: '#a0a0b2', textDecoration: 'none', fontSize: '0.9rem' }}>{t('navGallery')}</Link>
+              <Link to="/news" style={{ color: '#a0a0b2', textDecoration: 'none', fontSize: '0.9rem' }}>{t('navNews')}</Link>
+              <Link to="/faq" style={{ color: '#a0a0b2', textDecoration: 'none', fontSize: '0.9rem' }}>{t('navFaq')}</Link>
+              <Link to="/alumni" style={{ color: '#a0a0b2', textDecoration: 'none', fontSize: '0.9rem' }}>{t('navAlumni')}</Link>
+              <Link to="/contact" style={{ color: '#a0a0b2', textDecoration: 'none', fontSize: '0.9rem' }}>{t('navContact')}</Link>
+              <Link to="/terms" style={{ color: '#a0a0b2', textDecoration: 'none', fontSize: '0.9rem' }}>{t('navTerms')}</Link>
             </div>
           </div>
 
           {/* Location & Action */}
           <div>
             <h4 style={{ fontSize: '1.1rem', fontWeight: 800, color: '#fff', marginBottom: '1.25rem' }}>
-              المقر والتقديم
+              {t('footerContact')}
             </h4>
             <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.6rem', color: '#a0a0b2', fontSize: '0.88rem', marginBottom: '1.25rem' }}>
               <MapPin size={18} color="#ffb800" style={{ flexShrink: 0, marginTop: '3px' }} />
-              <span>جامعة جنوب الوادي، مدينة قنا، جمهورية مصر العربية</span>
+              <span>{t('footerAddress')}</span>
             </div>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
@@ -180,7 +184,7 @@ export default function Footer({ onOpenJoinModal }) {
                 style={{ padding: '0.75rem 1.4rem', fontSize: '0.92rem', justifyContent: 'center' }}
               >
                 <Sparkles size={16} />
-                <span>استمارة الانضمام (Join Us)</span>
+                <span>{t('navJoin')}</span>
               </Link>
               <Link
                 to="/login"
@@ -188,7 +192,7 @@ export default function Footer({ onOpenJoinModal }) {
                 style={{ padding: '0.65rem 1.4rem', fontSize: '0.88rem', justifyContent: 'center' }}
               >
                 <Lock size={15} />
-                <span>دخول الأعضاء (Portal)</span>
+                <span>{t('navLogin')}</span>
               </Link>
             </div>
           </div>
@@ -208,12 +212,12 @@ export default function Footer({ onOpenJoinModal }) {
           }}
         >
           <div style={{ fontSize: '0.88rem', color: '#88889a' }}>
-            © {new Date().getFullYear()} Enactus Qena University • صُنعت بروح الفراعنة وشغف شباب الصعيد.
+            © {new Date().getFullYear()} Enactus Qena University • {isAr ? 'صُنعت بروح الفراعنة وشغف شباب الصعيد.' : 'Crafted with Pharaonic heritage & passion.'}
           </div>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: '1.25rem' }}>
             <Link to="/terms" style={{ color: '#888', fontSize: '0.82rem', textDecoration: 'none' }}>
-              الخصوصية وشروط الاستخدام
+              {t('navTerms')}
             </Link>
             <button
               onClick={scrollToTop}
@@ -231,7 +235,7 @@ export default function Footer({ onOpenJoinModal }) {
                 fontWeight: 700,
               }}
             >
-              <span>للأعلى</span>
+              <span>{isAr ? 'للأعلى' : 'Top'}</span>
               <ArrowUp size={14} />
             </button>
           </div>

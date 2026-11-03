@@ -1,8 +1,12 @@
 import React, { useState } from 'react';
 import { sponsorshipTiers } from '../data/enactusData';
-import { Award, CheckCircle2, Building, Mail, Phone, User, Sparkles, Send, Check } from 'lucide-react';
+import { useSponsorshipTiers } from '../hooks/usePublicContent';
+import SEO from '../components/SEO';
+import { Award, CheckCircle2, Building, Mail, Phone, User, Send, Check } from 'lucide-react';
 
 export default function BecomeSponsorPage() {
+  const { data: tiers = sponsorshipTiers, isLoading } = useSponsorshipTiers(sponsorshipTiers);
+
   const [formData, setFormData] = useState({
     companyName: '',
     contactPerson: '',
@@ -30,6 +34,10 @@ export default function BecomeSponsorPage() {
 
   return (
     <div className="page-container-padding" style={{ paddingTop: '120px', paddingBottom: '100px' }}>
+      <SEO
+        title="باقات الرعاية والشراكة"
+        description="اربط علامتك التجارية بأعظم قصة نجاح شبابية في الصعيد. استكشف باقات رعاية إيناكوس قنا 2026."
+      />
       <div className="container">
         {/* Header */}
         <div style={{ textAlign: 'center', maxWidth: '840px', margin: '0 auto 4rem auto' }}>
@@ -44,6 +52,31 @@ export default function BecomeSponsorPage() {
           </p>
         </div>
 
+        {/* Loading skeleton when empty & loading */}
+        {isLoading && tiers.length === 0 && (
+          <div
+            style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 280px), 1fr))',
+              gap: '1.75rem',
+              marginBottom: '5rem',
+            }}
+          >
+            {[1, 2, 3].map((n) => (
+              <div
+                key={n}
+                className="glass-panel"
+                style={{
+                  height: '460px',
+                  borderRadius: '24px',
+                  background: 'rgba(255, 184, 0, 0.04)',
+                  border: '1px dashed rgba(255, 184, 0, 0.25)',
+                }}
+              />
+            ))}
+          </div>
+        )}
+
         {/* Sponsorship Tiers Grid */}
         <div
           style={{
@@ -54,7 +87,7 @@ export default function BecomeSponsorPage() {
             alignItems: 'stretch',
           }}
         >
-          {sponsorshipTiers.map((tier, idx) => (
+          {tiers.map((tier, idx) => (
             <div
               key={idx}
               className={`glass-panel card-shine responsive-card-p sponsor-tier-card ${tier.featured ? 'gold-border-glow' : ''}`}
@@ -275,7 +308,7 @@ export default function BecomeSponsorPage() {
                     }}
                   >
                     {sponsorshipTiers.map((t, i) => (
-                      <option key={i} value={t.name} style={{ background: '#0e0f16', color: '#fff' }}>
+                      <option key={i} value={t.name}>
                         {t.name}
                       </option>
                     ))}

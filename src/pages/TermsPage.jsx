@@ -1,10 +1,15 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { ShieldCheck, Lock, FileText, ArrowLeft } from 'lucide-react';
+import SEO from '../components/SEO';
 
 export default function TermsPage() {
   return (
     <div className="page-container-padding" style={{ paddingTop: '120px', paddingBottom: '100px' }}>
+      <SEO
+        title="سياسة الخصوصية والشروط"
+        description="سياسة الخصوصية وشروط الاستخدام لنشاط إيناكوس قنا - جامعة جنوب الوادي."
+      />
       <div className="container" style={{ maxWidth: '850px' }}>
         {/* Header */}
         <div style={{ textAlign: 'center', marginBottom: '3.5rem' }}>

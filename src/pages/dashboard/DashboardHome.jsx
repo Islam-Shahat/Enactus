@@ -1,32 +1,48 @@
 import React from 'react';
-import { useNavigate } from 'react-router-dom';
-import { CheckSquare, Award, Calendar, Users, Shield, LogOut } from 'lucide-react';
+import { CheckSquare, Award, Calendar, Users, Shield } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
+import { useLanguage } from '../../context/LanguageContext';
 import { ROLE_LABELS } from '../../lib/roles';
-import { t } from '../../lib/strings';
 
 export default function DashboardHome() {
-  const { profile, roles, user, signOut } = useAuth();
-  const navigate = useNavigate();
-
-  const handleSignOut = async () => {
-    await signOut();
-    navigate('/login', { replace: true, state: { loggedOut: true } });
-  };
+  const { profile, roles, user } = useAuth();
+  const { lang, t } = useLanguage();
+  const isAr = lang === 'ar';
 
   const displayName =
-    profile?.full_name_ar || profile?.full_name_en || user?.email?.split('@')[0] || 'عضو';
+    (isAr ? (profile?.full_name_ar || profile?.full_name_en) : (profile?.full_name_en || profile?.full_name_ar)) ||
+    user?.email?.split('@')[0] || (isAr ? 'عضو' : 'Member');
 
   const roleBadges = roles.map((r) => ({
     key: r.role,
-    label: ROLE_LABELS[r.role]?.ar || r.role,
+    label: ROLE_LABELS[r.role]?.[lang] ?? ROLE_LABELS[r.role]?.ar ?? r.role,
   }));
 
   const statCards = [
-    { title: 'المهام المعينة', icon: CheckSquare, value: '—', hint: 'لا توجد مهام نشطة حالياً' },
-    { title: 'رصيد النقاط', icon: Award, value: '—', hint: 'سجل النقاط قيد التجهيز' },
-    { title: 'سجل الحضور', icon: Calendar, value: '—', hint: 'لا توجد جلسات مسجلة' },
-    { title: 'اللجنة التابع لها', icon: Users, value: '—', hint: 'تحديثات الموسم الجديد' },
+    {
+      title: isAr ? 'المهام المعينة' : 'Assigned Tasks',
+      icon: CheckSquare,
+      value: '—',
+      hint: isAr ? 'لا توجد مهام نشطة حالياً' : 'No active tasks currently',
+    },
+    {
+      title: isAr ? 'رصيد النقاط' : 'Points Balance',
+      icon: Award,
+      value: '—',
+      hint: isAr ? 'سجل النقاط قيد التجهيز' : 'Points ledger being set up',
+    },
+    {
+      title: isAr ? 'سجل الحضور' : 'Attendance Record',
+      icon: Calendar,
+      value: '—',
+      hint: isAr ? 'لا توجد جلسات مسجلة' : 'No recorded sessions',
+    },
+    {
+      title: isAr ? 'اللجنة التابع لها' : 'Assigned Committee',
+      icon: Users,
+      value: '—',
+      hint: isAr ? 'تحديثات الموسم الجديد' : 'New season updates',
+    },
   ];
 
   return (
@@ -47,25 +63,6 @@ export default function DashboardHome() {
             <span className="badge-gold font-cinzel" style={{ fontSize: '0.75rem' }}>
               ENACTUS QENA • PORTAL
             </span>
-            <button
-              onClick={handleSignOut}
-              className="btn-secondary"
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '0.45rem',
-                padding: '0.5rem 1rem',
-                fontSize: '0.85rem',
-                fontWeight: 700,
-                color: '#ff8888',
-                borderColor: 'rgba(239, 68, 68, 0.4)',
-                background: 'rgba(239, 68, 68, 0.12)',
-                cursor: 'pointer',
-              }}
-            >
-              <LogOut size={16} />
-              <span>{t('signOutButton')}</span>
-            </button>
           </div>
 
           <h1 style={{ fontSize: 'clamp(1.6rem, 3vw, 2.2rem)', fontWeight: 900, color: '#fff', marginBottom: '0.5rem' }}>
@@ -78,7 +75,9 @@ export default function DashboardHome() {
           </p>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', flexWrap: 'wrap' }}>
-            <span style={{ fontSize: '0.85rem', color: '#c5c5d6', fontWeight: 600 }}>الأدوار المصرحة:</span>
+            <span style={{ fontSize: '0.85rem', color: '#c5c5d6', fontWeight: 600 }}>
+              {isAr ? 'الأدوار المصرحة:' : 'Authorized Roles:'}
+            </span>
             {roleBadges.length > 0 ? (
               roleBadges.map((rb) => (
                 <span
@@ -97,7 +96,9 @@ export default function DashboardHome() {
                 </span>
               ))
             ) : (
-              <span className="badge-gold" style={{ fontSize: '0.75rem' }}>عضو</span>
+              <span className="badge-gold" style={{ fontSize: '0.75rem' }}>
+                {isAr ? 'عضو' : 'Member'}
+              </span>
             )}
           </div>
         </div>
@@ -129,24 +130,27 @@ export default function DashboardHome() {
           return (
             <div
               key={idx}
-              className="glass-panel gold-border-glow"
+              className="glass-panel gold-glow-hover card-shine"
               style={{
                 borderRadius: '18px',
                 padding: '1.5rem',
-                background: 'rgba(15, 16, 22, 0.85)',
                 display: 'flex',
                 flexDirection: 'column',
-                gap: '0.75rem',
+                justifyContent: 'space-between',
+                minHeight: '140px',
               }}
             >
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                <span style={{ color: '#a0a0b2', fontSize: '0.88rem', fontWeight: 600 }}>{card.title}</span>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1rem' }}>
+                <span style={{ fontSize: '0.88rem', fontWeight: 700, color: '#e0e0ea' }}>
+                  {card.title}
+                </span>
                 <div
                   style={{
                     width: '36px',
                     height: '36px',
                     borderRadius: '10px',
-                    background: 'rgba(255, 184, 0, 0.12)',
+                    background: 'rgba(255, 184, 0, 0.1)',
+                    border: '1px solid rgba(255, 184, 0, 0.25)',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
@@ -156,10 +160,12 @@ export default function DashboardHome() {
                   <Icon size={18} />
                 </div>
               </div>
-              <div style={{ fontSize: '2rem', fontWeight: 900, color: '#fff', letterSpacing: '-0.02em' }}>
-                {card.value}
+
+              <div>
+                <p style={{ fontSize: '0.8rem', color: '#888899', margin: 0 }}>
+                  {card.hint}
+                </p>
               </div>
-              <span style={{ fontSize: '0.78rem', color: '#7a7a8c' }}>{card.hint}</span>
             </div>
           );
         })}

@@ -1,21 +1,29 @@
 -- =====================================================================
 -- SEED (dev + first production bootstrap). Safe to re-run.
--- NOTE: the committee slug 'media' is referenced by RLS policies
---       (media team members can see deliverables and manage posts).
---       Do not rename it.
+-- NOTE: committees flagged is_media_team (multimedia, social) get the media-team
+--       permissions in RLS (see deliverables / posts policies).
+-- Requires migration 20261102091614_public_content_fields.sql (code / is_media_team).
 -- =====================================================================
 
 insert into public.seasons (name, starts_on, ends_on, is_active)
 select '2026/2027', date '2026-09-01', date '2027-06-30', true
 where not exists (select 1 from public.seasons);
 
-insert into public.committees (slug, name_ar, name_en, description_ar, description_en, color, icon, sort_order) values
-  ('hr',     'الموارد البشرية', 'Human Resources', 'استقطاب الأعضاء وتقييمهم ومتابعة الحضور والنقاط.', 'Recruiting, evaluating and following up on members, attendance and points.', '#16A34A', 'users',     1),
-  ('pr',     'العلاقات العامة والرعاة', 'PR & Sponsorship', 'التواصل مع الشركات وإدارة الشراكات والرعايات.', 'Managing companies, partnerships and sponsorships.', '#2563EB', 'handshake', 2),
-  ('media',  'الميديا', 'Media', 'صناعة المحتوى وإدارة الصفحات وتنفيذ التزامات الشراكات.', 'Content creation, social pages and partnership deliverables.', '#7C3AED', 'camera',    3),
-  ('oc',     'اللجنة المنظمة', 'Organizing Committee', 'تنظيم الفعاليات واللوجستيات.', 'Events and logistics.', '#EA580C', 'calendar',  4),
-  ('finance','المالية', 'Finance', 'متابعة الدفعات والمصروفات والميزانيات.', 'Payments, expenses and budgets.', '#CA8A04', 'wallet',    5)
-on conflict (slug) do nothing;
+-- The 7 real committees of the site (slugs match the public website routes).
+-- Rich page content (duties, skills, quote...) is loaded by dev_seed_public.sql
+-- or edited later from the dashboard.
+insert into public.committees (slug, code, name_ar, name_en, color, icon, sort_order, is_media_team) values
+  ('pm',           'PM',           'إدارة المشاريع التنموية',    'Project Management',               '#16A34A', 'sprout',         1, false),
+  ('multimedia',   'MULTI MEDIA',  'المالتي ميديا والتصميم',     'MultiMedia & Creative',            '#7C3AED', 'clapperboard',   2, true),
+  ('pr',           'PR',           'العلاقات العامة والشراكات',  'Public Relations & Partnerships',  '#2563EB', 'handshake',      3, false),
+  ('oc',           'OC',           'لجنة التنظيم واللوجستيات',   'Organizing Committee',             '#EA580C', 'calendar-check', 4, false),
+  ('hr',           'HR',           'الموارد البشرية والتطوير',   'Human Resources & Talent',         '#0D9488', 'users',          5, false),
+  ('presentation', 'PRESENTATION', 'فرسان المنصة والعرض',        'Presentation & Pitching',          '#DC2626', 'mic',            6, false),
+  ('social',       'SOCIAL MEDIA', 'صناع المحتوى والسوشيال ميديا','Social Media & Marketing',         '#DB2777', 'megaphone',      7, true)
+on conflict (slug) do update set
+  code = excluded.code, name_ar = excluded.name_ar, name_en = excluded.name_en,
+  color = excluded.color, icon = excluded.icon, sort_order = excluded.sort_order,
+  is_media_team = excluded.is_media_team;
 
 insert into public.settings (key, value, is_public) values
   ('applications_open', 'true'::jsonb, true),

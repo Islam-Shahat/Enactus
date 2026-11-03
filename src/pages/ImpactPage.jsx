@@ -2,6 +2,7 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import ProjectsImpact from '../components/ProjectsImpact';
 import { Award, Globe, HeartHandshake, TrendingUp, Users, Sprout, ArrowLeft, Sparkles } from 'lucide-react';
+import SEO from '../components/SEO';
 
 export default function ImpactPage() {
   const sdgsList = [
@@ -13,6 +14,10 @@ export default function ImpactPage() {
 
   return (
     <div className="page-container-padding" style={{ paddingTop: '120px', paddingBottom: '100px' }}>
+      <SEO
+        title="أثرنا واستدامة مشاريعنا"
+        description="مشاريع وأثر إيناكوس قنا المستدام: تمكين مجتمعي، تدوير زراعي، وطاقة نظيفة في صعيد مصر."
+      />
       <div className="container">
         {/* Header */}
         <div style={{ textAlign: 'center', maxWidth: '820px', margin: '0 auto 2rem auto' }}>

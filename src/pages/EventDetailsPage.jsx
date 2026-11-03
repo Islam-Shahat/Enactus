@@ -1,18 +1,35 @@
 import React from 'react';
 import { useParams, Link, Navigate } from 'react-router-dom';
 import { eventsData } from '../data/enactusData';
-import { Calendar, MapPin, Clock, ArrowRight, Handshake, CheckCircle2, Share2, Sparkles, ArrowLeft } from 'lucide-react';
+import { useEvent } from '../hooks/usePublicContent';
+import SEO from '../components/SEO';
+import { Calendar, MapPin, Clock, Handshake, CheckCircle2, ArrowLeft, Sparkles } from 'lucide-react';
 
 export default function EventDetailsPage() {
   const { slug } = useParams();
-  const event = eventsData.find((e) => e.slug === slug);
+  const fallbackEvent = eventsData.find((e) => e.slug === slug);
+  const { data: event = fallbackEvent, isLoading } = useEvent(slug, eventsData);
 
-  if (!event) {
+  if (!event && !isLoading) {
     return <Navigate to="/events" replace />;
+  }
+
+  if (!event && isLoading) {
+    return (
+      <div className="page-container-padding" style={{ paddingTop: '140px', minHeight: '60vh', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+        <div style={{ width: '40px', height: '40px', borderRadius: '50%', border: '3px solid rgba(255, 184, 0, 0.2)', borderTopColor: '#ffb800', animation: 'spin 0.8s linear infinite' }} />
+        <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+      </div>
+    );
   }
 
   return (
     <div className="page-container-padding" style={{ paddingTop: '120px', paddingBottom: '100px' }}>
+      <SEO
+        title={event.title}
+        description={event.brief || event.description}
+        image={event.image}
+      />
       <div className="container">
         {/* Breadcrumb Navigation */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '2rem', fontSize: '0.9rem', flexWrap: 'wrap' }}>

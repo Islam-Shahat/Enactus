@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Mail, Phone, MapPin, Send, MessageSquare, Check, Sparkles, Globe } from 'lucide-react';
 import { FacebookIcon } from '../components/Icons';
+import SEO from '../components/SEO';
 
 export default function ContactPage() {
   const [formData, setFormData] = useState({
@@ -19,6 +20,10 @@ export default function ContactPage() {
 
   return (
     <div className="page-container-padding" style={{ paddingTop: '120px', paddingBottom: '100px' }}>
+      <SEO
+        title="تواصل معنا"
+        description="تواصل مع كتيبة إيناكوس قنا - جامعة جنوب الوادي: استفسارات الشراكات، الرعايات، والتطوع."
+      />
       <div className="container">
         {/* Header */}
         <div style={{ textAlign: 'center', maxWidth: '820px', margin: '0 auto 4rem auto' }}>
@@ -223,10 +228,10 @@ export default function ContactPage() {
                       outline: 'none',
                     }}
                   >
-                    <option value="استفسار عام" style={{ background: '#0e0f16' }}>استفسار عام</option>
-                    <option value="طلب رعاية أو شراكة" style={{ background: '#0e0f16' }}>طلب رعاية أو شراكة</option>
-                    <option value="استفسار عن التقديم والمقابلات" style={{ background: '#0e0f16' }}>استفسار عن التقديم والمقابلات</option>
-                    <option value="تغطية إعلامية وصحفية" style={{ background: '#0e0f16' }}>تغطية إعلامية وصحفية</option>
+                    <option value="استفسار عام">استفسار عام</option>
+                    <option value="طلب رعاية أو شراكة">طلب رعاية أو شراكة</option>
+                    <option value="استفسار عن التقديم والمقابلات">استفسار عن التقديم والمقابلات</option>
+                    <option value="تغطية إعلامية وصحفية">تغطية إعلامية وصحفية</option>
                   </select>
                 </div>
 

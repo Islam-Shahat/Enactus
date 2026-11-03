@@ -4,7 +4,7 @@ import { Clock, LogOut, ShieldX } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { t } from '../lib/strings';
 
-export default function ProtectedRoute() {
+export default function ProtectedRoute({ children }) {
   const { isAuthenticated, loading, profile, roles, signOut } = useAuth();
   const navigate = useNavigate();
 
@@ -170,5 +170,5 @@ export default function ProtectedRoute() {
     );
   }
 
-  return <Outlet />;
+  return children ?? <Outlet />;
 }

@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import {
   Bell,
-  Globe,
   LogOut,
   Menu,
   X,
@@ -24,9 +23,10 @@ import {
   Key,
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
+import { useLanguage } from '../../context/LanguageContext';
 import { DASHBOARD_NAV, ROLE_LABELS } from '../../lib/roles';
 import ThemeToggle from '../../components/ThemeToggle';
-import { t } from '../../lib/strings';
+import LanguageToggle from '../../components/LanguageToggle';
 
 const NAV_ICONS = {
   home: Home,
@@ -49,6 +49,7 @@ const NAV_ICONS = {
 
 export default function DashboardLayout() {
   const { profile, roles, isSuperAdmin, hasRole, signOut, user } = useAuth();
+  const { lang, t } = useLanguage();
   const [mobileDrawerOpen, setMobileDrawerOpen] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
@@ -70,10 +71,11 @@ export default function DashboardLayout() {
   });
 
   const displayName =
-    profile?.full_name_ar || profile?.full_name_en || user?.email?.split('@')[0] || 'عضو';
+    (lang === 'ar' ? (profile?.full_name_ar || profile?.full_name_en) : (profile?.full_name_en || profile?.full_name_ar)) ||
+    user?.email?.split('@')[0] || (lang === 'ar' ? 'عضو' : 'Member');
 
   const primaryRole = roles[0]?.role || 'member';
-  const roleLabel = ROLE_LABELS[primaryRole]?.ar || primaryRole;
+  const roleLabel = ROLE_LABELS[primaryRole]?.[lang] ?? ROLE_LABELS[primaryRole]?.ar ?? primaryRole;
 
   return (
     <div
@@ -167,7 +169,7 @@ export default function DashboardLayout() {
                 }}
               >
                 <IconComponent size={18} color={isActive ? '#ffb800' : '#888899'} />
-                <span>{item.label.ar}</span>
+                <span>{item.label[lang] || item.label.ar}</span>
               </NavLink>
             );
           })}
@@ -175,10 +177,11 @@ export default function DashboardLayout() {
 
         {/* User Card at bottom of sidebar */}
         <div
+          className="dashboard-sidebar-user-card"
           style={{
             padding: '1.25rem',
             borderTop: '1px solid rgba(255, 184, 0, 0.15)',
-            background: 'rgba(8, 8, 12, 0.6)',
+            background: 'transparent',
             display: 'flex',
             flexDirection: 'column',
             gap: '0.85rem',
@@ -186,10 +189,11 @@ export default function DashboardLayout() {
         >
           <div>
             <p
+              className="dashboard-sidebar-user-name"
               style={{
                 fontSize: '0.9rem',
                 fontWeight: 700,
-                color: '#fff',
+                color: 'var(--text-main, #fff)',
                 margin: 0,
                 whiteSpace: 'nowrap',
                 overflow: 'hidden',
@@ -227,6 +231,7 @@ export default function DashboardLayout() {
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0 }}>
         {/* Topbar */}
         <header
+          className="dashboard-topbar"
           style={{
             height: '70px',
             background: 'rgba(12, 13, 18, 0.95)',
@@ -239,9 +244,10 @@ export default function DashboardLayout() {
             top: 0,
             zIndex: 40,
             backdropFilter: 'blur(10px)',
+            gap: '0.5rem',
           }}
         >
-          <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
             <button
               className="dashboard-mobile-toggle"
               onClick={() => setMobileDrawerOpen(true)}
@@ -259,38 +265,21 @@ export default function DashboardLayout() {
             >
               <Menu size={24} />
             </button>
-            <span style={{ fontSize: '1.05rem', fontWeight: 800, color: '#ffd54f' }}>
-              لوحة التحكم
+            <span className="dashboard-topbar-title" style={{ fontSize: '1.05rem', fontWeight: 800, color: '#ffd54f' }}>
+              {t('dashboardTitle')}
             </span>
           </div>
 
           {/* Right Topbar Controls */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem' }}>
-            {/* Language Switch Placeholder */}
-            <button
-              disabled
-              title={t('languagePlaceholder')}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '0.35rem',
-                background: 'rgba(255, 255, 255, 0.04)',
-                border: '1px solid rgba(255, 184, 0, 0.2)',
-                borderRadius: '8px',
-                padding: '0.4rem 0.65rem',
-                color: '#a3a3b2',
-                fontSize: '0.8rem',
-                cursor: 'default',
-              }}
-            >
-              <Globe size={15} color="#ffd54f" />
-              <span>AR</span>
-            </button>
+          <div className="dashboard-topbar-controls" style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+            {/* Language Switch */}
+            <LanguageToggle className="dashboard-topbar-pill" />
 
             {/* Notifications Bell Placeholder */}
             <button
               disabled
               title={t('notificationsPlaceholder')}
+              className="dashboard-topbar-pill"
               style={{
                 background: 'rgba(255, 255, 255, 0.04)',
                 border: '1px solid rgba(255, 184, 0, 0.2)',
@@ -309,7 +298,7 @@ export default function DashboardLayout() {
             {/* Existing Theme Toggle */}
             <ThemeToggle variant="compact" />
 
-            {/* User display badge on desktop */}
+            {/* User display badge on desktop & mobile */}
             <div
               className="dashboard-topbar-user"
               style={{
@@ -317,27 +306,50 @@ export default function DashboardLayout() {
                 alignItems: 'center',
                 gap: '0.6rem',
                 borderInlineStart: '1px solid rgba(255, 184, 0, 0.2)',
-                paddingInlineStart: '0.85rem',
+                paddingInlineStart: '0.75rem',
               }}
             >
-              <div style={{ textAlign: 'end' }}>
-                <span style={{ fontSize: '0.85rem', fontWeight: 700, display: 'block', color: '#fff' }}>
+              <div style={{ textAlign: 'end', lineHeight: 1.25 }}>
+                <span
+                  className="dashboard-topbar-name"
+                  style={{
+                    fontSize: '0.85rem',
+                    fontWeight: 700,
+                    display: 'block',
+                    color: '#fff',
+                    maxWidth: '120px',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    whiteSpace: 'nowrap',
+                  }}
+                >
                   {displayName}
                 </span>
-                <span style={{ fontSize: '0.72rem', color: '#ffd54f' }}>
+                <span
+                  className="dashboard-topbar-role"
+                  style={{
+                    fontSize: '0.72rem',
+                    color: '#ffd54f',
+                    display: 'block',
+                    fontWeight: 600,
+                  }}
+                >
                   {roleLabel}
                 </span>
               </div>
             </div>
 
-            {/* Direct Sign Out on Topbar */}
+            {/* Direct Sign Out on Topbar (rendered once) */}
             <button
               onClick={handleSignOut}
-              className="btn-secondary"
+              className="btn-secondary dashboard-topbar-signout"
               style={{
                 padding: '0.4rem 0.75rem',
                 fontSize: '0.82rem',
                 gap: '0.4rem',
+                display: 'inline-flex',
+                alignItems: 'center',
+                whiteSpace: 'nowrap',
               }}
             >
               <LogOut size={14} />
@@ -348,7 +360,33 @@ export default function DashboardLayout() {
 
         {/* Page Inner Container */}
         <main style={{ flex: 1, padding: '2rem 1.5rem', maxWidth: '1400px', width: '100%', margin: '0 auto' }}>
-          <Outlet />
+          <React.Suspense
+            fallback={
+              <div
+                role="status"
+                style={{
+                  minHeight: '40vh',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  color: '#ffd54f',
+                }}
+              >
+                <div
+                  style={{
+                    width: '36px',
+                    height: '36px',
+                    border: '3px solid rgba(255, 184, 0, 0.2)',
+                    borderTopColor: '#ffb800',
+                    borderRadius: '50%',
+                    animation: 'spin 0.8s linear infinite',
+                  }}
+                />
+              </div>
+            }
+          >
+            <Outlet />
+          </React.Suspense>
         </main>
       </div>
 
@@ -391,12 +429,15 @@ export default function DashboardLayout() {
                 <img src="/assets/E2.jpg" alt="Logo" style={{ width: '32px', height: '32px', borderRadius: '8px' }} />
                 <span className="font-cinzel" style={{ fontWeight: 900, color: '#ffd54f' }}>ENACTUS</span>
               </div>
-              <button
-                onClick={() => setMobileDrawerOpen(false)}
-                style={{ background: 'transparent', border: 'none', color: '#ffb800', cursor: 'pointer' }}
-              >
-                <X size={22} />
-              </button>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <LanguageToggle style={{ padding: '0.3rem 0.55rem', fontSize: '0.78rem' }} />
+                <button
+                  onClick={() => setMobileDrawerOpen(false)}
+                  style={{ background: 'transparent', border: 'none', color: '#ffb800', cursor: 'pointer', padding: '0.25rem' }}
+                >
+                  <X size={22} />
+                </button>
+              </div>
             </div>
 
             <nav style={{ flex: 1, overflowY: 'auto', padding: '1rem', display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
@@ -427,7 +468,7 @@ export default function DashboardLayout() {
                     }}
                   >
                     <IconComponent size={18} color={isActive ? '#ffb800' : '#888899'} />
-                    <span>{item.label.ar}</span>
+                    <span>{item.label[lang] || item.label.ar}</span>
                   </NavLink>
                 );
               })}
@@ -449,10 +490,41 @@ export default function DashboardLayout() {
 
       {/* Responsive styles */}
       <style>{`
-        @media (max-width: 768px) {
+        /* Breakpoint: At >= 1024px desktop sidebar is visible; below 1024px drawer is used */
+        @media (max-width: 1023.98px) {
           .dashboard-sidebar-desktop { display: none !important; }
-          .dashboard-mobile-toggle { display: flex !important; }
-          .dashboard-topbar-user { display: none !important; }
+          .dashboard-mobile-toggle { display: inline-flex !important; }
+        }
+        @media (max-width: 768px) {
+          .dashboard-topbar { padding: 0 1rem !important; }
+        }
+        @media (max-width: 480px) {
+          .dashboard-topbar-title { display: none !important; }
+          .dashboard-topbar { padding: 0 0.65rem !important; gap: 0.35rem !important; }
+          .dashboard-topbar-controls { gap: 0.4rem !important; }
+          .dashboard-topbar-pill { padding: 0.35rem 0.5rem !important; }
+          .dashboard-topbar-name { max-width: 75px !important; font-size: 0.78rem !important; }
+          .dashboard-topbar-role { font-size: 0.68rem !important; }
+          .dashboard-topbar-signout { padding: 0.35rem 0.55rem !important; font-size: 0.76rem !important; }
+        }
+        @media (max-width: 360px) {
+          .dashboard-topbar-name { max-width: 55px !important; }
+        }
+
+        /* Light mode support */
+        [data-theme="light"] .dashboard-sidebar-desktop,
+        [data-theme="light"] .dashboard-topbar {
+          background: rgba(255, 255, 255, 0.96) !important;
+          border-color: rgba(212, 136, 0, 0.22) !important;
+          color: #14171f !important;
+        }
+        [data-theme="light"] .dashboard-topbar-name,
+        [data-theme="light"] .dashboard-sidebar-user-name {
+          color: #14171f !important;
+        }
+        [data-theme="light"] .dashboard-sidebar-user-card {
+          background: transparent !important;
+          border-top-color: rgba(212, 136, 0, 0.15) !important;
         }
       `}</style>
     </div>
