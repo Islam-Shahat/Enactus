@@ -60,7 +60,7 @@ Deno.serve(async (req: Request) => {
     return errorResponse(req, 'session_id is required', 400, 'INVALID_INPUT');
   }
 
-  // 4. Fetch session and check check_in_open
+  // 4. Fetch session details
   const { data: session, error: sessionErr } = await adminClient
     .from('attendance_sessions')
     .select('id, committee_id, check_in_open')
@@ -71,11 +71,7 @@ Deno.serve(async (req: Request) => {
     return errorResponse(req, 'Attendance session not found', 404, 'NOT_FOUND');
   }
 
-  if (!session.check_in_open) {
-    return errorResponse(req, 'Check-in is currently closed for this session', 400, 'CHECK_IN_CLOSED');
-  }
-
-  // 5. Manager Permission Check
+  // 5. Manager Permission Check (Checked FIRST to avoid leaking session open/closed state to unauthorized callers)
   // Allowed: hr_admin, president, vice_president, coordinator, oc_admin, super_admin, or head of session's committee
   const { data: userRoles, error: rolesErr } = await adminClient
     .from('user_roles')
@@ -98,7 +94,12 @@ Deno.serve(async (req: Request) => {
     return errorResponse(req, 'Forbidden: Insufficient permissions to generate session QR tokens', 403, 'FORBIDDEN');
   }
 
-  // 6. Fetch Session Secret (Service Role only)
+  // 6. Check if session check-in is open (Revealed ONLY to authorized managers)
+  if (!session.check_in_open) {
+    return errorResponse(req, 'Check-in is currently closed for this session', 400, 'CHECK_IN_CLOSED');
+  }
+
+  // 7. Fetch Session Secret (Service Role only)
   const { data: secretRow, error: secretErr } = await adminClient
     .from('session_secrets')
     .select('secret')
@@ -110,7 +111,7 @@ Deno.serve(async (req: Request) => {
     return errorResponse(req, 'Session secret is not initialized', 500);
   }
 
-  // 7. Generate rotating token and code
+  // 8. Generate rotating token and code
   const result = await generateQrTokenAndCode(sessionId, secretRow.secret);
 
   return json(req, {
@@ -121,4 +122,3 @@ Deno.serve(async (req: Request) => {
     window: result.window,
   });
 });
-

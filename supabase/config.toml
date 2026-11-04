@@ -16,3 +16,12 @@ verify_jwt = true
 [functions.close-session]
 verify_jwt = true
 
+[functions.register-event]
+verify_jwt = false
+
+[functions.ticket-lookup]
+verify_jwt = false
+
+[functions.submit-feedback]
+verify_jwt = false
+

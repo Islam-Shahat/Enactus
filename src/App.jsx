@@ -35,9 +35,19 @@ const ResetPasswordPage = React.lazy(() => import('./pages/ResetPasswordPage'));
 // Dashboard Shell (Lazy-loaded for code splitting)
 const DashboardLayout = React.lazy(() => import('./pages/dashboard/DashboardLayout'));
 const DashboardHome = React.lazy(() => import('./pages/dashboard/DashboardHome'));
+const TicketPage = React.lazy(() => import('./pages/TicketPage'));
+const DashboardEventsPage = React.lazy(() => import('./pages/dashboard/EventsPage'));
+const SiteCmsPage = React.lazy(() => import('./pages/dashboard/SiteCmsPage'));
 const TasksPage = React.lazy(() => import('./pages/dashboard/TasksPage'));
 const AttendancePage = React.lazy(() => import('./pages/dashboard/AttendancePage'));
+const PointsPage = React.lazy(() => import('./pages/dashboard/PointsPage'));
+const LeaderboardPage = React.lazy(() => import('./pages/dashboard/LeaderboardPage'));
 const ApplicationsPage = React.lazy(() => import('./pages/dashboard/ApplicationsPage'));
+const CompaniesPage = React.lazy(() => import('./pages/dashboard/CompaniesPage'));
+const AgreementsPage = React.lazy(() => import('./pages/dashboard/AgreementsPage'));
+const PaymentsPage = React.lazy(() => import('./pages/dashboard/PaymentsPage'));
+const FinancePage = React.lazy(() => import('./pages/dashboard/FinancePage'));
+const PostsPage = React.lazy(() => import('./pages/dashboard/PostsPage'));
 const MembersPage = React.lazy(() => import('./pages/dashboard/MembersPage'));
 const RolesPage = React.lazy(() => import('./pages/dashboard/RolesPage'));
 const ProfilePage = React.lazy(() => import('./pages/dashboard/ProfilePage'));
@@ -138,6 +148,7 @@ export default function App() {
           <Route path="/partners" element={<PartnersPage />} />
           <Route path="/sponsor" element={<BecomeSponsorPage />} />
           <Route path="/contact" element={<ContactPage />} />
+          <Route path="/ticket/:code" element={<Suspense fallback={<PageFallback />}><TicketPage /></Suspense>} />
           <Route path="/login" element={<Suspense fallback={<PageFallback />}><LoginPage /></Suspense>} />
           <Route path="/forgot-password" element={<Suspense fallback={<PageFallback />}><ForgotPasswordPage /></Suspense>} />
           <Route path="/reset-password" element={<Suspense fallback={<PageFallback />}><ResetPasswordPage /></Suspense>} />
@@ -181,10 +192,82 @@ export default function App() {
             }
           />
           <Route
+            path="points"
+            element={
+              <RoleGuard allow={DASHBOARD_NAV.find((n) => n.key === 'points')?.allow}>
+                <PointsPage />
+              </RoleGuard>
+            }
+          />
+          <Route
+            path="leaderboard"
+            element={
+              <RoleGuard allow={DASHBOARD_NAV.find((n) => n.key === 'leaderboard')?.allow}>
+                <LeaderboardPage />
+              </RoleGuard>
+            }
+          />
+          <Route
             path="applications"
             element={
               <RoleGuard allow={DASHBOARD_NAV.find((n) => n.key === 'applications')?.allow}>
                 <ApplicationsPage />
+              </RoleGuard>
+            }
+          />
+          <Route
+            path="companies"
+            element={
+              <RoleGuard allow={DASHBOARD_NAV.find((n) => n.key === 'companies')?.allow}>
+                <CompaniesPage />
+              </RoleGuard>
+            }
+          />
+          <Route
+            path="agreements"
+            element={
+              <RoleGuard allow={DASHBOARD_NAV.find((n) => n.key === 'agreements')?.allow}>
+                <AgreementsPage />
+              </RoleGuard>
+            }
+          />
+          <Route
+            path="payments"
+            element={
+              <RoleGuard allow={DASHBOARD_NAV.find((n) => n.key === 'payments')?.allow}>
+                <PaymentsPage />
+              </RoleGuard>
+            }
+          />
+          <Route
+            path="finance"
+            element={
+              <RoleGuard allow={DASHBOARD_NAV.find((n) => n.key === 'finance')?.allow}>
+                <FinancePage />
+              </RoleGuard>
+            }
+          />
+          <Route
+            path="posts"
+            element={
+              <RoleGuard allow={DASHBOARD_NAV.find((n) => n.key === 'posts')?.allow}>
+                <PostsPage />
+              </RoleGuard>
+            }
+          />
+          <Route
+            path="posts/partners"
+            element={
+              <RoleGuard allow={DASHBOARD_NAV.find((n) => n.key === 'posts')?.allow}>
+                <PostsPage />
+              </RoleGuard>
+            }
+          />
+          <Route
+            path="events"
+            element={
+              <RoleGuard allow={DASHBOARD_NAV.find((n) => n.key === 'events')?.allow}>
+                <DashboardEventsPage />
               </RoleGuard>
             }
           />
@@ -209,6 +292,14 @@ export default function App() {
             element={<ProfilePage />}
           />
           <Route
+            path="site"
+            element={
+              <RoleGuard allow={DASHBOARD_NAV.find((n) => n.key === 'site')?.allow}>
+                <SiteCmsPage />
+              </RoleGuard>
+            }
+          />
+          <Route
             path="settings"
             element={
               <RoleGuard allow={DASHBOARD_NAV.find((n) => n.key === 'settings')?.allow}>
@@ -221,7 +312,23 @@ export default function App() {
           {DASHBOARD_NAV.filter(
             (item) =>
               item.path !== '/dashboard' &&
-              !['tasks', 'attendance', 'applications', 'members', 'roles', 'settings'].includes(item.key)
+              ![
+                'tasks',
+                'attendance',
+                'points',
+                'leaderboard',
+                'applications',
+                'companies',
+                'agreements',
+                'payments',
+                'finance',
+                'posts',
+                'events',
+                'site',
+                'members',
+                'roles',
+                'settings',
+              ].includes(item.key)
           ).map((item) => {
             const subPath = item.path.replace('/dashboard/', '');
             return (

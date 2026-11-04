@@ -3,6 +3,7 @@ import { CheckCircle2, AlertCircle, Info, X } from 'lucide-react';
 
 const ToastContext = createContext({
   showToast: () => {},
+  show: () => {},
   success: () => {},
   error: () => {},
   info: () => {},
@@ -31,7 +32,7 @@ export function ToastProvider({ children }) {
   const info = useCallback((msg, duration) => showToast(msg, 'info', duration), [showToast]);
 
   return (
-    <ToastContext.Provider value={{ showToast, success, error, info }}>
+    <ToastContext.Provider value={{ showToast, show: showToast, success, error, info }}>
       {children}
       {/* Toast Render Container */}
       <div

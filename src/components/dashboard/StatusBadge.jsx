@@ -34,6 +34,22 @@ const STATUS_MAP = {
   normal: { ar: 'عادية', en: 'Normal', bg: 'rgba(59, 130, 246, 0.15)', text: '#60a5fa', border: 'rgba(59, 130, 246, 0.35)' },
   high: { ar: 'مرتفعة', en: 'High', bg: 'rgba(249, 115, 22, 0.15)', text: '#fb923c', border: 'rgba(249, 115, 22, 0.35)' },
   urgent: { ar: 'عاجلة', en: 'Urgent', bg: 'rgba(239, 68, 68, 0.2)', text: '#ef4444', border: 'rgba(239, 68, 68, 0.5)' },
+
+  // Event Statuses
+  draft: { ar: 'مسودة', en: 'Draft', bg: 'rgba(107, 114, 128, 0.15)', text: '#9ca3af', border: 'rgba(107, 114, 128, 0.35)' },
+  published: { ar: 'معلنة', en: 'Published', bg: 'rgba(59, 130, 246, 0.15)', text: '#60a5fa', border: 'rgba(59, 130, 246, 0.35)' },
+  ongoing: { ar: 'جارية الآن', en: 'Ongoing', bg: 'rgba(255, 184, 0, 0.15)', text: '#ffd54f', border: 'rgba(255, 184, 0, 0.45)' },
+  completed: { ar: 'مكتملة', en: 'Completed', bg: 'rgba(34, 197, 94, 0.15)', text: '#4ade80', border: 'rgba(34, 197, 94, 0.35)' },
+
+  // Event Registrations
+  registered: { ar: 'مؤكد', en: 'Registered', bg: 'rgba(59, 130, 246, 0.15)', text: '#60a5fa', border: 'rgba(59, 130, 246, 0.35)' },
+  waitlist: { ar: 'قائمة انتظار', en: 'Waitlist', bg: 'rgba(234, 179, 8, 0.15)', text: '#facc15', border: 'rgba(234, 179, 8, 0.35)' },
+  attended: { ar: 'حاضر', en: 'Attended', bg: 'rgba(34, 197, 94, 0.15)', text: '#4ade80', border: 'rgba(34, 197, 94, 0.35)' },
+
+  // Event Volunteers
+  requested: { ar: 'قيد الطلب', en: 'Requested', bg: 'rgba(148, 163, 184, 0.15)', text: '#94a3b8', border: 'rgba(148, 163, 184, 0.35)' },
+  confirmed: { ar: 'مقبول للتنظيم', en: 'Confirmed', bg: 'rgba(34, 197, 94, 0.15)', text: '#4ade80', border: 'rgba(34, 197, 94, 0.35)' },
+  declined: { ar: 'معتذر', en: 'Declined', bg: 'rgba(239, 68, 68, 0.15)', text: '#f87171', border: 'rgba(239, 68, 68, 0.35)' },
 };
 
 export default function StatusBadge({ status, color = null, customColor = null, label = null, className = '', style = {} }) {

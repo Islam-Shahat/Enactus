@@ -21,6 +21,10 @@ export default defineConfig({
               name: 'query-vendor',
               test: /node_modules[\\/]@tanstack[\\/]/,
             },
+            {
+              name: 'recharts-vendor',
+              test: /node_modules[\\/]recharts[\\/]/,
+            },
           ],
         },
       },

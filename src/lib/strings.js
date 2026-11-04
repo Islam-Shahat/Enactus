@@ -1,3 +1,5 @@
+import i18n from '../i18n';
+
 export const strings = {
   ar: {
     // Navigation
@@ -205,6 +207,10 @@ export function getCurrentLang() {
 
 /** Helper returning translated string according to current or explicit language */
 export function t(key, lang = activeSystemLang) {
+  if (i18n && i18n.isInitialized && (key.includes('.') || i18n.exists(key))) {
+    const val = i18n.t(key, { lng: lang });
+    if (val && val !== key) return val;
+  }
   const selected = strings[lang] ?? strings.ar;
   return selected[key] ?? strings.ar[key] ?? strings.en[key] ?? key;
 }

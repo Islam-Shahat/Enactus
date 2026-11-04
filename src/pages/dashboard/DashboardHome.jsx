@@ -140,6 +140,22 @@ export default function DashboardHome() {
     ? 'غير محدد'
     : 'Not assigned';
 
+  // Member's points score
+  const { data: myScore, isLoading: loadingScore } = useQuery({
+    queryKey: ['dashboard', 'my_score', user?.id],
+    queryFn: async () => {
+      if (!user?.id) return null;
+      const { data, error } = await supabase
+        .from('member_scores')
+        .select('total, bonus_total, penalty_total')
+        .eq('user_id', user.id)
+        .maybeSingle();
+      if (error) return null;
+      return data;
+    },
+    enabled: Boolean(user?.id),
+  });
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
       {/* Welcome Card */}
@@ -294,6 +310,7 @@ export default function DashboardHome() {
               icon={CheckSquare}
               subtitle={isAr ? 'مهام قيد التنفيذ' : 'In progress'}
               isLoading={loadingTasks}
+              onClick={() => navigate('/dashboard/tasks')}
             />
             <StatCard
               title={isAr ? 'لجنتي' : 'My Committee'}
@@ -306,17 +323,18 @@ export default function DashboardHome() {
               }
             />
             <StatCard
-              title={isAr ? 'الملف الشخصي' : 'My Profile'}
-              value={isAr ? 'مكتمل' : 'Complete'}
+              title={isAr ? 'رصيد النقاط' : 'My Points'}
+              value={loadingScore ? '...' : (myScore?.total ?? 0)}
               icon={Award}
-              subtitle={isAr ? 'تعديل البيانات والصورة' : 'Update info & avatar'}
-              onClick={() => navigate('/dashboard/profile')}
+              subtitle={isAr ? 'عرض سجل النقاط والتظلمات' : 'View ledger & disputes'}
+              onClick={() => navigate('/dashboard/points')}
             />
             <StatCard
-              title={isAr ? 'سجل الحضور' : 'Attendance Sessions'}
-              value="—"
+              title={isAr ? 'لوحة المتصدرين' : 'Leaderboard'}
+              value={isAr ? 'المراكز' : 'Ranks'}
               icon={Calendar}
-              subtitle={isAr ? 'قريباً' : 'Coming soon'}
+              subtitle={isAr ? 'ترتيب الأعضاء في الموسم' : 'Season member rankings'}
+              onClick={() => navigate('/dashboard/leaderboard')}
             />
           </>
         )}

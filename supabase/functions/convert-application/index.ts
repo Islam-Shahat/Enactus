@@ -2,6 +2,7 @@
 import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { handleCors, checkOrigin } from '../_shared/cors.ts';
 import { json, errorResponse } from '../_shared/http.ts';
+import { resolveCommittee } from '../_shared/committees.ts';
 import { convertApplicationSchema } from '../_shared/schemas.ts';
 
 Deno.serve(async (req: Request) => {
@@ -102,15 +103,19 @@ Deno.serve(async (req: Request) => {
     });
   }
 
-  // 7. Resolve target committee
-  const { data: targetCommittee, error: commErr } = await adminClient
+  // 7. Resolve target committee using code matching helper (no filter injection)
+  const { data: allCommittees, error: commErr } = await adminClient
     .from('committees')
-    .select('id, slug, name_ar, name_en')
-    .or(`slug.eq."${committeeSlug}",name_ar.ilike."%${committeeSlug}%",name_en.ilike."%${committeeSlug}%"`)
-    .maybeSingle();
+    .select('id, slug, name_ar, name_en');
 
-  if (commErr || !targetCommittee) {
-    console.error('[convert-application] Committee not found:', committeeSlug, commErr);
+  if (commErr || !allCommittees) {
+    console.error('[convert-application] Error querying committees:', commErr);
+    return errorResponse(req, 'Failed to query committees', 500);
+  }
+
+  const targetCommittee = resolveCommittee(committeeSlug, allCommittees);
+  if (!targetCommittee) {
+    console.error('[convert-application] Committee not found for input:', committeeSlug);
     return errorResponse(req, `Committee not found for: ${committeeSlug}`, 400, 'COMMITTEE_NOT_FOUND');
   }
   const committeeId = targetCommittee.id;
@@ -134,7 +139,7 @@ Deno.serve(async (req: Request) => {
   const candidateEmail = app.email.toLowerCase().trim();
 
   try {
-    // Check if user already exists in auth or profile_private
+    // Check if user already exists in profile_private
     const { data: existingProfile } = await adminClient
       .from('profile_private')
       .select('user_id')
@@ -144,13 +149,21 @@ Deno.serve(async (req: Request) => {
     if (existingProfile?.user_id) {
       authUserId = existingProfile.user_id;
     } else {
-      // Check auth.users list
-      const { data: authList, error: listErr } = await adminClient.auth.admin.listUsers();
-      if (!listErr && authList?.users) {
-        const found = authList.users.find((u) => u.email?.toLowerCase() === candidateEmail);
+      // Check auth.users with paginated lookup (200 per page, up to 20 pages)
+      const MAX_PAGES = 20;
+      const PER_PAGE = 200;
+      for (let page = 1; page <= MAX_PAGES; page++) {
+        const { data: authList, error: listErr } = await adminClient.auth.admin.listUsers({
+          page,
+          perPage: PER_PAGE,
+        });
+        if (listErr || !authList?.users?.length) break;
+        const found = authList.users.find((u) => u.email?.toLowerCase().trim() === candidateEmail);
         if (found) {
           authUserId = found.id;
+          break;
         }
+        if (authList.users.length < PER_PAGE) break;
       }
     }
 
@@ -207,18 +220,29 @@ Deno.serve(async (req: Request) => {
     );
     if (memberErr) throw memberErr;
 
-    // 12. Insert user_roles 'member' (granted_by = caller)
-    const { error: roleErr } = await adminClient.from('user_roles').upsert(
-      {
+    // 12. Insert user_roles: Select-then-insert of one global member role (tolerating 23505 unique violation)
+    // The table unique index is an expression index on (user_id, role, coalesce(committee_id, ...)),
+    // so ON CONFLICT on column names is rejected by PostgreSQL.
+    const { data: existingRole } = await adminClient
+      .from('user_roles')
+      .select('id')
+      .eq('user_id', authUserId)
+      .eq('role', 'member')
+      .maybeSingle();
+
+    if (!existingRole) {
+      const { error: roleErr } = await adminClient.from('user_roles').insert({
         user_id: authUserId,
         role: 'member',
-        committee_id: committeeId,
+        committee_id: null,
         season_id: seasonId,
         granted_by: callerId,
-      },
-      { onConflict: 'user_id,role,committee_id' }
-    );
-    if (roleErr) throw roleErr;
+      });
+
+      if (roleErr && roleErr.code !== '23505') {
+        throw roleErr;
+      }
+    }
 
     // 13. Update application (status accepted, converted_user_id, reviewed_by)
     const { error: updateAppErr } = await adminClient
@@ -237,7 +261,7 @@ Deno.serve(async (req: Request) => {
       user_id: callerId,
       type: 'application_converted',
       title: 'تم تحويل المتقدم إلى عضو بنجاح',
-      body: `تم تحويل ${app.full_name} إلى عضو في لجنة ${targetCommittee.name_ar}.`,
+      body: `تم تحويل ${app.full_name} إلى عضو في لجنة ${targetCommittee.name_ar || targetCommittee.slug}.`,
       data: {
         application_id: applicationId,
         converted_user_id: authUserId,
@@ -248,24 +272,21 @@ Deno.serve(async (req: Request) => {
     return json(req, {
       ok: true,
       userId: authUserId,
-      status: 'accepted',
+      committeeId,
+      seasonId,
       isNewUser: isNewAuthUser,
-      message: 'Application successfully converted to team member',
+      message: 'Application converted to active member successfully',
     });
-  } catch (conversionErr) {
-    console.error('[convert-application] Error in conversion transaction:', conversionErr);
-
-    // Rollback: if a brand new auth user was created, delete that auth user to maintain consistency
+  } catch (err) {
+    console.error('[convert-application] Transaction step error:', err);
+    // Cleanup newly invited user if transaction failed midway
     if (isNewAuthUser && authUserId) {
       try {
-        console.warn('[convert-application] Rolling back newly created auth user:', authUserId);
         await adminClient.auth.admin.deleteUser(authUserId);
-      } catch (rollbackErr) {
-        console.error('[convert-application] Rollback failed:', rollbackErr);
+      } catch (delErr) {
+        console.error('[convert-application] Failed to rollback created auth user:', delErr);
       }
     }
-
-    return errorResponse(req, 'An error occurred while converting the application.', 500, 'CONVERSION_TRANSACTION_FAILED');
+    return errorResponse(req, 'Failed to complete member conversion', 500);
   }
 });
-

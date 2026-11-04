@@ -3,10 +3,12 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { KeyRound, Lock, AlertCircle, ArrowLeft, ShieldCheck } from 'lucide-react';
+import { KeyRound, Lock, AlertCircle, ArrowLeft, ArrowRight, ShieldCheck } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import { useLanguage } from '../context/LanguageContext';
 import { supabase } from '../lib/supabase';
 import { t } from '../lib/strings';
+import LanguageToggle from '../components/LanguageToggle';
 
 const resetSchema = z
   .object({
@@ -20,6 +22,9 @@ const resetSchema = z
 
 export default function ResetPasswordPage() {
   const { session, updatePassword } = useAuth();
+  const { lang, dir } = useLanguage();
+  const isAr = lang === 'ar';
+  const ArrowIcon = isAr ? ArrowLeft : ArrowRight;
   const navigate = useNavigate();
   const [isVerifying, setIsVerifying] = useState(true);
   const [hasValidSession, setHasValidSession] = useState(false);
@@ -107,13 +112,18 @@ export default function ResetPasswordPage() {
       <div className="container" style={{ maxWidth: '520px' }}>
         <div
           className="glass-panel gold-border-glow card-shine responsive-panel-p"
+          dir={dir}
           style={{
             borderRadius: '28px',
             padding: '3rem 2.5rem',
             background: 'linear-gradient(150deg, rgba(22, 24, 34, 0.98), rgba(10, 11, 16, 0.98))',
             boxShadow: '0 25px 70px rgba(0, 0, 0, 0.8), 0 0 40px rgba(255, 184, 0, 0.2)',
+            position: 'relative',
           }}
         >
+          <div style={{ position: 'absolute', top: '1.25rem', insetInlineEnd: '1.25rem' }}>
+            <LanguageToggle />
+          </div>
           {!hasValidSession && !session ? (
             <div style={{ textAlign: 'center' }}>
               <div
@@ -291,7 +301,7 @@ export default function ResetPasswordPage() {
                       textDecoration: 'none',
                     }}
                   >
-                    <ArrowLeft size={14} />
+                    <ArrowIcon size={14} />
                     <span>{t('backToLogin')}</span>
                   </Link>
                 </div>

@@ -46,6 +46,7 @@ export const DASHBOARD_NAV = [
   { key: 'companies', path: '/dashboard/companies', label: { ar: 'الشركات', en: 'Companies' }, allow: [ROLES.PR, ROLES.FINANCE, ROLES.MEDIA, ROLES.OC, ...EXEC] },
   { key: 'agreements', path: '/dashboard/agreements', label: { ar: 'الاتفاقيات', en: 'Agreements' }, allow: [ROLES.PR, ROLES.FINANCE, ...EXEC] },
   { key: 'payments', path: '/dashboard/payments', label: { ar: 'الدفعات', en: 'Payments' }, allow: [ROLES.PR, ROLES.FINANCE, ...EXEC] },
+  { key: 'finance', path: '/dashboard/finance', label: { ar: 'المالية والإحصائيات', en: 'Finance Overview' }, allow: [ROLES.FINANCE, ROLES.PR, ...EXEC] },
   { key: 'posts', path: '/dashboard/posts', label: { ar: 'المحتوى والبوستات', en: 'Content' }, allow: [ROLES.MEDIA, ROLES.PR, ROLES.COMMITTEE_HEAD, ...EXEC] },
   { key: 'events', path: '/dashboard/events', label: { ar: 'الفعاليات', en: 'Events' }, allow: [ROLES.OC, ROLES.COMMITTEE_HEAD, ROLES.HR, ROLES.PR, ROLES.MEDIA, ...EXEC] },
   { key: 'site', path: '/dashboard/site', label: { ar: 'محتوى الموقع', en: 'Site content' }, allow: [ROLES.MEDIA, ROLES.PR, ROLES.HR, ...EXEC] },

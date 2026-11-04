@@ -28,15 +28,19 @@ export function errorResponse(
 }
 
 export function getClientIp(req: Request): string {
+  // Prefer Cloudflare connecting IP, then X-Real-IP, then first untrusted hop of X-Forwarded-For
+  const cfConnectingIp = req.headers.get('cf-connecting-ip');
+  if (cfConnectingIp) return cfConnectingIp.trim();
+
+  const xRealIp = req.headers.get('x-real-ip');
+  if (xRealIp) return xRealIp.trim();
+
   const xForwardedFor = req.headers.get('x-forwarded-for');
   if (xForwardedFor) {
     const first = xForwardedFor.split(',')[0].trim();
     if (first) return first;
   }
-  const cfConnectingIp = req.headers.get('cf-connecting-ip');
-  if (cfConnectingIp) return cfConnectingIp.trim();
-  const xRealIp = req.headers.get('x-real-ip');
-  if (xRealIp) return xRealIp.trim();
+
   return '127.0.0.1';
 }
 
@@ -45,4 +49,3 @@ export function sanitizeText(val: string): string {
   // Strip control characters except \n, \r, \t
   return val.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, '').trim();
 }
-

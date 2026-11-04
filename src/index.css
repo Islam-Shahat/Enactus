@@ -1,4 +1,5 @@
 :root {
+  color-scheme: dark;
   --bg-dark: #08080a;
   --bg-secondary: #0f1015;
   --bg-card: rgba(18, 19, 26, 0.78);
@@ -42,6 +43,16 @@ html[dir="ltr"] h1, html[dir="ltr"] h2, html[dir="ltr"] h3, html[dir="ltr"] h4, 
   font-family: var(--font-english), 'Outfit', sans-serif;
   letter-spacing: -0.01em;
 }
+
+/* RTL / LTR Icon and Layout Flipping */
+[dir="rtl"] .rtl-flip {
+  transform: scaleX(-1);
+}
+[dir="ltr"] .ltr-flip {
+  transform: scaleX(-1);
+}
+.text-start { text-align: start !important; }
+.text-end { text-align: end !important; }
 
 /* Language Toggle styling */
 .language-toggle-pill {
@@ -403,6 +414,7 @@ html, body, .glass-panel, header, footer, .btn-secondary, .badge-gold, input, se
    LIGHT THEME DESIGN SYSTEM (الوضع النهاري)
    ========================================================= */
 [data-theme="light"] {
+  color-scheme: light;
   --bg-dark: #f6f8fc;
   --bg-secondary: #ffffff;
   --bg-card: rgba(255, 255, 255, 0.94);
@@ -463,6 +475,10 @@ html, body, .glass-panel, header, footer, .btn-secondary, .badge-gold, input, se
 [data-theme="light"] h5,
 [data-theme="light"] h6 {
   color: #0f111a !important;
+}
+
+.modal-header-title {
+  color: #ffd54f !important;
 }
 
 [data-theme="light"] .modal-header-title,

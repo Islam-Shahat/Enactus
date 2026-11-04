@@ -1,9 +1,13 @@
 import React from 'react';
-import { Construction, ArrowRight } from 'lucide-react';
+import { Construction, ArrowRight, ArrowLeft } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { useLanguage } from '../../context/LanguageContext';
 import { t } from '../../lib/strings';
 
 export default function DashboardPlaceholder({ title = '' }) {
+  const { lang } = useLanguage();
+  const isAr = lang === 'ar';
+  const ArrowIcon = isAr ? ArrowLeft : ArrowRight;
   return (
     <div
       style={{
@@ -56,7 +60,7 @@ export default function DashboardPlaceholder({ title = '' }) {
 
         <Link to="/dashboard" className="btn-primary" style={{ display: 'inline-flex', justifyContent: 'center' }}>
           <span>{t('backToDashboard')}</span>
-          <ArrowRight size={16} />
+          <ArrowIcon size={16} />
         </Link>
       </div>
     </div>

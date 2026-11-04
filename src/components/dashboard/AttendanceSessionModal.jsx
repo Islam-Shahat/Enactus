@@ -96,10 +96,9 @@ export default function AttendanceSessionModal({
             updated_at: new Date().toISOString(),
           })
           .eq('id', sessionToEdit.id)
-          .select()
-          .single();
+          .select();
         if (error) throw error;
-        return data;
+        return data?.[0] || payload;
       } else {
         // 1. Robust season resolution: prioritize activeSeasonId, fallback to DB query
         let resolvedSeasonId = activeSeasonId;
@@ -144,6 +143,19 @@ export default function AttendanceSessionModal({
           }
         }
 
+        // 3. Creator ID check (ensure creator exists in public.profiles to satisfy FK)
+        let validCreatorId = null;
+        if (user?.id) {
+          const { data: prof } = await supabase
+            .from('profiles')
+            .select('id')
+            .eq('id', user.id)
+            .maybeSingle();
+          if (prof?.id) {
+            validCreatorId = prof.id;
+          }
+        }
+
         const insertPayload = {
           title: payload.title,
           type: payload.type,
@@ -152,18 +164,17 @@ export default function AttendanceSessionModal({
           starts_at: payload.starts_at,
           ends_at: payload.ends_at,
           season_id: resolvedSeasonId,
-          created_by: user?.id || null,
+          created_by: validCreatorId,
           check_in_open: false,
         };
 
         const { data, error } = await supabase
           .from('attendance_sessions')
           .insert([insertPayload])
-          .select()
-          .single();
+          .select();
 
         if (error) throw error;
-        return data;
+        return data?.[0] || insertPayload;
       }
     },
     onSuccess: () => {
@@ -250,12 +261,13 @@ export default function AttendanceSessionModal({
     width: '100%',
     padding: '0.65rem 0.85rem',
     borderRadius: '10px',
-    background: isDark ? 'rgba(255, 255, 255, 0.05)' : '#ffffff',
-    border: isDark ? '1px solid rgba(255, 184, 0, 0.35)' : '1px solid #d97706',
+    background: isDark ? '#141620' : '#ffffff',
+    border: isDark ? '1px solid rgba(255, 184, 0, 0.35)' : '1px solid rgba(184, 120, 0, 0.4)',
     color: isDark ? '#ffffff' : '#0f111a',
     fontSize: '0.92rem',
     outline: 'none',
     boxShadow: isDark ? 'none' : '0 1px 3px rgba(0, 0, 0, 0.05)',
+    colorScheme: isDark ? 'dark' : 'light',
   };
 
   const titleColor = isDark ? '#ffd54f' : '#b45309';
@@ -286,7 +298,8 @@ export default function AttendanceSessionModal({
           boxShadow: isDark ? '0 25px 60px rgba(0,0,0,0.85)' : '0 20px 50px rgba(184, 120, 0, 0.15)',
           background: isDark
             ? 'linear-gradient(150deg, rgba(22, 24, 34, 0.98), rgba(12, 13, 18, 0.98))'
-            : 'rgba(255, 255, 255, 0.98)',
+            : '#ffffff',
+          color: isDark ? '#ffffff' : '#0f111a',
         }}
         onClick={(e) => e.stopPropagation()}
       >
@@ -312,7 +325,7 @@ export default function AttendanceSessionModal({
               style={{
                 margin: 0,
                 color: titleColor,
-                fontSize: '1.2rem',
+                fontSize: '1.25rem',
                 fontWeight: 800,
               }}
             >

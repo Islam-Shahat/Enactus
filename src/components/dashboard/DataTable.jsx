@@ -122,7 +122,7 @@ export default function DataTable({
             style={{
               width: '100%',
               borderCollapse: 'collapse',
-              textAlign: dir === 'rtl' ? 'right' : 'left',
+              textAlign: 'start',
               fontSize: '0.88rem',
             }}
           >

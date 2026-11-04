@@ -53,8 +53,7 @@ export default function ConfirmDialog({
           style={{
             position: 'absolute',
             top: '1.25rem',
-            left: dir === 'rtl' ? '1.25rem' : 'auto',
-            right: dir === 'ltr' ? '1.25rem' : 'auto',
+            insetInlineEnd: '1.25rem',
             background: 'transparent',
             border: 'none',
             color: '#a0a0b2',

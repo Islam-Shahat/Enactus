@@ -1,9 +1,13 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { FileQuestion, ArrowRight } from 'lucide-react';
+import { FileQuestion, ArrowRight, ArrowLeft } from 'lucide-react';
+import { useLanguage } from '../../context/LanguageContext';
 import { t } from '../../lib/strings';
 
 export default function DashboardNotFound() {
+  const { lang, dir } = useLanguage();
+  const isAr = lang === 'ar';
+  const ArrowIcon = isAr ? ArrowLeft : ArrowRight;
   return (
     <div
       style={{
@@ -52,7 +56,7 @@ export default function DashboardNotFound() {
 
         <Link to="/dashboard" className="btn-primary" style={{ display: 'inline-flex', justifyContent: 'center' }}>
           <span>{t('backToDashboard')}</span>
-          <ArrowRight size={16} />
+          <ArrowIcon size={16} />
         </Link>
       </div>
     </div>

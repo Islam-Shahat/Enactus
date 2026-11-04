@@ -3,10 +3,15 @@ import { useParams, Link, Navigate } from 'react-router-dom';
 import { committeesData } from '../data/enactusData';
 import { useCommittee } from '../hooks/usePublicContent';
 import SEO from '../components/SEO';
-import { Sparkles, CheckCircle2, UserCheck, Briefcase, Award, ArrowLeft } from 'lucide-react';
+import { useLanguage } from '../context/LanguageContext';
+import { Sparkles, CheckCircle2, UserCheck, Briefcase, Award, ArrowLeft, ArrowRight } from 'lucide-react';
 
 export default function CommitteeDetailsPage() {
   const { slug } = useParams();
+  const { lang } = useLanguage();
+  const isAr = lang === 'ar';
+  const ArrowIcon = isAr ? ArrowLeft : ArrowRight;
+
   const fallbackCommittee = committeesData.find((c) => c.slug === slug);
   const { data: committee = fallbackCommittee, isLoading } = useCommittee(slug, committeesData);
 
@@ -23,20 +28,27 @@ export default function CommitteeDetailsPage() {
     );
   }
 
+  const displayName = isAr ? committee.arabicName : (committee.name || committee.arabicName);
+  const secondaryName = isAr ? committee.name : committee.arabicName;
+
   return (
     <div className="page-container-padding" style={{ paddingTop: '120px', paddingBottom: '100px' }}>
       <SEO
-        title={`${committee.arabicName} (${committee.code})`}
+        title={`${displayName} (${committee.code})`}
         description={committee.brief || committee.description}
       />
       <div className="container">
         {/* Breadcrumb Navigation */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '2rem', fontSize: '0.9rem', flexWrap: 'wrap' }}>
-          <Link to="/" style={{ color: '#a0a0b2', textDecoration: 'none' }}>الرئيسية</Link>
+          <Link to="/" style={{ color: '#a0a0b2', textDecoration: 'none' }}>
+            {isAr ? 'الرئيسية' : 'Home'}
+          </Link>
           <span style={{ color: '#666' }}>/</span>
-          <Link to="/committees" style={{ color: '#a0a0b2', textDecoration: 'none' }}>اللجان</Link>
+          <Link to="/committees" style={{ color: '#a0a0b2', textDecoration: 'none' }}>
+            {isAr ? 'اللجان' : 'Committees'}
+          </Link>
           <span style={{ color: '#666' }}>/</span>
-          <span style={{ color: '#ffd54f', fontWeight: 700 }}>{committee.arabicName}</span>
+          <span style={{ color: '#ffd54f', fontWeight: 700 }}>{displayName}</span>
         </div>
 
         {/* Committee Header Banner */}
@@ -53,14 +65,16 @@ export default function CommitteeDetailsPage() {
             <div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', marginBottom: '0.75rem', flexWrap: 'wrap' }}>
                 <span className="badge-gold font-cinzel">{committee.code}</span>
-                <span className="badge-gold">{committee.mascotDesc}</span>
+                {committee.mascotDesc && <span className="badge-gold">{committee.mascotDesc}</span>}
               </div>
               <h1 style={{ fontSize: 'clamp(1.9rem, 4vw, 3.4rem)', fontWeight: 900, color: '#fff', marginBottom: '0.4rem' }}>
-                {committee.arabicName}
+                {displayName}
               </h1>
-              <div className="font-outfit" style={{ fontSize: '1.15rem', color: '#ffb800', fontWeight: 700 }}>
-                {committee.name}
-              </div>
+              {secondaryName && (
+                <div className="font-outfit" style={{ fontSize: '1.15rem', color: '#ffb800', fontWeight: 700 }}>
+                  {secondaryName}
+                </div>
+              )}
             </div>
 
             <Link
@@ -69,7 +83,7 @@ export default function CommitteeDetailsPage() {
               style={{ fontSize: '1.05rem', padding: '0.85rem 2rem' }}
             >
               <Sparkles size={18} />
-              <span>قدّم لهذه اللجنة الآن</span>
+              <span>{isAr ? 'قدّم لهذه اللجنة الآن' : 'Apply for this Committee'}</span>
             </Link>
           </div>
 
@@ -77,9 +91,22 @@ export default function CommitteeDetailsPage() {
             {committee.description}
           </p>
 
-          <blockquote style={{ background: 'rgba(255, 184, 0, 0.08)', borderRight: '4px solid #ffb800', padding: '1rem 1.25rem', borderRadius: '0 12px 12px 0', color: '#ffd54f', fontSize: '1rem', fontStyle: 'italic', margin: 0 }}>
-            {committee.quote}
-          </blockquote>
+          {committee.quote && (
+            <blockquote
+              style={{
+                background: 'rgba(255, 184, 0, 0.08)',
+                borderInlineStart: '4px solid #ffb800',
+                padding: '1rem 1.25rem',
+                borderRadius: isAr ? '0 12px 12px 0' : '12px 0 0 12px',
+                color: '#ffd54f',
+                fontSize: '1rem',
+                fontStyle: 'italic',
+                margin: 0,
+              }}
+            >
+              {committee.quote}
+            </blockquote>
+          )}
         </div>
 
         {/* Content Grid: Duties & Skills */}
@@ -89,11 +116,11 @@ export default function CommitteeDetailsPage() {
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', marginBottom: '1.5rem' }}>
               <Briefcase size={22} color="#ffb800" />
               <h2 style={{ fontSize: '1.4rem', fontWeight: 800, color: '#fff', margin: 0 }}>
-                المهام والمسؤوليات الأساسية
+                {isAr ? 'المهام والمسؤوليات الأساسية' : 'Key Responsibilities & Duties'}
               </h2>
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-              {committee.duties.map((duty, idx) => (
+              {(committee.duties || []).map((duty, idx) => (
                 <div key={idx} style={{ display: 'flex', alignItems: 'flex-start', gap: '0.65rem', color: '#c5c5d6', fontSize: '0.98rem', lineHeight: 1.6 }}>
                   <CheckCircle2 size={18} color="#ffb800" style={{ flexShrink: 0, marginTop: '3px' }} />
                   <span>{duty}</span>
@@ -109,11 +136,11 @@ export default function CommitteeDetailsPage() {
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', marginBottom: '1rem' }}>
                 <UserCheck size={20} color="#ffd54f" />
                 <h3 style={{ fontSize: '1.25rem', fontWeight: 800, color: '#fff', margin: 0 }}>
-                  المهات المطلوبة في المتقدم
+                  {isAr ? 'المهارات المطلوبة في المتقدم' : 'Required Candidate Skills'}
                 </h3>
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
-                {committee.skillsRequired.map((skill, idx) => (
+                {(committee.skillsRequired || []).map((skill, idx) => (
                   <div key={idx} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#b5b5c6', fontSize: '0.92rem' }}>
                     <span style={{ color: '#ffb800' }}>•</span>
                     <span>{skill}</span>
@@ -127,11 +154,11 @@ export default function CommitteeDetailsPage() {
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', marginBottom: '1rem' }}>
                 <Award size={20} color="#ffb800" />
                 <h3 style={{ fontSize: '1.25rem', fontWeight: 800, color: '#fff', margin: 0 }}>
-                  ماذا ستكتسب وتتعلم معنا؟
+                  {isAr ? 'ماذا ستكتسب وتتعلم معنا؟' : 'What Will You Gain & Learn?'}
                 </h3>
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
-                {committee.skillsGained.map((skill, idx) => (
+                {(committee.skillsGained || []).map((skill, idx) => (
                   <div key={idx} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#ffd54f', fontSize: '0.92rem', fontWeight: 600 }}>
                     <span style={{ color: '#ffb800' }}>✓</span>
                     <span>{skill}</span>
@@ -142,7 +169,7 @@ export default function CommitteeDetailsPage() {
           </div>
         </div>
 
-        {/* Head of Committee Card & Projects */}
+        {/* Head of Committee Card & Actions */}
         <div
           className="glass-panel responsive-panel-p"
           style={{
@@ -158,20 +185,24 @@ export default function CommitteeDetailsPage() {
           }}
         >
           <div>
-            <span style={{ fontSize: '0.85rem', color: '#a0a0b2' }}>رئيس اللجنة الحالي:</span>
+            <span style={{ fontSize: '0.85rem', color: '#a0a0b2' }}>
+              {isAr ? 'رئيس اللجنة الحالي:' : 'Current Committee Head:'}
+            </span>
             <h4 style={{ fontSize: '1.4rem', fontWeight: 800, color: '#fff', margin: '0.2rem 0' }}>
-              {committee.headName}
+              {committee.headName || (isAr ? 'فريق القيادة' : 'Leadership Team')}
             </h4>
-            <span style={{ color: '#ffb800', fontSize: '0.9rem', fontWeight: 600 }}>{committee.headRole}</span>
+            <span style={{ color: '#ffb800', fontSize: '0.9rem', fontWeight: 600 }}>
+              {committee.headRole}
+            </span>
           </div>
 
           <div className="comm-head-actions" style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
             <Link to="/committees" className="btn-secondary" style={{ padding: '0.75rem 1.5rem' }}>
-              <span>استكشف اللجان الأخرى</span>
-              <ArrowLeft size={16} />
+              <span>{isAr ? 'استكشف اللجان الأخرى' : 'Explore Other Committees'}</span>
+              <ArrowIcon size={16} />
             </Link>
             <Link to={`/join?committee=${encodeURIComponent(committee.arabicName)}`} className="btn-primary" style={{ padding: '0.75rem 1.8rem' }}>
-              <span>سجّل في هذه اللجنة</span>
+              <span>{isAr ? 'سجّل في هذه اللجنة' : 'Join this Committee'}</span>
             </Link>
           </div>
         </div>

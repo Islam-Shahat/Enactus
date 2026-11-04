@@ -3,9 +3,11 @@ import { Link } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { Mail, CheckCircle2, ArrowLeft, Send } from 'lucide-react';
+import { Mail, CheckCircle2, ArrowLeft, ArrowRight, Send } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import { useLanguage } from '../context/LanguageContext';
 import { t } from '../lib/strings';
+import LanguageToggle from '../components/LanguageToggle';
 
 const forgotSchema = z.object({
   email: z.email({ message: 'يرجى إدخال بريد إلكتروني صحيح' }),
@@ -13,6 +15,9 @@ const forgotSchema = z.object({
 
 export default function ForgotPasswordPage() {
   const { sendPasswordReset } = useAuth();
+  const { lang, dir } = useLanguage();
+  const isAr = lang === 'ar';
+  const ArrowIcon = isAr ? ArrowLeft : ArrowRight;
   const [submitted, setSubmitted] = useState(false);
 
   const {
@@ -49,13 +54,18 @@ export default function ForgotPasswordPage() {
       <div className="container" style={{ maxWidth: '500px' }}>
         <div
           className="glass-panel gold-border-glow card-shine responsive-panel-p"
+          dir={dir}
           style={{
             borderRadius: '28px',
             padding: '3rem 2.5rem',
             background: 'linear-gradient(150deg, rgba(22, 24, 34, 0.98), rgba(10, 11, 16, 0.98))',
-            boxShadow: '0 25px 70px rgba(0, 0, 0, 0.8), 0 0 40px rgba(255, 184, 0, 0.2)',
+            boxShadow: '0 25px 70px rgba(0, 0, 0, 0.8)',
+            position: 'relative',
           }}
         >
+          <div style={{ position: 'absolute', top: '1.25rem', insetInlineEnd: '1.25rem' }}>
+            <LanguageToggle />
+          </div>
           <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
             <div
               style={{
@@ -170,7 +180,7 @@ export default function ForgotPasswordPage() {
                     textDecoration: 'none',
                   }}
                 >
-                  <ArrowLeft size={14} />
+                  <ArrowIcon size={14} />
                   <span>{t('backToLogin')}</span>
                 </Link>
               </div>

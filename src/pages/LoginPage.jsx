@@ -7,6 +7,7 @@ import { Lock, Mail, AlertCircle, KeyRound, ArrowRight } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { isSupabaseConfigured } from '../lib/supabase';
 import { t } from '../lib/strings';
+import LanguageToggle from '../components/LanguageToggle';
 
 const loginSchema = z.object({
   email: z.email({ message: 'يرجى إدخال بريد إلكتروني صحيح' }),
@@ -90,6 +91,10 @@ export default function LoginPage() {
             position: 'relative',
           }}
         >
+          <div style={{ position: 'absolute', top: '1.25rem', insetInlineEnd: '1.25rem' }}>
+            <LanguageToggle />
+          </div>
+
           {/* Logo & Header */}
           <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
             <div

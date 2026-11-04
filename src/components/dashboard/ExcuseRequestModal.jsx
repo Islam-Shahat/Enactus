@@ -80,11 +80,12 @@ export default function ExcuseRequestModal({
     width: '100%',
     padding: '0.65rem 0.85rem',
     borderRadius: '10px',
-    background: isDark ? 'rgba(255, 255, 255, 0.05)' : '#ffffff',
-    border: isDark ? '1px solid rgba(255, 184, 0, 0.35)' : '1px solid #d97706',
+    background: isDark ? '#141620' : '#ffffff',
+    border: isDark ? '1px solid rgba(255, 184, 0, 0.35)' : '1px solid rgba(184, 120, 0, 0.4)',
     color: isDark ? '#ffffff' : '#0f111a',
     fontSize: '0.92rem',
     outline: 'none',
+    colorScheme: isDark ? 'dark' : 'light',
   };
 
   return (

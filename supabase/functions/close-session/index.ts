@@ -200,11 +200,21 @@ Deno.serve(async (req: Request) => {
     }
   }
 
-  // =========================================================================
-  // PHASE 9 HOOK: Points Penalties for Absences
-  // In Phase 9, automated penalty points will be recorded here for unexcused
-  // absentees based on active point_rules (e.g. source = 'attendance').
-  // =========================================================================
+  // 11. Phase 9: Apply automated attendance penalties for absent and late members
+  let penaltiesApplied: unknown = null;
+  try {
+    const { data: penaltyData, error: penaltyErr } = await adminClient.rpc(
+      'apply_attendance_penalties',
+      { p_session: sessionId }
+    );
+    if (penaltyErr) {
+      console.warn('[close-session] apply_attendance_penalties RPC error (continuing):', penaltyErr);
+    } else {
+      penaltiesApplied = penaltyData;
+    }
+  } catch (pErr) {
+    console.warn('[close-session] Error invoking apply_attendance_penalties:', pErr);
+  }
 
   return json(req, {
     ok: true,
@@ -213,6 +223,7 @@ Deno.serve(async (req: Request) => {
     newlyExcused,
     newlyAbsent,
     check_in_open: false,
+    penalties: penaltiesApplied,
   });
 });
 

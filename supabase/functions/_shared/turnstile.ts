@@ -6,10 +6,15 @@ export async function verifyTurnstile(
 ): Promise<{ success: boolean; error?: string }> {
   const secretKey = Deno.env.get('TURNSTILE_SECRET_KEY');
 
-  // In dev / test when secret key is not provided, allow bypassing with warning
+  // Fail-closed: require the secret unless insecure local dev bypass is explicitly enabled
   if (!secretKey) {
-    console.warn('[turnstile] TURNSTILE_SECRET_KEY not set. Skipping verification in dev.');
-    return { success: true };
+    const allowBypass = Deno.env.get('ALLOW_INSECURE_DEV_BYPASS') === 'true';
+    if (allowBypass) {
+      console.warn('[turnstile] TURNSTILE_SECRET_KEY not set. ALLOW_INSECURE_DEV_BYPASS=true, bypassing.');
+      return { success: true };
+    }
+    console.error('[turnstile] TURNSTILE_SECRET_KEY is missing. Failing closed.');
+    return { success: false, error: 'Security verification service is misconfigured' };
   }
 
   if (!token) {
@@ -40,4 +45,3 @@ export async function verifyTurnstile(
     return { success: false, error: 'Failed to verify security token' };
   }
 }
-

@@ -4,6 +4,29 @@ import { handleCors, checkOrigin } from '../_shared/cors.ts';
 import { json, errorResponse } from '../_shared/http.ts';
 import { verifyQrToken, verifyManualCode } from '../_shared/qr.ts';
 
+// Best-effort in-memory isolate rate limiter: 15 attempts / minute per user+session
+interface RateLimitBucket {
+  count: number;
+  resetAt: number;
+}
+const checkinLimiter = new Map<string, RateLimitBucket>();
+
+function checkRateLimitPerUserSession(key: string, limit = 15, windowMs = 60000): boolean {
+  const now = Date.now();
+  const bucket = checkinLimiter.get(key);
+  if (!bucket || now > bucket.resetAt) {
+    checkinLimiter.set(key, { count: 1, resetAt: now + windowMs });
+    return true;
+  }
+  if (bucket.count >= limit) {
+    return false;
+  }
+  bucket.count++;
+  return true;
+}
+
+const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
 Deno.serve(async (req: Request) => {
   // 1. CORS Preflight & Origin validation
   const corsResponse = handleCors(req);
@@ -81,8 +104,15 @@ Deno.serve(async (req: Request) => {
     }
   }
 
-  if (!targetSessionId) {
-    return errorResponse(req, 'Unable to resolve session ID', 400, 'INVALID_TOKEN');
+  // Validate session ID format (UUID)
+  if (!targetSessionId || !UUID_REGEX.test(targetSessionId)) {
+    return errorResponse(req, 'Invalid session ID format', 400, 'INVALID_INPUT');
+  }
+
+  // Throttle check-in attempts per user + session (15 / minute)
+  const throttleKey = `${callerId}:${targetSessionId}`;
+  if (!checkRateLimitPerUserSession(throttleKey, 15, 60000)) {
+    return errorResponse(req, 'Too many check-in attempts. Please wait a minute.', 429, 'RATE_LIMITED');
   }
 
   // 4. Fetch Session Record & Session Secret
@@ -153,46 +183,73 @@ Deno.serve(async (req: Request) => {
   }
 
   // 8. Eligibility Check:
-  // Session committee is null (all members) OR user has active membership in committee this season
-  if (session.committee_id) {
-    const { data: membership, error: memErr } = await adminClient
-      .from('memberships')
-      .select('id, status')
-      .eq('user_id', callerId)
-      .eq('committee_id', session.committee_id)
-      .eq('season_id', session.season_id)
-      .eq('status', 'active')
-      .maybeSingle();
+  // (a) Profile status must be 'active' (not suspended or alumni)
+  const { data: userProfile } = await adminClient
+    .from('profiles')
+    .select('status')
+    .eq('id', callerId)
+    .maybeSingle();
 
-    if (memErr || !membership) {
-      return errorResponse(
-        req,
-        'You are not eligible for this committee attendance session',
-        403,
-        'NOT_ELIGIBLE'
-      );
-    }
+  if (!userProfile || userProfile.status !== 'active') {
+    return errorResponse(req, 'Account is not active or suspended', 403, 'NOT_ELIGIBLE');
   }
 
-  // 9. Determine Status: 'late' if now > starts_at + 15 min else 'present'
-  const lateThreshold = startsAtMs + 15 * 60 * 1000;
-  const statusToRecord = nowMs > lateThreshold ? 'late' : 'present';
+  // (b) Always require an active membership this season (in committee when set)
+  let membershipQuery = adminClient
+    .from('memberships')
+    .select('id, status')
+    .eq('user_id', callerId)
+    .eq('season_id', session.season_id)
+    .eq('status', 'active');
 
-  // 10. Check Existing Attendance (Never overwrite 'excused')
+  if (session.committee_id) {
+    membershipQuery = membershipQuery.eq('committee_id', session.committee_id);
+  }
+
+  const { data: membership, error: memErr } = await membershipQuery.limit(1).maybeSingle();
+
+  if (memErr || !membership) {
+    return errorResponse(
+      req,
+      session.committee_id
+        ? 'You are not an active member of this committee for this season'
+        : 'You do not have an active membership for this season',
+      403,
+      'NOT_ELIGIBLE'
+    );
+  }
+
+  // 9. Check Existing Attendance (Never overwrite 'excused', and keep existing 'present'/'late' untouched)
   const { data: existingAttendance } = await adminClient
     .from('attendance')
-    .select('id, status')
+    .select('id, status, checked_in_at')
     .eq('session_id', targetSessionId)
     .eq('user_id', callerId)
     .maybeSingle();
 
-  if (existingAttendance?.status === 'excused') {
-    return json(req, {
-      ok: true,
-      status: 'excused',
-      message: 'You have an approved excuse on record for this session',
-    });
+  if (existingAttendance) {
+    if (existingAttendance.status === 'excused') {
+      return json(req, {
+        ok: true,
+        status: 'excused',
+        message: 'You have an approved excuse on record for this session',
+      });
+    }
+
+    if (existingAttendance.status === 'present' || existingAttendance.status === 'late') {
+      return json(req, {
+        ok: true,
+        status: existingAttendance.status,
+        checked_in_at: existingAttendance.checked_in_at,
+        alreadyRecorded: true,
+        session_title: session.title,
+      });
+    }
   }
+
+  // 10. Determine Status: 'late' if now > starts_at + 15 min else 'present'
+  const lateThreshold = startsAtMs + 15 * 60 * 1000;
+  const statusToRecord = nowMs > lateThreshold ? 'late' : 'present';
 
   // 11. Upsert Attendance Record
   const nowIso = new Date(nowMs).toISOString();
@@ -221,4 +278,3 @@ Deno.serve(async (req: Request) => {
     session_title: session.title,
   });
 });
-

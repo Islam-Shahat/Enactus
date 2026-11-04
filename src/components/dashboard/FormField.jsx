@@ -1,4 +1,5 @@
 import React from 'react';
+import { useTheme } from '../../context/ThemeContext';
 
 export default function FormField({
   label,
@@ -8,6 +9,9 @@ export default function FormField({
   style = {},
   labelStyle = {},
 }) {
+  const { isDark } = useTheme();
+  const defaultColor = isDark ? '#ffd54f' : '#854d0e';
+
   return (
     <div style={{ marginBottom: '1.25rem', ...style }}>
       {label && (
@@ -16,7 +20,7 @@ export default function FormField({
             display: 'block',
             fontSize: '0.88rem',
             fontWeight: 700,
-            color: '#ffd54f',
+            color: defaultColor,
             marginBottom: '0.4rem',
             ...labelStyle,
           }}

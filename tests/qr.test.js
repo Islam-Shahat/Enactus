@@ -115,6 +115,12 @@ describe('Phase 8 QR Token & Rotating Window Helpers', () => {
       expect(tamperedCheck.valid).toBe(false);
     });
 
+    it('rejects malformed tokens (invalid format or non-base64)', async () => {
+      expect((await verifyQrToken('not-a-valid-token', secret, 1700000000000)).valid).toBe(false);
+      expect((await verifyQrToken('', secret, 1700000000000)).valid).toBe(false);
+      expect((await verifyQrToken('onlyonepart', secret, 1700000000000)).valid).toBe(false);
+    });
+
     it('timingSafeEqual correctly compares equal and non-equal strings', () => {
       expect(timingSafeEqual('ABCDEF12', 'ABCDEF12')).toBe(true);
       expect(timingSafeEqual('ABCDEF12', 'ABCDEF13')).toBe(false);

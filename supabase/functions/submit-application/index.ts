@@ -5,6 +5,7 @@ import { json, errorResponse, getClientIp, sanitizeText } from '../_shared/http.
 import { verifyTurnstile } from '../_shared/turnstile.ts';
 import { hashIp, checkRateLimit } from '../_shared/ratelimit.ts';
 import { validatePdfUpload } from '../_shared/magic.ts';
+import { resolveCommittee } from '../_shared/committees.ts';
 import { submitApplicationSchema } from '../_shared/schemas.ts';
 
 Deno.serve(async (req: Request) => {
@@ -17,6 +18,12 @@ Deno.serve(async (req: Request) => {
 
   if (req.method !== 'POST') {
     return errorResponse(req, 'Method not allowed', 405);
+  }
+
+  // 8 MB content-length cap before reading/decoding
+  const contentLength = req.headers.get('content-length');
+  if (contentLength && parseInt(contentLength, 10) > 8 * 1024 * 1024) {
+    return errorResponse(req, 'Payload exceeds maximum limit (8MB)', 413, 'PAYLOAD_TOO_LARGE');
   }
 
   try {
@@ -34,11 +41,24 @@ Deno.serve(async (req: Request) => {
     }
     const input = parsed.data;
 
+    // 7.5M base64 chars cap (approx 5MB binary)
+    if (input.cvBase64 && input.cvBase64.length > 7_500_000) {
+      return errorResponse(req, 'CV file exceeds size limit (max 5MB)', 400, 'FILE_TOO_LARGE');
+    }
+
+    // 20 KB answers cap
+    if (input.answers) {
+      const answersStr = JSON.stringify(input.answers);
+      if (new TextEncoder().encode(answersStr).length > 20 * 1024) {
+        return errorResponse(req, 'Answers payload exceeds size limit (max 20KB)', 400, 'ANSWERS_TOO_LARGE');
+      }
+    }
+
     // 3. Resolve Client IP and Hash
     const clientIp = getClientIp(req);
     const ipHash = await hashIp(clientIp);
 
-    // 4. Verify Turnstile Captcha
+    // 4. Verify Turnstile Captcha (fail-closed)
     const turnstileResult = await verifyTurnstile(input.turnstileToken, clientIp);
     if (!turnstileResult.success) {
       return errorResponse(req, turnstileResult.error || 'CAPTCHA verification failed', 400, 'CAPTCHA_FAILED');
@@ -92,13 +112,13 @@ Deno.serve(async (req: Request) => {
     }
     const seasonId = activeSeason.id;
 
-    // 9. Dedupe by season + lower(email)
+    // 9. Dedupe by season + exact lower(email) without wildcard operators
     const normalizedEmail = input.email.toLowerCase().trim();
     const { data: existingApp } = await supabase
       .from('applications')
       .select('id, status, created_at')
       .eq('season_id', seasonId)
-      .ilike('email', normalizedEmail)
+      .eq('email', normalizedEmail)
       .maybeSingle();
 
     if (existingApp) {
@@ -109,26 +129,25 @@ Deno.serve(async (req: Request) => {
       });
     }
 
-    // 10. Resolve committee slugs / names to IDs
+    // 10. Resolve committee slugs / names in code via committees helper
     let firstChoiceId: string | null = null;
     let secondChoiceId: string | null = null;
 
-    if (input.committeeSlug) {
-      const { data: comm1 } = await supabase
+    if (input.committeeSlug || input.secondChoiceSlug) {
+      const { data: allCommittees } = await supabase
         .from('committees')
-        .select('id')
-        .or(`slug.eq."${input.committeeSlug}",name_ar.ilike."%${input.committeeSlug}%",name_en.ilike."%${input.committeeSlug}%"`)
-        .maybeSingle();
-      if (comm1) firstChoiceId = comm1.id;
-    }
+        .select('id, slug, name_ar, name_en');
 
-    if (input.secondChoiceSlug) {
-      const { data: comm2 } = await supabase
-        .from('committees')
-        .select('id')
-        .or(`slug.eq."${input.secondChoiceSlug}",name_ar.ilike."%${input.secondChoiceSlug}%",name_en.ilike."%${input.secondChoiceSlug}%"`)
-        .maybeSingle();
-      if (comm2) secondChoiceId = comm2.id;
+      if (allCommittees?.length) {
+        if (input.committeeSlug) {
+          const matched1 = resolveCommittee(input.committeeSlug, allCommittees);
+          if (matched1) firstChoiceId = matched1.id;
+        }
+        if (input.secondChoiceSlug) {
+          const matched2 = resolveCommittee(input.secondChoiceSlug, allCommittees);
+          if (matched2) secondChoiceId = matched2.id;
+        }
+      }
     }
 
     const applicationId = crypto.randomUUID();
@@ -150,60 +169,65 @@ Deno.serve(async (req: Request) => {
         });
 
         if (!pdfCheck.valid) {
-          return errorResponse(req, pdfCheck.error || 'Invalid CV file', 400, 'INVALID_CV');
+          return errorResponse(req, pdfCheck.error || 'Invalid CV PDF file', 400, 'INVALID_PDF');
         }
 
-        const cvPath = `${applicationId}/cv.pdf`;
+        const filePath = `${applicationId}/cv.pdf`;
         const { error: uploadErr } = await supabase.storage
           .from('cvs')
-          .upload(cvPath, bytes, {
+          .upload(filePath, bytes, {
             contentType: 'application/pdf',
-            upsert: true,
+            upsert: false,
           });
 
         if (uploadErr) {
-          console.error('[submit-application] CV upload failed:', uploadErr);
-          return errorResponse(req, 'Failed to upload CV document', 500, 'CV_UPLOAD_ERROR');
+          console.error('[submit-application] CV storage upload failed:', uploadErr);
+          return errorResponse(req, 'Failed to store CV attachment', 500);
         }
-        cvUrl = cvPath;
+
+        cvUrl = filePath;
       } catch (cvErr) {
-        console.error('[submit-application] CV parsing error:', cvErr);
-        return errorResponse(req, 'Invalid CV format or base64 encoding', 400, 'INVALID_CV');
+        console.error('[submit-application] Error parsing CV base64 payload:', cvErr);
+        return errorResponse(req, 'Corrupted CV attachment payload', 400, 'CV_PARSE_ERROR');
       }
     }
 
-    // 12. Insert application into public.applications
-    const { error: insertErr } = await supabase.from('applications').insert({
+    // 12. Insert Application Row using Service Role
+    // Server enforces status='new', resolved season_id, score=null, reviewer=null
+    const applicationRow = {
       id: applicationId,
       season_id: seasonId,
       full_name: sanitizeText(input.fullName),
       email: normalizedEmail,
-      phone: input.phone ? sanitizeText(input.phone) : null,
-      faculty: input.faculty ? sanitizeText(input.faculty) : null,
-      study_year: input.studyYear || null,
+      phone: sanitizeText(input.phone),
       university_id: input.universityId ? sanitizeText(input.universityId) : null,
-      first_choice_id: firstChoiceId,
+      faculty: input.faculty ? sanitizeText(input.faculty) : null,
+      study_year: input.studyYear ? sanitizeText(input.studyYear) : null,
+      committee_id: firstChoiceId,
       second_choice_id: secondChoiceId,
       motivation: input.motivation ? sanitizeText(input.motivation) : null,
       answers: input.answers || {},
       cv_url: cvUrl,
-      status: 'new', // server-enforced
+      status: 'new',
+      score: null,
+      reviewed_by: null,
       ip_hash: ipHash,
-    });
+    };
+
+    const { error: insertErr } = await supabase.from('applications').insert([applicationRow]);
 
     if (insertErr) {
-      console.error('[submit-application] insert error:', insertErr);
-      return errorResponse(req, 'Failed to save application. Please try again.', 500);
+      console.error('[submit-application] Database insert error:', insertErr);
+      return errorResponse(req, 'Failed to submit application. Please try again later.', 500);
     }
 
     return json(req, {
       ok: true,
-      id: applicationId,
       message: 'Application submitted successfully',
+      applicationId,
     });
   } catch (err) {
-    console.error('[submit-application] Unhandled error:', err);
+    console.error('[submit-application] Unexpected server error:', err);
     return errorResponse(req, 'Internal server error', 500);
   }
 });
-
