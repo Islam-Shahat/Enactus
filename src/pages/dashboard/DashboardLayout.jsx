@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
+import { NavLink, Link, Outlet, useLocation, useNavigate } from 'react-router-dom';
+import { ToastProvider } from '../../components/dashboard/Toast';
 import {
   Bell,
   LogOut,
@@ -24,7 +25,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useLanguage } from '../../context/LanguageContext';
-import { DASHBOARD_NAV, ROLE_LABELS } from '../../lib/roles';
+import { DASHBOARD_NAV, ROLE_LABELS, filterNavItems } from '../../lib/roles';
 import ThemeToggle from '../../components/ThemeToggle';
 import LanguageToggle from '../../components/LanguageToggle';
 
@@ -64,11 +65,7 @@ export default function DashboardLayout() {
   }, [location.pathname]);
 
   // Filter nav items by permissions
-  const visibleNav = DASHBOARD_NAV.filter((item) => {
-    if (item.allow === null) return true;
-    if (Array.isArray(item.allow) && item.allow.length === 0) return isSuperAdmin;
-    return hasRole(item.allow);
-  });
+  const visibleNav = filterNavItems(DASHBOARD_NAV, roles, isSuperAdmin);
 
   const displayName =
     (lang === 'ar' ? (profile?.full_name_ar || profile?.full_name_en) : (profile?.full_name_en || profile?.full_name_ar)) ||
@@ -78,14 +75,15 @@ export default function DashboardLayout() {
   const roleLabel = ROLE_LABELS[primaryRole]?.[lang] ?? ROLE_LABELS[primaryRole]?.ar ?? primaryRole;
 
   return (
-    <div
-      style={{
-        display: 'flex',
-        minHeight: '100vh',
-        background: 'var(--bg-dark)',
-        color: 'var(--text-main)',
-      }}
-    >
+    <ToastProvider>
+      <div
+        style={{
+          display: 'flex',
+          minHeight: '100vh',
+          background: 'var(--bg-dark)',
+          color: 'var(--text-main)',
+        }}
+      >
       {/* Sidebar - Desktop */}
       <aside
         className="dashboard-sidebar-desktop"
@@ -187,25 +185,49 @@ export default function DashboardLayout() {
             gap: '0.85rem',
           }}
         >
-          <div>
-            <p
-              className="dashboard-sidebar-user-name"
-              style={{
-                fontSize: '0.9rem',
-                fontWeight: 700,
-                color: 'var(--text-main, #fff)',
-                margin: 0,
-                whiteSpace: 'nowrap',
-                overflow: 'hidden',
-                textOverflow: 'ellipsis',
-              }}
-            >
-              {displayName}
-            </p>
-            <span className="badge-gold" style={{ fontSize: '0.68rem', marginTop: '0.2rem', display: 'inline-block' }}>
-              {roleLabel}
-            </span>
-          </div>
+          <Link
+            to="/dashboard/profile"
+            style={{
+              textDecoration: 'none',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.75rem',
+            }}
+          >
+            {profile?.avatar_url && (
+              <img
+                src={profile.avatar_url}
+                alt={displayName}
+                style={{
+                  width: 36,
+                  height: 36,
+                  borderRadius: '50%',
+                  objectFit: 'cover',
+                  border: '1px solid rgba(255, 184, 0, 0.4)',
+                  flexShrink: 0,
+                }}
+              />
+            )}
+            <div style={{ minWidth: 0, flex: 1 }}>
+              <p
+                className="dashboard-sidebar-user-name"
+                style={{
+                  fontSize: '0.9rem',
+                  fontWeight: 700,
+                  color: 'var(--text-main, #fff)',
+                  margin: 0,
+                  whiteSpace: 'nowrap',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                }}
+              >
+                {displayName}
+              </p>
+              <span className="badge-gold" style={{ fontSize: '0.68rem', marginTop: '0.2rem', display: 'inline-block' }}>
+                {roleLabel}
+              </span>
+            </div>
+          </Link>
 
           <button
             onClick={handleSignOut}
@@ -299,7 +321,8 @@ export default function DashboardLayout() {
             <ThemeToggle variant="compact" />
 
             {/* User display badge on desktop & mobile */}
-            <div
+            <Link
+              to="/dashboard/profile"
               className="dashboard-topbar-user"
               style={{
                 display: 'flex',
@@ -307,8 +330,23 @@ export default function DashboardLayout() {
                 gap: '0.6rem',
                 borderInlineStart: '1px solid rgba(255, 184, 0, 0.2)',
                 paddingInlineStart: '0.75rem',
+                textDecoration: 'none',
               }}
             >
+              {profile?.avatar_url && (
+                <img
+                  src={profile.avatar_url}
+                  alt={displayName}
+                  style={{
+                    width: 32,
+                    height: 32,
+                    borderRadius: '50%',
+                    objectFit: 'cover',
+                    border: '1px solid rgba(255, 184, 0, 0.4)',
+                    flexShrink: 0,
+                  }}
+                />
+              )}
               <div style={{ textAlign: 'end', lineHeight: 1.25 }}>
                 <span
                   className="dashboard-topbar-name"
@@ -337,7 +375,7 @@ export default function DashboardLayout() {
                   {roleLabel}
                 </span>
               </div>
-            </div>
+            </Link>
 
             {/* Direct Sign Out on Topbar (rendered once) */}
             <button
@@ -527,7 +565,8 @@ export default function DashboardLayout() {
           border-top-color: rgba(212, 136, 0, 0.15) !important;
         }
       `}</style>
-    </div>
+      </div>
+    </ToastProvider>
   );
 }
 

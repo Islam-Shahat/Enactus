@@ -1,13 +1,23 @@
 import React from 'react';
-import { CheckSquare, Award, Calendar, Users, Shield } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
+import { CheckSquare, Award, Calendar, Users, Shield, FileText, UserCheck, Layers } from 'lucide-react';
+import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../context/AuthContext';
 import { useLanguage } from '../../context/LanguageContext';
 import { ROLE_LABELS } from '../../lib/roles';
+import StatCard from '../../components/dashboard/StatCard';
 
 export default function DashboardHome() {
-  const { profile, roles, user } = useAuth();
+  const { profile, roles, user, isSuperAdmin, hasRole } = useAuth();
   const { lang, t } = useLanguage();
   const isAr = lang === 'ar';
+  const navigate = useNavigate();
+
+  const isHrOrExec = isSuperAdmin || hasRole(['hr_admin', 'president', 'vice_president']);
+  const isHead = hasRole('committee_head');
+  const headRoleObj = roles.find((r) => r.role === 'committee_head');
+  const headCommitteeId = headRoleObj?.committee_id;
 
   const displayName =
     (isAr ? (profile?.full_name_ar || profile?.full_name_en) : (profile?.full_name_en || profile?.full_name_ar)) ||
@@ -18,32 +28,117 @@ export default function DashboardHome() {
     label: ROLE_LABELS[r.role]?.[lang] ?? ROLE_LABELS[r.role]?.ar ?? r.role,
   }));
 
-  const statCards = [
-    {
-      title: isAr ? 'المهام المعينة' : 'Assigned Tasks',
-      icon: CheckSquare,
-      value: '—',
-      hint: isAr ? 'لا توجد مهام نشطة حالياً' : 'No active tasks currently',
+  // 1) Queries for HR / Leadership
+  const { data: newAppsCount, isLoading: loadingNewApps } = useQuery({
+    queryKey: ['dashboard', 'count', 'new_apps'],
+    queryFn: async () => {
+      const { count, error } = await supabase
+        .from('applications')
+        .select('*', { count: 'exact', head: true })
+        .eq('status', 'new');
+      if (error) return 0;
+      return count ?? 0;
     },
-    {
-      title: isAr ? 'رصيد النقاط' : 'Points Balance',
-      icon: Award,
-      value: '—',
-      hint: isAr ? 'سجل النقاط قيد التجهيز' : 'Points ledger being set up',
+    enabled: isHrOrExec,
+  });
+
+  const { data: activeMembersCount, isLoading: loadingMembers } = useQuery({
+    queryKey: ['dashboard', 'count', 'active_members'],
+    queryFn: async () => {
+      const { count, error } = await supabase
+        .from('memberships')
+        .select('*', { count: 'exact', head: true })
+        .eq('status', 'active');
+      if (error) return 0;
+      return count ?? 0;
     },
-    {
-      title: isAr ? 'سجل الحضور' : 'Attendance Record',
-      icon: Calendar,
-      value: '—',
-      hint: isAr ? 'لا توجد جلسات مسجلة' : 'No recorded sessions',
+    enabled: isHrOrExec,
+  });
+
+  const { data: totalAppsCount, isLoading: loadingTotalApps } = useQuery({
+    queryKey: ['dashboard', 'count', 'total_apps'],
+    queryFn: async () => {
+      const { count, error } = await supabase
+        .from('applications')
+        .select('*', { count: 'exact', head: true });
+      if (error) return 0;
+      return count ?? 0;
     },
-    {
-      title: isAr ? 'اللجنة التابع لها' : 'Assigned Committee',
-      icon: Users,
-      value: '—',
-      hint: isAr ? 'تحديثات الموسم الجديد' : 'New season updates',
+    enabled: isHrOrExec,
+  });
+
+  // 2) Query for Committee Head
+  const { data: headAppsCount, isLoading: loadingHeadApps } = useQuery({
+    queryKey: ['dashboard', 'count', 'head_apps', headCommitteeId],
+    queryFn: async () => {
+      let q = supabase.from('applications').select('*', { count: 'exact', head: true });
+      if (headCommitteeId) {
+        q = q.eq('first_choice_id', headCommitteeId);
+      }
+      const { count, error } = await q;
+      if (error) return 0;
+      return count ?? 0;
     },
-  ];
+    enabled: isHead && !isHrOrExec,
+  });
+
+  const { data: headMembersCount, isLoading: loadingHeadMembers } = useQuery({
+    queryKey: ['dashboard', 'count', 'head_members', headCommitteeId],
+    queryFn: async () => {
+      let q = supabase.from('memberships').select('*', { count: 'exact', head: true }).eq('status', 'active');
+      if (headCommitteeId) {
+        q = q.eq('committee_id', headCommitteeId);
+      }
+      const { count, error } = await q;
+      if (error) return 0;
+      return count ?? 0;
+    },
+    enabled: isHead && !isHrOrExec,
+  });
+
+  // 3) Common queries for tasks, committee, and attendance
+  const { data: openTasksCount, isLoading: loadingTasks } = useQuery({
+    queryKey: ['dashboard', 'count', 'open_tasks', user?.id, isHrOrExec],
+    queryFn: async () => {
+      let q = supabase
+        .from('tasks')
+        .select('*', { count: 'exact', head: true })
+        .in('status', ['assigned', 'in_progress']);
+
+      if (!isHrOrExec) {
+        q = q.eq('assignee_id', user?.id);
+      }
+      const { count, error } = await q;
+      if (error) return 0;
+      return count ?? 0;
+    },
+    enabled: Boolean(user?.id),
+  });
+
+  // My committee name query
+  const { data: myMembership } = useQuery({
+    queryKey: ['dashboard', 'my_active_membership', user?.id],
+    queryFn: async () => {
+      if (!user?.id) return null;
+      const { data, error } = await supabase
+        .from('memberships')
+        .select('id, position, status, committees(name_ar, name_en, color)')
+        .eq('user_id', user.id)
+        .eq('status', 'active')
+        .maybeSingle();
+      if (error) return null;
+      return data;
+    },
+    enabled: Boolean(user?.id),
+  });
+
+  const myCommitteeName = myMembership?.committees
+    ? isAr
+      ? myMembership.committees.name_ar
+      : myMembership.committees.name_en
+    : isAr
+    ? 'غير محدد'
+    : 'Not assigned';
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
@@ -117,7 +212,7 @@ export default function DashboardHome() {
         />
       </div>
 
-      {/* Empty Stat Cards (no fake numbers) */}
+      {/* Role-Specific Live Metric Cards */}
       <div
         style={{
           display: 'grid',
@@ -125,50 +220,106 @@ export default function DashboardHome() {
           gap: '1.25rem',
         }}
       >
-        {statCards.map((card, idx) => {
-          const Icon = card.icon;
-          return (
-            <div
-              key={idx}
-              className="glass-panel gold-glow-hover card-shine"
-              style={{
-                borderRadius: '18px',
-                padding: '1.5rem',
-                display: 'flex',
-                flexDirection: 'column',
-                justifyContent: 'space-between',
-                minHeight: '140px',
-              }}
-            >
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1rem' }}>
-                <span style={{ fontSize: '0.88rem', fontWeight: 700, color: '#e0e0ea' }}>
-                  {card.title}
-                </span>
-                <div
-                  style={{
-                    width: '36px',
-                    height: '36px',
-                    borderRadius: '10px',
-                    background: 'rgba(255, 184, 0, 0.1)',
-                    border: '1px solid rgba(255, 184, 0, 0.25)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    color: '#ffd54f',
-                  }}
-                >
-                  <Icon size={18} />
-                </div>
-              </div>
-
-              <div>
-                <p style={{ fontSize: '0.8rem', color: '#888899', margin: 0 }}>
-                  {card.hint}
-                </p>
-              </div>
-            </div>
-          );
-        })}
+        {isHrOrExec ? (
+          <>
+            <StatCard
+              title={isAr ? 'طلبات التقديم الجديدة' : 'New Applications'}
+              value={newAppsCount ?? 0}
+              icon={FileText}
+              subtitle={isAr ? 'في انتظار المراجعة' : 'Pending review'}
+              isLoading={loadingNewApps}
+              onClick={() => navigate('/dashboard/applications')}
+            />
+            <StatCard
+              title={isAr ? 'إجمالي الأعضاء النشطين' : 'Active Members'}
+              value={activeMembersCount ?? 0}
+              icon={Users}
+              subtitle={isAr ? 'أعضاء الموسم الحالي' : 'Current season members'}
+              isLoading={loadingMembers}
+              onClick={() => navigate('/dashboard/members')}
+            />
+            <StatCard
+              title={isAr ? 'إجمالي طلبات التقديم' : 'Total Applications'}
+              value={totalAppsCount ?? 0}
+              icon={UserCheck}
+              subtitle={isAr ? 'مسجلة في قاعدة البيانات' : 'In database'}
+              isLoading={loadingTotalApps}
+              onClick={() => navigate('/dashboard/applications')}
+            />
+            <StatCard
+              title={isAr ? 'المهام قيد التنفيذ' : 'Open Tasks'}
+              value={openTasksCount ?? 0}
+              icon={CheckSquare}
+              subtitle={isAr ? 'مهام الفريق النشطة' : 'Active team tasks'}
+              isLoading={loadingTasks}
+            />
+          </>
+        ) : isHead ? (
+          <>
+            <StatCard
+              title={isAr ? 'طلبات لجنة التابع لها' : 'Committee Applications'}
+              value={headAppsCount ?? 0}
+              icon={FileText}
+              subtitle={isAr ? 'المتقدمون للجنتك' : 'Applicants to your committee'}
+              isLoading={loadingHeadApps}
+              onClick={() => navigate('/dashboard/applications')}
+            />
+            <StatCard
+              title={isAr ? 'أعضاء لجنتك' : 'Committee Members'}
+              value={headMembersCount ?? 0}
+              icon={Users}
+              subtitle={isAr ? 'الأعضاء النشطين' : 'Active members'}
+              isLoading={loadingHeadMembers}
+              onClick={() => navigate('/dashboard/members')}
+            />
+            <StatCard
+              title={isAr ? 'المهام المفتوحة' : 'Open Tasks'}
+              value={openTasksCount ?? 0}
+              icon={CheckSquare}
+              subtitle={isAr ? 'مهام قيد التنفيذ' : 'In progress'}
+              isLoading={loadingTasks}
+            />
+            <StatCard
+              title={isAr ? 'لجنتك' : 'My Committee'}
+              value={myCommitteeName}
+              icon={Layers}
+              subtitle={isAr ? 'رئيس اللجنة' : 'Committee Head'}
+            />
+          </>
+        ) : (
+          <>
+            <StatCard
+              title={isAr ? 'المهام المعينة لي' : 'My Assigned Tasks'}
+              value={openTasksCount ?? 0}
+              icon={CheckSquare}
+              subtitle={isAr ? 'مهام قيد التنفيذ' : 'In progress'}
+              isLoading={loadingTasks}
+            />
+            <StatCard
+              title={isAr ? 'لجنتي' : 'My Committee'}
+              value={myCommitteeName}
+              icon={Users}
+              subtitle={
+                myMembership?.position
+                  ? `${isAr ? 'المنصب: ' : 'Position: '}${myMembership.position}`
+                  : null
+              }
+            />
+            <StatCard
+              title={isAr ? 'الملف الشخصي' : 'My Profile'}
+              value={isAr ? 'مكتمل' : 'Complete'}
+              icon={Award}
+              subtitle={isAr ? 'تعديل البيانات والصورة' : 'Update info & avatar'}
+              onClick={() => navigate('/dashboard/profile')}
+            />
+            <StatCard
+              title={isAr ? 'سجل الحضور' : 'Attendance Sessions'}
+              value="—"
+              icon={Calendar}
+              subtitle={isAr ? 'قريباً' : 'Coming soon'}
+            />
+          </>
+        )}
       </div>
     </div>
   );

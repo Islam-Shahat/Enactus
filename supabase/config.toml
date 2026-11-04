@@ -1,0 +1,18 @@
+[functions.submit-application]
+verify_jwt = false
+
+[functions.contact-form]
+verify_jwt = false
+
+[functions.convert-application]
+verify_jwt = true
+
+[functions.qr-token]
+verify_jwt = true
+
+[functions.qr-checkin]
+verify_jwt = true
+
+[functions.close-session]
+verify_jwt = true
+

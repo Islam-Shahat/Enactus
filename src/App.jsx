@@ -35,6 +35,13 @@ const ResetPasswordPage = React.lazy(() => import('./pages/ResetPasswordPage'));
 // Dashboard Shell (Lazy-loaded for code splitting)
 const DashboardLayout = React.lazy(() => import('./pages/dashboard/DashboardLayout'));
 const DashboardHome = React.lazy(() => import('./pages/dashboard/DashboardHome'));
+const TasksPage = React.lazy(() => import('./pages/dashboard/TasksPage'));
+const AttendancePage = React.lazy(() => import('./pages/dashboard/AttendancePage'));
+const ApplicationsPage = React.lazy(() => import('./pages/dashboard/ApplicationsPage'));
+const MembersPage = React.lazy(() => import('./pages/dashboard/MembersPage'));
+const RolesPage = React.lazy(() => import('./pages/dashboard/RolesPage'));
+const ProfilePage = React.lazy(() => import('./pages/dashboard/ProfilePage'));
+const SettingsPage = React.lazy(() => import('./pages/dashboard/SettingsPage'));
 const DashboardPlaceholder = React.lazy(() => import('./pages/dashboard/DashboardPlaceholder'));
 const DashboardNotFound = React.lazy(() => import('./pages/dashboard/DashboardNotFound'));
 
@@ -155,7 +162,67 @@ export default function App() {
           }
         >
           <Route index element={<DashboardHome />} />
-          {DASHBOARD_NAV.filter((item) => item.path !== '/dashboard').map((item) => {
+
+          {/* Phase 6, 7 & 8 wired pages */}
+          <Route
+            path="tasks"
+            element={
+              <RoleGuard allow={DASHBOARD_NAV.find((n) => n.key === 'tasks')?.allow}>
+                <TasksPage />
+              </RoleGuard>
+            }
+          />
+          <Route
+            path="attendance"
+            element={
+              <RoleGuard allow={DASHBOARD_NAV.find((n) => n.key === 'attendance')?.allow}>
+                <AttendancePage />
+              </RoleGuard>
+            }
+          />
+          <Route
+            path="applications"
+            element={
+              <RoleGuard allow={DASHBOARD_NAV.find((n) => n.key === 'applications')?.allow}>
+                <ApplicationsPage />
+              </RoleGuard>
+            }
+          />
+          <Route
+            path="members"
+            element={
+              <RoleGuard allow={DASHBOARD_NAV.find((n) => n.key === 'members')?.allow}>
+                <MembersPage />
+              </RoleGuard>
+            }
+          />
+          <Route
+            path="roles"
+            element={
+              <RoleGuard allow={[]}>
+                <RolesPage />
+              </RoleGuard>
+            }
+          />
+          <Route
+            path="profile"
+            element={<ProfilePage />}
+          />
+          <Route
+            path="settings"
+            element={
+              <RoleGuard allow={DASHBOARD_NAV.find((n) => n.key === 'settings')?.allow}>
+                <SettingsPage />
+              </RoleGuard>
+            }
+          />
+
+          {/* Placeholders for upcoming phases */}
+          {DASHBOARD_NAV.filter(
+            (item) =>
+              item.path !== '/dashboard' &&
+              !['tasks', 'attendance', 'applications', 'members', 'roles', 'settings'].includes(item.key)
+          ).map((item) => {
             const subPath = item.path.replace('/dashboard/', '');
             return (
               <Route

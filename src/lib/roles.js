@@ -53,3 +53,20 @@ export const DASHBOARD_NAV = [
   { key: 'audit', path: '/dashboard/audit', label: { ar: 'سجل العمليات', en: 'Audit log' }, allow: [ROLES.PRESIDENT] },
   { key: 'roles', path: '/dashboard/roles', label: { ar: 'الصلاحيات', en: 'Roles' }, allow: [] }, // super_admin only
 ];
+
+/**
+ * Filter navigation items based on user roles and super_admin flag.
+ * - allow: null -> everyone authenticated can see
+ * - allow: [] -> super_admin only
+ * - allow: [roles...] -> user must have at least one allowed role (or be super_admin)
+ */
+export function filterNavItems(navItems, userRoles = [], isSuperAdmin = false) {
+  if (isSuperAdmin) return [...navItems];
+  const roleNames = userRoles.map((r) => (typeof r === 'string' ? r : r.role));
+
+  return navItems.filter((item) => {
+    if (item.allow === null) return true;
+    if (Array.isArray(item.allow) && item.allow.length === 0) return isSuperAdmin;
+    return item.allow.some((allowedRole) => roleNames.includes(allowedRole));
+  });
+}

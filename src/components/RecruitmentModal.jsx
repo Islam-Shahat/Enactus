@@ -1,66 +1,164 @@
 import React, { useState, useEffect } from 'react';
-import { X, Sparkles, CheckCircle2, User, Phone, Copy, Check, Clock } from 'lucide-react';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { X, Sparkles, CheckCircle2, User, Mail, Phone, Copy, Check, Clock, AlertCircle, Loader2, UploadCloud } from 'lucide-react';
 import { useApplicationsOpen } from '../hooks/usePublicContent';
 import { useLanguage } from '../context/LanguageContext';
 import { FACULTIES, ACADEMIC_YEARS, RECRUITMENT_COMMITTEES } from '../services/mockLocalization';
+import { recruitmentFormSchema } from '../lib/schemas';
+import { supabase } from '../lib/supabase';
+import Turnstile from './Turnstile';
 
 export default function RecruitmentModal({ isOpen, onClose, defaultCommittee = '' }) {
   const { data: applicationsOpen = true } = useApplicationsOpen();
   const { lang, dir } = useLanguage();
   const isAr = lang === 'ar';
 
-  const defaultFaculty = isAr ? 'كلية التجارة' : 'Faculty of Commerce';
-  const defaultYear = isAr ? 'الفرقة الثانية' : '2nd Year (Sophomore)';
-  const defaultComm = isAr ? 'إدارة المشاريع التنموية (PM)' : 'Project Management (PM)';
-
-  const [formData, setFormData] = useState({
-    name: '',
-    faculty: defaultFaculty,
-    year: defaultYear,
-    phone: '',
-    committee: defaultCommittee || defaultComm,
-    impactGoal: '',
-  });
-
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [memberId, setMemberId] = useState('');
   const [copied, setCopied] = useState(false);
+  const [serverError, setServerError] = useState('');
+  const [alreadyAppliedNotice, setAlreadyAppliedNotice] = useState('');
+  const [turnstileToken, setTurnstileToken] = useState('');
+  const [cvFile, setCvFile] = useState(null);
+  const [cvError, setCvError] = useState('');
 
-  // Synchronize defaults on language switch
+  const defaultFaculty = isAr ? 'كلية التجارة' : 'Faculty of Commerce';
+  const defaultYear = isAr ? 'الفرقة الثانية' : '2nd Year (Sophomore)';
+  const defaultComm = defaultCommittee || (isAr ? 'إدارة المشاريع التنموية (PM)' : 'Project Management (PM)');
+
+  const {
+    register,
+    handleSubmit,
+    setValue,
+    watch,
+    formState: { errors, isSubmitting },
+  } = useForm({
+    resolver: zodResolver(recruitmentFormSchema),
+    defaultValues: {
+      fullName: '',
+      email: '',
+      phone: '',
+      faculty: defaultFaculty,
+      studyYear: defaultYear,
+      committee: defaultComm,
+      impactGoal: '',
+      honeypot: '',
+    },
+  });
+
+  const currentFaculty = watch('faculty');
+  const currentCommittee = watch('committee');
+
+  // Sync defaults when lang or defaultCommittee changes
   useEffect(() => {
-    setFormData((prev) => ({
-      ...prev,
-      faculty: isAr ? 'كلية التجارة' : 'Faculty of Commerce',
-      year: isAr ? 'الفرقة الثانية' : '2nd Year (Sophomore)',
-      committee: defaultCommittee || (isAr ? 'إدارة المشاريع التنموية (PM)' : 'Project Management (PM)'),
-    }));
-  }, [lang, defaultCommittee, isAr]);
+    if (defaultCommittee) {
+      setValue('committee', defaultCommittee);
+    }
+  }, [defaultCommittee, setValue]);
 
   if (!isOpen) return null;
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    if (!formData.name || !formData.phone) {
-      alert(isAr ? 'يرجى ملء الاسم ورقم الهاتف للمتابعة' : 'Please enter your full name and phone number to continue.');
+  const handleCvChange = (e) => {
+    const file = e.target.files?.[0];
+    setCvError('');
+    if (!file) {
+      setCvFile(null);
       return;
     }
 
-    // Generate custom Enactus Qena Pass ID
-    const randomCode = Math.floor(1000 + Math.random() * 9000);
-    const passCode = `ENACTUS-SVU-${randomCode}`;
-    setMemberId(passCode);
-    setIsSubmitted(true);
+    if (file.size > 5 * 1024 * 1024) {
+      setCvError(isAr ? 'حجم الملف يجب ألا يتجاوز 5 ميجابايت' : 'File size must not exceed 5 MB');
+      setCvFile(null);
+      return;
+    }
 
-    // Golden celebratory confetti burst!
-    import('canvas-confetti').then((m) => {
-      const confetti = m.default || m;
-      confetti({
-        particleCount: 120,
-        spread: 90,
-        origin: { y: 0.6 },
-        colors: ['#ffd700', '#ffaa00', '#ff8c00', '#ffffff'],
+    if (file.type && !['application/pdf', 'application/x-pdf'].includes(file.type.toLowerCase())) {
+      setCvError(isAr ? 'يجب أن يكون الملف بصيغة PDF فقط' : 'Only PDF documents are allowed');
+      setCvFile(null);
+      return;
+    }
+
+    setCvFile(file);
+  };
+
+  const onSubmit = async (values) => {
+    setServerError('');
+    setAlreadyAppliedNotice('');
+
+    try {
+      let cvBase64 = undefined;
+      let cvFileName = undefined;
+
+      if (cvFile) {
+        const reader = new FileReader();
+        cvBase64 = await new Promise((resolve, reject) => {
+          reader.onload = () => {
+            const result = reader.result;
+            const base64 = typeof result === 'string' ? result.split(',')[1] : '';
+            resolve(base64);
+          };
+          reader.onerror = reject;
+          reader.readAsDataURL(cvFile);
+        });
+        cvFileName = cvFile.name;
+      }
+
+      const payload = {
+        fullName: values.fullName,
+        email: values.email,
+        phone: values.phone,
+        faculty: values.faculty,
+        studyYear: values.studyYear,
+        committeeSlug: values.committee,
+        motivation: values.impactGoal || undefined,
+        answers: {
+          impactGoal: values.impactGoal || '',
+        },
+        honeypot: values.honeypot || '',
+        turnstileToken: turnstileToken || undefined,
+        cvBase64,
+        cvFileName,
+      };
+
+      const { data, error } = await supabase.functions.invoke('submit-application', {
+        body: payload,
       });
-    });
+
+      if (error || data?.error) {
+        setServerError(
+          data?.error || (isAr ? 'تعذر إرسال طلب الانضمام، يرجى المحاولة لاحقاً.' : 'Failed to submit application. Please try again.')
+        );
+        return;
+      }
+
+      if (data?.alreadyApplied) {
+        setAlreadyAppliedNotice(
+          data.message || (isAr ? 'لقد تم تسجيل طلب انضمام بهذا البريد الإلكتروني بالفعل لهذا الموسم.' : 'An application with this email was already received.')
+        );
+      }
+
+      const randomCode = Math.floor(1000 + Math.random() * 9000);
+      const passCode = data?.id ? `ENACTUS-SVU-${data.id.substring(0, 4).toUpperCase()}` : `ENACTUS-SVU-${randomCode}`;
+      setMemberId(passCode);
+      setIsSubmitted(true);
+
+      // Golden celebratory confetti burst!
+      import('canvas-confetti').then((m) => {
+        const confetti = m.default || m;
+        confetti({
+          particleCount: 120,
+          spread: 90,
+          origin: { y: 0.6 },
+          colors: ['#ffd700', '#ffaa00', '#ff8c00', '#ffffff'],
+        });
+      });
+    } catch (err) {
+      console.error('[RecruitmentModal] submission error:', err);
+      setServerError(
+        isAr ? 'حدث خطأ غير متوقع أثناء إرسال طلبك. يرجى المحاولة مرة أخرى.' : 'An unexpected error occurred. Please try again.'
+      );
+    }
   };
 
   const handleCopyCode = () => {
@@ -196,8 +294,13 @@ export default function RecruitmentModal({ isOpen, onClose, defaultCommittee = '
               </button>
             </div>
           ) : !isSubmitted ? (
-            <form onSubmit={handleSubmit}>
-              <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
+            <form onSubmit={handleSubmit(onSubmit)}>
+              {/* Honeypot anti-bot trap */}
+              <div style={{ display: 'none', position: 'absolute', left: '-9999px' }} aria-hidden="true">
+                <input type="text" tabIndex={-1} autoComplete="off" {...register('honeypot')} />
+              </div>
+
+              <div style={{ textAlign: 'center', marginBottom: '1.75rem' }}>
                 <span className="badge-gold font-cinzel" style={{ marginBottom: '0.5rem' }}>
                   THE FUTURE WAS FOUND
                 </span>
@@ -215,6 +318,26 @@ export default function RecruitmentModal({ isOpen, onClose, defaultCommittee = '
                 </p>
               </div>
 
+              {serverError && (
+                <div
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.75rem',
+                    padding: '0.85rem 1rem',
+                    borderRadius: '12px',
+                    background: 'rgba(239, 68, 68, 0.15)',
+                    border: '1px solid rgba(239, 68, 68, 0.4)',
+                    color: '#fca5a5',
+                    marginBottom: '1.5rem',
+                    fontSize: '0.9rem',
+                  }}
+                >
+                  <AlertCircle size={18} style={{ flexShrink: 0 }} />
+                  <span>{serverError}</span>
+                </div>
+              )}
+
               {/* Field 1: Name */}
               <div style={{ marginBottom: '1.25rem' }}>
                 <label style={{ display: 'block', color: '#ffd54f', fontSize: '0.88rem', fontWeight: 700, marginBottom: '0.4rem' }}>
@@ -223,14 +346,12 @@ export default function RecruitmentModal({ isOpen, onClose, defaultCommittee = '
                 <div style={{ position: 'relative' }}>
                   <input
                     type="text"
-                    required
                     placeholder={isAr ? 'مثال: أحمد محمود عبد الرحيم' : 'e.g. Ahmed Mahmoud'}
-                    value={formData.name}
-                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                    {...register('fullName')}
                     style={{
                       width: '100%',
                       background: 'rgba(10, 11, 16, 0.8)',
-                      border: '1px solid rgba(255, 184, 0, 0.3)',
+                      border: errors.fullName ? '1px solid #ef4444' : '1px solid rgba(255, 184, 0, 0.3)',
                       borderRadius: '12px',
                       padding: isAr ? '0.85rem 1rem 0.85rem 2.5rem' : '0.85rem 2.5rem 0.85rem 1rem',
                       color: '#fff',
@@ -239,6 +360,76 @@ export default function RecruitmentModal({ isOpen, onClose, defaultCommittee = '
                     }}
                   />
                   <User size={18} color="#ffb800" style={{ position: 'absolute', [isAr ? 'left' : 'right']: '12px', top: '50%', transform: 'translateY(-50%)' }} />
+                </div>
+                {errors.fullName && (
+                  <span style={{ color: '#ef4444', fontSize: '0.8rem', marginTop: '0.3rem', display: 'block' }}>
+                    {errors.fullName.message}
+                  </span>
+                )}
+              </div>
+
+              {/* Field: Email & Phone */}
+              <div className="form-grid-2" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1.25rem' }}>
+                <div>
+                  <label style={{ display: 'block', color: '#ffd54f', fontSize: '0.88rem', fontWeight: 700, marginBottom: '0.4rem' }}>
+                    {isAr ? 'البريد الإلكتروني الشخصي *' : 'Personal Email *'}
+                  </label>
+                  <div style={{ position: 'relative' }}>
+                    <input
+                      type="email"
+                      placeholder="student@example.com"
+                      {...register('email')}
+                      style={{
+                        width: '100%',
+                        background: 'rgba(10, 11, 16, 0.8)',
+                        border: errors.email ? '1px solid #ef4444' : '1px solid rgba(255, 184, 0, 0.3)',
+                        borderRadius: '12px',
+                        padding: isAr ? '0.85rem 1rem 0.85rem 2.5rem' : '0.85rem 2.5rem 0.85rem 1rem',
+                        color: '#fff',
+                        fontSize: '0.95rem',
+                        outline: 'none',
+                        direction: 'ltr',
+                        textAlign: isAr ? 'right' : 'left',
+                      }}
+                    />
+                    <Mail size={18} color="#ffb800" style={{ position: 'absolute', [isAr ? 'left' : 'right']: '12px', top: '50%', transform: 'translateY(-50%)' }} />
+                  </div>
+                  {errors.email && (
+                    <span style={{ color: '#ef4444', fontSize: '0.8rem', marginTop: '0.3rem', display: 'block' }}>
+                      {errors.email.message}
+                    </span>
+                  )}
+                </div>
+
+                <div>
+                  <label style={{ display: 'block', color: '#ffd54f', fontSize: '0.88rem', fontWeight: 700, marginBottom: '0.4rem' }}>
+                    {isAr ? 'رقم الهاتف (الواتساب للتواصل) *' : 'Phone / WhatsApp *'}
+                  </label>
+                  <div style={{ position: 'relative' }}>
+                    <input
+                      type="tel"
+                      placeholder="010XXXXXXXX"
+                      {...register('phone')}
+                      style={{
+                        width: '100%',
+                        background: 'rgba(10, 11, 16, 0.8)',
+                        border: errors.phone ? '1px solid #ef4444' : '1px solid rgba(255, 184, 0, 0.3)',
+                        borderRadius: '12px',
+                        padding: isAr ? '0.85rem 1rem 0.85rem 2.5rem' : '0.85rem 2.5rem 0.85rem 1rem',
+                        color: '#fff',
+                        fontSize: '0.95rem',
+                        outline: 'none',
+                        direction: 'ltr',
+                        textAlign: isAr ? 'right' : 'left',
+                      }}
+                    />
+                    <Phone size={18} color="#ffb800" style={{ position: 'absolute', [isAr ? 'left' : 'right']: '12px', top: '50%', transform: 'translateY(-50%)' }} />
+                  </div>
+                  {errors.phone && (
+                    <span style={{ color: '#ef4444', fontSize: '0.8rem', marginTop: '0.3rem', display: 'block' }}>
+                      {errors.phone.message}
+                    </span>
+                  )}
                 </div>
               </div>
 
@@ -249,12 +440,11 @@ export default function RecruitmentModal({ isOpen, onClose, defaultCommittee = '
                     {isAr ? 'الكلية بجامعة جنوب الوادي *' : 'Faculty at SVU *'}
                   </label>
                   <select
-                    value={formData.faculty}
-                    onChange={(e) => setFormData({ ...formData, faculty: e.target.value })}
+                    {...register('faculty')}
                     style={{
                       width: '100%',
                       background: 'rgba(10, 11, 16, 0.8)',
-                      border: '1px solid rgba(255, 184, 0, 0.3)',
+                      border: errors.faculty ? '1px solid #ef4444' : '1px solid rgba(255, 184, 0, 0.3)',
                       borderRadius: '12px',
                       padding: '0.85rem 1rem',
                       color: '#fff',
@@ -278,12 +468,11 @@ export default function RecruitmentModal({ isOpen, onClose, defaultCommittee = '
                     {isAr ? 'الفرقة الدراسية *' : 'Academic Year *'}
                   </label>
                   <select
-                    value={formData.year}
-                    onChange={(e) => setFormData({ ...formData, year: e.target.value })}
+                    {...register('studyYear')}
                     style={{
                       width: '100%',
                       background: 'rgba(10, 11, 16, 0.8)',
-                      border: '1px solid rgba(255, 184, 0, 0.3)',
+                      border: errors.studyYear ? '1px solid #ef4444' : '1px solid rgba(255, 184, 0, 0.3)',
                       borderRadius: '12px',
                       padding: '0.85rem 1rem',
                       color: '#fff',
@@ -303,47 +492,17 @@ export default function RecruitmentModal({ isOpen, onClose, defaultCommittee = '
                 </div>
               </div>
 
-              {/* Field 4: Phone / WhatsApp */}
-              <div style={{ marginBottom: '1.25rem' }}>
-                <label style={{ display: 'block', color: '#ffd54f', fontSize: '0.88rem', fontWeight: 700, marginBottom: '0.4rem' }}>
-                  {isAr ? 'رقم الهاتف (الواتساب للتواصل) *' : 'Phone Number (WhatsApp for interview contact) *'}
-                </label>
-                <div style={{ position: 'relative' }}>
-                  <input
-                    type="tel"
-                    required
-                    placeholder={isAr ? 'مثال: 01012345678' : 'e.g. 01012345678'}
-                    value={formData.phone}
-                    onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                    style={{
-                      width: '100%',
-                      background: 'rgba(10, 11, 16, 0.8)',
-                      border: '1px solid rgba(255, 184, 0, 0.3)',
-                      borderRadius: '12px',
-                      padding: isAr ? '0.85rem 1rem 0.85rem 2.5rem' : '0.85rem 2.5rem 0.85rem 1rem',
-                      color: '#fff',
-                      fontSize: '0.95rem',
-                      outline: 'none',
-                      direction: 'ltr',
-                      textAlign: isAr ? 'right' : 'left',
-                    }}
-                  />
-                  <Phone size={18} color="#ffb800" style={{ position: 'absolute', [isAr ? 'left' : 'right']: '12px', top: '50%', transform: 'translateY(-50%)' }} />
-                </div>
-              </div>
-
               {/* Field 5: Committee Selection */}
               <div style={{ marginBottom: '1.25rem' }}>
                 <label style={{ display: 'block', color: '#ffd54f', fontSize: '0.88rem', fontWeight: 700, marginBottom: '0.4rem' }}>
                   {isAr ? 'اللجنة التي ترغب في الانضمام إليها *' : 'Committee You Wish to Join *'}
                 </label>
                 <select
-                  value={formData.committee}
-                  onChange={(e) => setFormData({ ...formData, committee: e.target.value })}
+                  {...register('committee')}
                   style={{
                     width: '100%',
                     background: 'rgba(10, 11, 16, 0.8)',
-                    border: '1px solid rgba(255, 184, 0, 0.3)',
+                    border: errors.committee ? '1px solid #ef4444' : '1px solid rgba(255, 184, 0, 0.3)',
                     borderRadius: '12px',
                     padding: '0.85rem 1rem',
                     color: '#fff',
@@ -363,19 +522,18 @@ export default function RecruitmentModal({ isOpen, onClose, defaultCommittee = '
               </div>
 
               {/* Field 6: Personal Impact Vision */}
-              <div style={{ marginBottom: '2rem' }}>
+              <div style={{ marginBottom: '1.25rem' }}>
                 <label style={{ display: 'block', color: '#ffd54f', fontSize: '0.88rem', fontWeight: 700, marginBottom: '0.4rem' }}>
                   {isAr ? 'ما هو الأثر أو المهارة التي تريد إضافتها للفريق؟ (اختياري)' : 'What impact or skills do you hope to bring to the team? (Optional)'}
                 </label>
                 <textarea
                   rows="3"
                   placeholder={isAr ? 'حدثنا باختصار عن شغفك وتطلعاتك في إيناكوس قنا...' : 'Briefly tell us about your passion, skills, and goals with Enactus Qena...'}
-                  value={formData.impactGoal}
-                  onChange={(e) => setFormData({ ...formData, impactGoal: e.target.value })}
+                  {...register('impactGoal')}
                   style={{
                     width: '100%',
                     background: 'rgba(10, 11, 16, 0.8)',
-                    border: '1px solid rgba(255, 184, 0, 0.3)',
+                    border: errors.impactGoal ? '1px solid #ef4444' : '1px solid rgba(255, 184, 0, 0.3)',
                     borderRadius: '12px',
                     padding: '0.85rem 1rem',
                     color: '#fff',
@@ -386,19 +544,82 @@ export default function RecruitmentModal({ isOpen, onClose, defaultCommittee = '
                 />
               </div>
 
+              {/* Optional CV Upload (PDF <= 5 MB) */}
+              <div style={{ marginBottom: '1.5rem' }}>
+                <label style={{ display: 'block', color: '#ffd54f', fontSize: '0.88rem', fontWeight: 700, marginBottom: '0.4rem' }}>
+                  {isAr ? 'إرفاق السيرة الذاتية (CV) بصيغة PDF (اختياري)' : 'Attach Resume / CV in PDF (Optional)'}
+                </label>
+                <div
+                  style={{
+                    border: cvError ? '1px dashed #ef4444' : '1px dashed rgba(255, 184, 0, 0.35)',
+                    borderRadius: '12px',
+                    padding: '0.85rem 1rem',
+                    background: 'rgba(10, 11, 16, 0.6)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    gap: '1rem',
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', minWidth: 0 }}>
+                    <UploadCloud size={20} color="#ffb800" style={{ flexShrink: 0 }} />
+                    <span style={{ fontSize: '0.85rem', color: cvFile ? '#fff' : '#888', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      {cvFile ? cvFile.name : (isAr ? 'اختر ملف PDF (أقصى حجم 5 ميجابايت)' : 'Choose a PDF file (max 5 MB)')}
+                    </span>
+                  </div>
+                  <label
+                    className="btn-secondary"
+                    style={{
+                      cursor: 'pointer',
+                      padding: '0.4rem 0.9rem',
+                      fontSize: '0.8rem',
+                      flexShrink: 0,
+                    }}
+                  >
+                    <span>{isAr ? 'استعراض' : 'Browse'}</span>
+                    <input
+                      type="file"
+                      accept=".pdf,application/pdf"
+                      onChange={handleCvChange}
+                      style={{ display: 'none' }}
+                    />
+                  </label>
+                </div>
+                {cvError && (
+                  <span style={{ color: '#ef4444', fontSize: '0.8rem', marginTop: '0.3rem', display: 'block' }}>
+                    {cvError}
+                  </span>
+                )}
+              </div>
+
+              {/* Cloudflare Turnstile */}
+              <Turnstile onVerify={(t) => setTurnstileToken(t)} onExpire={() => setTurnstileToken('')} />
+
               {/* Submit CTA */}
               <button
                 type="submit"
+                disabled={isSubmitting}
                 className="btn-primary animate-pulse-glow"
                 style={{
                   width: '100%',
                   justifyContent: 'center',
                   padding: '1rem',
                   fontSize: '1.1rem',
+                  opacity: isSubmitting ? 0.7 : 1,
+                  cursor: isSubmitting ? 'not-allowed' : 'pointer',
                 }}
               >
-                <Sparkles size={20} />
-                <span>{isAr ? 'تأكيد التسجيل واستخراج بطاقة العضوية ☥' : 'Confirm Registration & Issue Membership Pass ☥'}</span>
+                {isSubmitting ? (
+                  <>
+                    <Loader2 size={20} className="animate-spin" />
+                    <span>{isAr ? 'جاري إرسال الطلب...' : 'Submitting Application...'}</span>
+                  </>
+                ) : (
+                  <>
+                    <Sparkles size={20} />
+                    <span>{isAr ? 'تأكيد التسجيل واستخراج بطاقة العضوية ☥' : 'Confirm Registration & Issue Membership Pass ☥'}</span>
+                  </>
+                )}
               </button>
             </form>
           ) : (
@@ -424,11 +645,13 @@ export default function RecruitmentModal({ isOpen, onClose, defaultCommittee = '
               <h3 style={{ fontSize: '1.8rem', fontWeight: 900, color: '#fff', marginBottom: '0.5rem' }}>
                 {isAr ? 'مرحباً بك في كتيبة الفراعنة!' : 'Welcome to the Pharaohs Battalion!'}
               </h3>
-              <p style={{ color: '#c5c5d6', fontSize: '0.95rem', marginBottom: '2rem' }}>
-                {isAr ? (
-                  <>تم استلام طلبك بنجاح. إليك بطاقة عضويتك الرقمية الخاصة بـ <strong style={{ color: '#ffd54f' }}>Enactus Qena</strong>:</>
-                ) : (
-                  <>Your application has been received successfully. Here is your digital VIP pass for <strong style={{ color: '#ffd54f' }}>Enactus Qena</strong>:</>
+              <p style={{ color: '#c5c5d6', fontSize: '0.95rem', marginBottom: '1.5rem' }}>
+                {alreadyAppliedNotice || (
+                  isAr ? (
+                    <>تم استلام طلبك بنجاح. إليك بطاقة عضويتك الرقمية الخاصة بـ <strong style={{ color: '#ffd54f' }}>Enactus Qena</strong>:</>
+                  ) : (
+                    <>Your application has been received successfully. Here is your digital VIP pass for <strong style={{ color: '#ffd54f' }}>Enactus Qena</strong>:</>
+                  )
                 )}
               </p>
 
@@ -483,7 +706,7 @@ export default function RecruitmentModal({ isOpen, onClose, defaultCommittee = '
                       {isAr ? 'اسم المحارب:' : 'Member Name:'}
                     </div>
                     <div style={{ fontSize: '1.35rem', fontWeight: 900, color: '#fff' }}>
-                      {formData.name}
+                      {watch('fullName')}
                     </div>
                   </div>
 
@@ -491,11 +714,11 @@ export default function RecruitmentModal({ isOpen, onClose, defaultCommittee = '
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', marginBottom: '1.25rem' }}>
                     <div>
                       <div style={{ fontSize: '0.7rem', color: '#a3a3b2' }}>{isAr ? 'الكلية:' : 'Faculty:'}</div>
-                      <div style={{ fontSize: '0.88rem', fontWeight: 700, color: '#e0e0ec' }}>{formData.faculty}</div>
+                      <div style={{ fontSize: '0.88rem', fontWeight: 700, color: '#e0e0ec' }}>{currentFaculty}</div>
                     </div>
                     <div>
                       <div style={{ fontSize: '0.7rem', color: '#a3a3b2' }}>{isAr ? 'اللجنة:' : 'Committee:'}</div>
-                      <div style={{ fontSize: '0.88rem', fontWeight: 700, color: '#ffb800' }}>{formData.committee}</div>
+                      <div style={{ fontSize: '0.88rem', fontWeight: 700, color: '#ffb800' }}>{currentCommittee}</div>
                     </div>
                   </div>
 

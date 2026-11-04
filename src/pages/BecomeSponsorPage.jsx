@@ -1,42 +1,97 @@
 import React, { useState } from 'react';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
 import { sponsorshipTiers } from '../data/enactusData';
 import { useSponsorshipTiers } from '../hooks/usePublicContent';
 import SEO from '../components/SEO';
-import { Award, CheckCircle2, Building, Mail, Phone, User, Send, Check } from 'lucide-react';
+import Turnstile from '../components/Turnstile';
+import { sponsorFormSchema } from '../lib/schemas';
+import { supabase } from '../lib/supabase';
+import { useLanguage } from '../context/LanguageContext';
+import { Send, Check, AlertCircle, Loader2 } from 'lucide-react';
 
 export default function BecomeSponsorPage() {
-  const { data: tiers = sponsorshipTiers, isLoading } = useSponsorshipTiers(sponsorshipTiers);
-
-  const [formData, setFormData] = useState({
-    companyName: '',
-    contactPerson: '',
-    email: '',
-    phone: '',
-    tier: 'الباقة الماسية (Diamond Sponsor)',
-    message: '',
-  });
+  const { lang, dir } = useLanguage();
+  const isAr = lang === 'ar';
+  const { data: tiers = sponsorshipTiers } = useSponsorshipTiers(sponsorshipTiers);
 
   const [submitted, setSubmitted] = useState(false);
+  const [serverError, setServerError] = useState('');
+  const [turnstileToken, setTurnstileToken] = useState('');
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    setSubmitted(true);
-    import('canvas-confetti').then((m) => {
-      const confetti = m.default || m;
-      confetti({
-        particleCount: 100,
-        spread: 70,
-        origin: { y: 0.6 },
-        colors: ['#ffd700', '#ffaa00', '#ffffff'],
+  const {
+    register,
+    handleSubmit,
+    reset,
+    formState: { errors, isSubmitting },
+  } = useForm({
+    resolver: zodResolver(sponsorFormSchema),
+    defaultValues: {
+      companyName: '',
+      contactPerson: '',
+      email: '',
+      phone: '',
+      tier: 'الباقة الماسية (Diamond Sponsor)',
+      message: '',
+      honeypot: '',
+    },
+  });
+
+  const onSubmit = async (values) => {
+    setServerError('');
+    try {
+      const payload = {
+        kind: 'sponsor',
+        fullName: values.contactPerson,
+        organization: values.companyName,
+        email: values.email,
+        phone: values.phone,
+        packageInterest: values.tier,
+        subject: `طلب رعاية: ${values.tier}`,
+        message: values.message,
+        honeypot: values.honeypot || '',
+        turnstileToken: turnstileToken || undefined,
+      };
+
+      const { data, error } = await supabase.functions.invoke('contact-form', {
+        body: payload,
       });
-    });
+
+      if (error || data?.error) {
+        setServerError(
+          data?.error || (isAr ? 'تعذر إرسال طلب الرعاية، يرجى المحاولة لاحقاً.' : 'Failed to submit inquiry, please try again.')
+        );
+        return;
+      }
+
+      setSubmitted(true);
+      reset();
+
+      // Golden confetti celebration
+      import('canvas-confetti').then((m) => {
+        const confetti = m.default || m;
+        confetti({
+          particleCount: 100,
+          spread: 70,
+          origin: { y: 0.6 },
+          colors: ['#ffd700', '#ffaa00', '#ffffff'],
+        });
+      });
+    } catch (err) {
+      console.error('[BecomeSponsorPage] submission error:', err);
+      setServerError(
+        isAr ? 'حدث خطأ غير متوقع أثناء إرسال الطلب. يرجى المحاولة مرة أخرى.' : 'An unexpected error occurred. Please try again.'
+      );
+    }
   };
 
   return (
-    <div className="page-container-padding" style={{ paddingTop: '120px', paddingBottom: '100px' }}>
+    <div className="page-container-padding" dir={dir} style={{ paddingTop: '120px', paddingBottom: '100px' }}>
       <SEO
-        title="باقات الرعاية والشراكة"
-        description="اربط علامتك التجارية بأعظم قصة نجاح شبابية في الصعيد. استكشف باقات رعاية إيناكوس قنا 2026."
+        title={isAr ? 'باقات الرعاية والشراكة' : 'Sponsorship Packages'}
+        description={isAr
+          ? 'اربط علامتك التجارية بأعظم قصة نجاح شبابية في الصعيد. استكشف باقات رعاية إيناكوس قنا 2026.'
+          : 'Partner with Enactus Qena: Explore sponsorship packages, corporate partnerships, and youth empowerment in Upper Egypt.'}
       />
       <div className="container">
         {/* Header */}
@@ -45,165 +100,81 @@ export default function BecomeSponsorPage() {
             BECOME A SPONSOR • PARTNER WITH IMPACT
           </span>
           <h1 style={{ fontSize: 'clamp(2rem, 4.5vw, 3.8rem)', fontWeight: 900, marginBottom: '1.25rem', color: '#fff' }}>
-            اربط علامتك التجارية <span className="gold-gradient-text">بأعظم قصة نجاح في الصعيد</span>
+            {isAr ? (
+              <>اربط علامتك التجارية <span className="gold-gradient-text">بأعظم قصة نجاح في الصعيد</span></>
+            ) : (
+              <>Align Your Brand <span className="gold-gradient-text">With Upper Egypt's Greatest Story</span></>
+            )}
           </h1>
           <p style={{ fontSize: '1.15rem', color: '#c5c5d8', lineHeight: 1.8 }}>
-            رعاية إيناكوس قنا هي استثمار حقيقي في طاقات شباب المستقبل وفي المشاريع التنموية المستدامة. استكشف باقات الرعاية وتواصل معنا لنبني شراكة استثنائية:
+            {isAr
+              ? 'نقدم لشركائنا من الشركات والمؤسسات منصة فريدة للوصول لأكثر من 15,000 طالب وطالبة ومئات الآلاف عبر المنصات الرقمية، والمساهمة في تحقيق أهداف التنمية المستدامة (SDGs).'
+              : 'Empower sustainable community ventures and reach over 15,000 university students and hundreds of thousands across digital channels.'}
           </p>
         </div>
 
-        {/* Loading skeleton when empty & loading */}
-        {isLoading && tiers.length === 0 && (
+        {/* Form Section */}
+        <div style={{ maxWidth: '820px', margin: '0 auto' }}>
           <div
-            style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 280px), 1fr))',
-              gap: '1.75rem',
-              marginBottom: '5rem',
-            }}
-          >
-            {[1, 2, 3].map((n) => (
-              <div
-                key={n}
-                className="glass-panel"
-                style={{
-                  height: '460px',
-                  borderRadius: '24px',
-                  background: 'rgba(255, 184, 0, 0.04)',
-                  border: '1px dashed rgba(255, 184, 0, 0.25)',
-                }}
-              />
-            ))}
-          </div>
-        )}
-
-        {/* Sponsorship Tiers Grid */}
-        <div
-          style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 280px), 1fr))',
-            gap: '1.75rem',
-            marginBottom: '5rem',
-            alignItems: 'stretch',
-          }}
-        >
-          {tiers.map((tier, idx) => (
-            <div
-              key={idx}
-              className={`glass-panel card-shine responsive-card-p sponsor-tier-card ${tier.featured ? 'gold-border-glow' : ''}`}
-              style={{
-                borderRadius: '24px',
-                padding: '2.5rem 1.75rem',
-                display: 'flex',
-                flexDirection: 'column',
-                justifyContent: 'space-between',
-                position: 'relative',
-                background: tier.featured
-                  ? 'linear-gradient(145deg, rgba(30, 32, 45, 0.95), rgba(12, 13, 20, 0.98))'
-                  : 'rgba(18, 19, 28, 0.85)',
-                border: tier.featured
-                  ? '2px solid #ffb800'
-                  : '1px solid rgba(255, 184, 0, 0.25)',
-              }}
-            >
-              {tier.featured && (
-                <div
-                  style={{
-                    position: 'absolute',
-                    top: '-14px',
-                    left: '50%',
-                    transform: 'translateX(-50%)',
-                    background: '#ffb800',
-                    color: '#08080a',
-                    fontWeight: 900,
-                    fontSize: '0.78rem',
-                    padding: '0.3rem 1rem',
-                    borderRadius: '9999px',
-                    boxShadow: '0 4px 15px rgba(255, 184, 0, 0.4)',
-                  }}
-                >
-                  الأكثر تميزاً وظهوراً
-                </div>
-              )}
-
-              <div>
-                <span className="badge-gold font-cinzel" style={{ fontSize: '0.75rem', marginBottom: '0.75rem' }}>
-                  {tier.englishName}
-                </span>
-
-                <h3 style={{ fontSize: '1.45rem', fontWeight: 900, color: '#fff', marginBottom: '0.35rem' }}>
-                  {tier.name}
-                </h3>
-                <div style={{ fontSize: '0.92rem', color: '#ffd54f', fontWeight: 700, marginBottom: '1.5rem' }}>
-                  {tier.price}
-                </div>
-
-                <div style={{ borderTop: '1px solid rgba(255, 255, 255, 0.08)', paddingTop: '1.25rem', marginBottom: '1.5rem' }}>
-                  <div style={{ fontSize: '0.85rem', color: '#ffb800', fontWeight: 700, marginBottom: '0.75rem' }}>
-                    مزايا الباقة:
-                  </div>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-                    {tier.perks.map((p, pIdx) => (
-                      <div key={pIdx} style={{ display: 'flex', alignItems: 'flex-start', gap: '0.5rem', color: '#c5c5d6', fontSize: '0.88rem', lineHeight: 1.5 }}>
-                        <CheckCircle2 size={16} color="#ffb800" style={{ flexShrink: 0, marginTop: '2px' }} />
-                        <span>{p}</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
-
-              <div>
-                <a
-                  href="#sponsor-form"
-                  onClick={() => setFormData({ ...formData, tier: tier.name })}
-                  className={tier.featured ? 'btn-primary' : 'btn-secondary'}
-                  style={{ width: '100%', justifyContent: 'center', padding: '0.8rem', fontSize: '0.95rem' }}
-                >
-                  <span>طلب هذه الباقة</span>
-                </a>
-              </div>
-            </div>
-          ))}
-        </div>
-
-        {/* Sponsor Contact Form */}
-        <div id="sponsor-form" style={{ maxWidth: '750px', margin: '0 auto' }}>
-          <div
-            className="glass-panel gold-border-glow responsive-form-p"
+            className="glass-panel gold-border-glow responsive-card-p"
             style={{
               borderRadius: '24px',
-              padding: '3rem 2.5rem',
+              padding: '3.5rem 3rem',
               background: 'linear-gradient(145deg, rgba(22, 24, 34, 0.95), rgba(12, 13, 18, 0.98))',
             }}
           >
             <div style={{ textAlign: 'center', marginBottom: '2.5rem' }}>
               <span className="badge-gold font-cinzel">PARTNERSHIP INQUIRY</span>
               <h2 style={{ fontSize: 'clamp(1.5rem, 3vw, 2rem)', fontWeight: 900, color: '#fff', marginTop: '0.5rem', marginBottom: '0.4rem' }}>
-                نموذج طلب الرعاية والتواصل
+                {isAr ? 'نموذج طلب الرعاية والتواصل' : 'Sponsorship & Partnership Request Form'}
               </h2>
               <p style={{ color: '#a5a5b8', fontSize: '0.95rem', margin: 0 }}>
-                املأ النموذج وسيتواصل معك مسؤول العلاقات العامة (PR) بملف الرعاية الرسمي في أقل من 24 ساعة.
+                {isAr
+                  ? 'املأ النموذج وسيتواصل معك مسؤول العلاقات العامة (PR) بملف الرعاية الرسمي في أقل من 24 ساعة.'
+                  : 'Submit your inquiry and our PR director will share the official sponsorship prospectus within 24 hours.'}
               </p>
             </div>
 
+            {serverError && (
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.75rem',
+                  padding: '0.85rem 1rem',
+                  borderRadius: '12px',
+                  background: 'rgba(239, 68, 68, 0.15)',
+                  border: '1px solid rgba(239, 68, 68, 0.4)',
+                  color: '#fca5a5',
+                  marginBottom: '1.5rem',
+                  fontSize: '0.9rem',
+                }}
+              >
+                <AlertCircle size={18} style={{ flexShrink: 0 }} />
+                <span>{serverError}</span>
+              </div>
+            )}
+
             {!submitted ? (
-              <form onSubmit={handleSubmit}>
+              <form onSubmit={handleSubmit(onSubmit)}>
+                {/* Honeypot anti-bot trap */}
+                <div style={{ display: 'none', position: 'absolute', left: '-9999px' }} aria-hidden="true">
+                  <input type="text" tabIndex={-1} autoComplete="off" {...register('honeypot')} />
+                </div>
+
                 <div className="form-grid-2" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.25rem', marginBottom: '1.25rem' }}>
                   <div>
                     <label style={{ display: 'block', color: '#ffd54f', fontSize: '0.9rem', fontWeight: 700, marginBottom: '0.4rem' }}>
-                      اسم الشركة أو المؤسسة *
+                      {isAr ? 'اسم الشركة أو المؤسسة *' : 'Company or Organization Name *'}
                     </label>
                     <input
                       type="text"
-                      required
-                      placeholder="مثال: شركة النيل للتطوير"
-                      value={formData.companyName}
-                      onChange={(e) => setFormData({ ...formData, companyName: e.target.value })}
+                      placeholder={isAr ? 'مثال: شركة النيل للتطوير' : 'e.g. Nile Development Co.'}
+                      {...register('companyName')}
                       style={{
                         width: '100%',
                         background: 'rgba(10, 11, 16, 0.85)',
-                        border: '1px solid rgba(255, 184, 0, 0.3)',
+                        border: errors.companyName ? '1px solid #ef4444' : '1px solid rgba(255, 184, 0, 0.3)',
                         borderRadius: '12px',
                         padding: '0.85rem 1rem',
                         color: '#fff',
@@ -211,22 +182,25 @@ export default function BecomeSponsorPage() {
                         outline: 'none',
                       }}
                     />
+                    {errors.companyName && (
+                      <span style={{ color: '#ef4444', fontSize: '0.8rem', marginTop: '0.3rem', display: 'block' }}>
+                        {errors.companyName.message}
+                      </span>
+                    )}
                   </div>
 
                   <div>
                     <label style={{ display: 'block', color: '#ffd54f', fontSize: '0.9rem', fontWeight: 700, marginBottom: '0.4rem' }}>
-                      اسم المسؤول / الممثل *
+                      {isAr ? 'اسم المسؤول / الممثل *' : 'Contact Person / Representative *'}
                     </label>
                     <input
                       type="text"
-                      required
-                      placeholder="الاسم والمنصب"
-                      value={formData.contactPerson}
-                      onChange={(e) => setFormData({ ...formData, contactPerson: e.target.value })}
+                      placeholder={isAr ? 'الاسم والمنصب' : 'Name & Position'}
+                      {...register('contactPerson')}
                       style={{
                         width: '100%',
                         background: 'rgba(10, 11, 16, 0.85)',
-                        border: '1px solid rgba(255, 184, 0, 0.3)',
+                        border: errors.contactPerson ? '1px solid #ef4444' : '1px solid rgba(255, 184, 0, 0.3)',
                         borderRadius: '12px',
                         padding: '0.85rem 1rem',
                         color: '#fff',
@@ -234,72 +208,82 @@ export default function BecomeSponsorPage() {
                         outline: 'none',
                       }}
                     />
+                    {errors.contactPerson && (
+                      <span style={{ color: '#ef4444', fontSize: '0.8rem', marginTop: '0.3rem', display: 'block' }}>
+                        {errors.contactPerson.message}
+                      </span>
+                    )}
                   </div>
                 </div>
 
                 <div className="form-grid-2" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.25rem', marginBottom: '1.25rem' }}>
                   <div>
                     <label style={{ display: 'block', color: '#ffd54f', fontSize: '0.9rem', fontWeight: 700, marginBottom: '0.4rem' }}>
-                      البريد الإلكتروني الرسمي *
+                      {isAr ? 'البريد الإلكتروني الرسمي *' : 'Official Business Email *'}
                     </label>
                     <input
                       type="email"
-                      required
                       placeholder="partner@company.com"
-                      value={formData.email}
-                      onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                      {...register('email')}
                       style={{
                         width: '100%',
                         background: 'rgba(10, 11, 16, 0.85)',
-                        border: '1px solid rgba(255, 184, 0, 0.3)',
+                        border: errors.email ? '1px solid #ef4444' : '1px solid rgba(255, 184, 0, 0.3)',
                         borderRadius: '12px',
                         padding: '0.85rem 1rem',
                         color: '#fff',
                         fontSize: '0.95rem',
                         outline: 'none',
                         direction: 'ltr',
-                        textAlign: 'right',
+                        textAlign: isAr ? 'right' : 'left',
                       }}
                     />
+                    {errors.email && (
+                      <span style={{ color: '#ef4444', fontSize: '0.8rem', marginTop: '0.3rem', display: 'block' }}>
+                        {errors.email.message}
+                      </span>
+                    )}
                   </div>
 
                   <div>
                     <label style={{ display: 'block', color: '#ffd54f', fontSize: '0.9rem', fontWeight: 700, marginBottom: '0.4rem' }}>
-                      رقم الهاتف / الواتساب *
+                      {isAr ? 'رقم الهاتف / الواتساب *' : 'Phone / WhatsApp *'}
                     </label>
                     <input
                       type="tel"
-                      required
                       placeholder="01XXXXXXXXX"
-                      value={formData.phone}
-                      onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                      {...register('phone')}
                       style={{
                         width: '100%',
                         background: 'rgba(10, 11, 16, 0.85)',
-                        border: '1px solid rgba(255, 184, 0, 0.3)',
+                        border: errors.phone ? '1px solid #ef4444' : '1px solid rgba(255, 184, 0, 0.3)',
                         borderRadius: '12px',
                         padding: '0.85rem 1rem',
                         color: '#fff',
                         fontSize: '0.95rem',
                         outline: 'none',
                         direction: 'ltr',
-                        textAlign: 'right',
+                        textAlign: isAr ? 'right' : 'left',
                       }}
                     />
+                    {errors.phone && (
+                      <span style={{ color: '#ef4444', fontSize: '0.8rem', marginTop: '0.3rem', display: 'block' }}>
+                        {errors.phone.message}
+                      </span>
+                    )}
                   </div>
                 </div>
 
                 <div style={{ marginBottom: '1.25rem' }}>
                   <label style={{ display: 'block', color: '#ffd54f', fontSize: '0.9rem', fontWeight: 700, marginBottom: '0.4rem' }}>
-                    الباقة المطلوبة *
+                    {isAr ? 'الباقة المطلوبة *' : 'Interested Sponsorship Tier *'}
                   </label>
                   <select
-                    value={formData.tier}
-                    onChange={(e) => setFormData({ ...formData, tier: e.target.value })}
+                    {...register('tier')}
                     style={{
                       width: '100%',
                       background: 'rgba(10, 11, 16, 0.85)',
-                      border: '1px solid rgba(255, 184, 0, 0.3)',
+                      border: errors.tier ? '1px solid #ef4444' : '1px solid rgba(255, 184, 0, 0.3)',
                       borderRadius: '12px',
                       padding: '0.85rem 1rem',
                       color: '#fff',
@@ -307,7 +291,7 @@ export default function BecomeSponsorPage() {
                       outline: 'none',
                     }}
                   >
-                    {sponsorshipTiers.map((t, i) => (
+                    {tiers.map((t, i) => (
                       <option key={i} value={t.name}>
                         {t.name}
                       </option>
@@ -315,19 +299,18 @@ export default function BecomeSponsorPage() {
                   </select>
                 </div>
 
-                <div style={{ marginBottom: '2rem' }}>
+                <div style={{ marginBottom: '1.5rem' }}>
                   <label style={{ display: 'block', color: '#ffd54f', fontSize: '0.9rem', fontWeight: 700, marginBottom: '0.4rem' }}>
-                    تفاصيل أو استفسارات إضافية
+                    {isAr ? 'تفاصيل أو استفسارات إضافية *' : 'Inquiry Details or Objectives *'}
                   </label>
                   <textarea
                     rows="3"
-                    placeholder="حدثنا عن أهدافكم الترويجية أو رغبتكم في رعاية مشروع محدد..."
-                    value={formData.message}
-                    onChange={(e) => setFormData({ ...formData, message: e.target.value })}
+                    placeholder={isAr ? 'حدثنا عن أهدافكم الترويجية أو رغبتكم في رعاية مشروع محدد...' : 'Tell us about your brand goals or preferred community project sponsorship...'}
+                    {...register('message')}
                     style={{
                       width: '100%',
                       background: 'rgba(10, 11, 16, 0.85)',
-                      border: '1px solid rgba(255, 184, 0, 0.3)',
+                      border: errors.message ? '1px solid #ef4444' : '1px solid rgba(255, 184, 0, 0.3)',
                       borderRadius: '12px',
                       padding: '0.85rem 1rem',
                       color: '#fff',
@@ -336,53 +319,67 @@ export default function BecomeSponsorPage() {
                       resize: 'none',
                     }}
                   />
+                  {errors.message && (
+                    <span style={{ color: '#ef4444', fontSize: '0.8rem', marginTop: '0.3rem', display: 'block' }}>
+                      {errors.message.message}
+                    </span>
+                  )}
                 </div>
+
+                {/* Cloudflare Turnstile Verification */}
+                <Turnstile onVerify={(t) => setTurnstileToken(t)} onExpire={() => setTurnstileToken('')} />
 
                 <button
                   type="submit"
+                  disabled={isSubmitting}
                   className="btn-primary"
                   style={{
                     width: '100%',
                     justifyContent: 'center',
                     padding: '1rem',
                     fontSize: '1.1rem',
+                    opacity: isSubmitting ? 0.7 : 1,
+                    cursor: isSubmitting ? 'not-allowed' : 'pointer',
                   }}
                 >
-                  <Send size={18} />
-                  <span>إرسال طلب الرعاية إلى مسؤولي الـ PR</span>
+                  {isSubmitting ? (
+                    <>
+                      <Loader2 size={18} className="animate-spin" />
+                      <span>{isAr ? 'جاري إرسال الطلب...' : 'Submitting Request...'}</span>
+                    </>
+                  ) : (
+                    <>
+                      <Send size={18} />
+                      <span>{isAr ? 'إرسال طلب الرعاية الآن' : 'Submit Sponsorship Request'}</span>
+                    </>
+                  )}
                 </button>
               </form>
             ) : (
-              <div style={{ textAlign: 'center', padding: '1rem' }}>
+              <div style={{ textAlign: 'center', padding: '2rem 1rem' }}>
                 <div style={{ width: '64px', height: '64px', borderRadius: '50%', background: 'rgba(255, 184, 0, 0.2)', border: '2px solid #ffb800', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#ffd54f', margin: '0 auto 1.5rem auto' }}>
                   <Check size={36} />
                 </div>
                 <h3 style={{ fontSize: '1.75rem', fontWeight: 900, color: '#fff', marginBottom: '0.5rem' }}>
-                  شكراً لاهتمامكم برعاية إيناكوس قنا!
+                  {isAr ? 'تم استلام طلبكم بنجاح!' : 'Inquiry Received Successfully!'}
                 </h3>
-                <p style={{ color: '#c5c5d6', fontSize: '1rem', lineHeight: 1.7, marginBottom: '1.5rem' }}>
-                  تم استلام طلبكم بنجاح. سيقوم رئيس لجنة العلاقات العامة بالتواصل مع السيد/ <strong>{formData.contactPerson}</strong> لتزويدكم بالملف التعريفي والاتفاق على تفاصيل الرعاية.
+                <p style={{ color: '#c5c5d6', fontSize: '1rem', lineHeight: 1.7, marginBottom: '2rem' }}>
+                  {isAr
+                    ? 'نشكركم على اهتمامكم بدعم وتمكين شباب إيناكوس قنا. سيقوم فريق العلاقات العامة بالتواصل معكم وإرسال ملف الرعاية الرسمي.'
+                    : 'Thank you for partnering with Enactus Qena. Our PR director will connect with you with the official sponsorship prospectus.'}
                 </p>
                 <button
                   onClick={() => setSubmitted(false)}
                   className="btn-secondary"
                   style={{ padding: '0.65rem 1.5rem', fontSize: '0.9rem' }}
                 >
-                  إرسال طلب رعاية آخر
+                  {isAr ? 'إرسال طلب جديد' : 'Submit Another Inquiry'}
                 </button>
               </div>
             )}
           </div>
         </div>
       </div>
-
-      <style>{`
-        @media (min-width: 993px) {
-          .sponsor-tier-card.gold-border-glow {
-            transform: scale(1.03);
-          }
-        }
-      `}</style>
     </div>
   );
 }

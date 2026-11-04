@@ -465,6 +465,11 @@ html, body, .glass-panel, header, footer, .btn-secondary, .badge-gold, input, se
   color: #0f111a !important;
 }
 
+[data-theme="light"] .modal-header-title,
+[data-theme="light"] .gold-heading {
+  color: #b45309 !important;
+}
+
 /* High contrast paragraphs & body text (solves faint gray in light mode) */
 [data-theme="light"] p,
 [data-theme="light"] .font-body,

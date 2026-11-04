@@ -33,6 +33,21 @@ export function AuthProvider({ children }) {
 
   // 2) Load profile + roles whenever the signed-in user changes.
   const userId = session?.user?.id;
+
+  const refreshProfile = useCallback(async () => {
+    if (!userId) return;
+    try {
+      const [profileRes, rolesRes] = await Promise.all([
+        supabase.from('profiles').select('*').eq('id', userId).maybeSingle(),
+        supabase.from('user_roles').select('role, committee_id').eq('user_id', userId),
+      ]);
+      setProfile(profileRes.data ?? null);
+      setRoles(rolesRes.data ?? []);
+    } catch (err) {
+      console.error('[AuthContext] Error refreshing profile:', err);
+    }
+  }, [userId]);
+
   useEffect(() => {
     if (!userId) return undefined;
     let cancelled = false;
@@ -112,8 +127,9 @@ export function AuthProvider({ children }) {
       signOut,
       sendPasswordReset,
       updatePassword,
+      refreshProfile,
     };
-  }, [session, profile, roles, loading, signIn, signOut, sendPasswordReset, updatePassword]);
+  }, [session, profile, roles, loading, signIn, signOut, sendPasswordReset, updatePassword, refreshProfile]);
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
