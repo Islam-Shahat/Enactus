@@ -223,5 +223,23 @@ describe('submit-application Field Mapping & Schema Regression Tests', () => {
       expect(content).toMatch(/grant\s+insert\s+on\s+public\.applications\s+to\s+anon/i);
     });
   });
+
+  describe('VIP Card Render & Scope Integrity', () => {
+    it('verifies JoinUsPage and RecruitmentModal destructure watch and guard VIP pass fields', async () => {
+      const fs = await import('fs');
+      const path = await import('path');
+
+      const joinUsContent = fs.readFileSync(path.resolve(__dirname, '../src/pages/JoinUsPage.jsx'), 'utf-8');
+      const modalContent = fs.readFileSync(path.resolve(__dirname, '../src/components/RecruitmentModal.jsx'), 'utf-8');
+
+      // Check destructuring of watch in useForm
+      expect(joinUsContent).toContain('watch,');
+      expect(modalContent).toContain('watch,');
+
+      // Check submittedInfo fallback
+      expect(joinUsContent).toContain('submittedInfo.fullName');
+      expect(modalContent).toContain('submittedInfo.fullName');
+    });
+  });
 });
 

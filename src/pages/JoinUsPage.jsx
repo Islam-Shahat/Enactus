@@ -20,6 +20,7 @@ export default function JoinUsPage() {
 
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [memberId, setMemberId] = useState('');
+  const [submittedInfo, setSubmittedInfo] = useState({ fullName: '', faculty: '', committee: '' });
   const [copied, setCopied] = useState(false);
   const [serverError, setServerError] = useState('');
   const [alreadyAppliedNotice, setAlreadyAppliedNotice] = useState('');
@@ -35,6 +36,7 @@ export default function JoinUsPage() {
     register,
     handleSubmit,
     setValue,
+    watch,
     control,
     formState: { errors, isSubmitting },
   } = useForm({
@@ -200,6 +202,11 @@ export default function JoinUsPage() {
       const appId = resultData?.id || resultData?.applicationId;
       const passCode = appId ? `ENACTUS-SVU-${appId.substring(0, 4).toUpperCase()}` : 'ENACTUS-SVU-PENDING';
       setMemberId(passCode);
+      setSubmittedInfo({
+        fullName: values.fullName || '',
+        faculty: values.faculty || '',
+        committee: values.committee || '',
+      });
       setIsSubmitted(true);
 
       import('canvas-confetti').then((m) => {
@@ -746,17 +753,23 @@ export default function JoinUsPage() {
                     <div style={{ fontSize: '0.75rem', color: '#ffd54f', fontWeight: 600 }}>
                       {isAr ? 'اسم المحارب:' : 'Member Name:'}
                     </div>
-                    <div style={{ fontSize: '1.45rem', fontWeight: 900, color: '#fff' }}>{watch('fullName')}</div>
+                    <div style={{ fontSize: '1.45rem', fontWeight: 900, color: '#fff' }}>
+                      {submittedInfo.fullName || (watch ? watch('fullName') : '')}
+                    </div>
                   </div>
 
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', marginBottom: '1.5rem' }}>
                     <div>
                       <div style={{ fontSize: '0.72rem', color: '#a3a3b2' }}>{isAr ? 'الكلية:' : 'Faculty:'}</div>
-                      <div style={{ fontSize: '0.92rem', fontWeight: 700, color: '#e0e0ec' }}>{currentFaculty}</div>
+                      <div style={{ fontSize: '0.92rem', fontWeight: 700, color: '#e0e0ec' }}>
+                        {submittedInfo.faculty || currentFaculty || ''}
+                      </div>
                     </div>
                     <div>
                       <div style={{ fontSize: '0.72rem', color: '#a3a3b2' }}>{isAr ? 'اللجنة:' : 'Committee:'}</div>
-                      <div style={{ fontSize: '0.92rem', fontWeight: 700, color: '#ffb800' }}>{currentCommittee}</div>
+                      <div style={{ fontSize: '0.92rem', fontWeight: 700, color: '#ffb800' }}>
+                        {submittedInfo.committee || currentCommittee || ''}
+                      </div>
                     </div>
                   </div>
 

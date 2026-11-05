@@ -16,6 +16,7 @@ export default function RecruitmentModal({ isOpen, onClose, defaultCommittee = '
 
   const [isSubmitted, setIsSubmitted] = useState(false);
   const [memberId, setMemberId] = useState('');
+  const [submittedInfo, setSubmittedInfo] = useState({ fullName: '', faculty: '', committee: '' });
   const [copied, setCopied] = useState(false);
   const [serverError, setServerError] = useState('');
   const [alreadyAppliedNotice, setAlreadyAppliedNotice] = useState('');
@@ -31,6 +32,7 @@ export default function RecruitmentModal({ isOpen, onClose, defaultCommittee = '
     register,
     handleSubmit,
     setValue,
+    watch,
     control,
     formState: { errors, isSubmitting },
   } = useForm({
@@ -199,6 +201,11 @@ export default function RecruitmentModal({ isOpen, onClose, defaultCommittee = '
       const appId = resultData?.id || resultData?.applicationId;
       const passCode = appId ? `ENACTUS-SVU-${appId.substring(0, 4).toUpperCase()}` : 'ENACTUS-SVU-PENDING';
       setMemberId(passCode);
+      setSubmittedInfo({
+        fullName: values.fullName || '',
+        faculty: values.faculty || '',
+        committee: values.committee || '',
+      });
       setIsSubmitted(true);
 
       // Golden celebratory confetti burst!
@@ -773,7 +780,7 @@ export default function RecruitmentModal({ isOpen, onClose, defaultCommittee = '
                       {isAr ? 'اسم المحارب:' : 'Member Name:'}
                     </div>
                     <div style={{ fontSize: '1.35rem', fontWeight: 900, color: '#fff' }}>
-                      {watch('fullName')}
+                      {submittedInfo.fullName || (watch ? watch('fullName') : '')}
                     </div>
                   </div>
 
@@ -781,11 +788,15 @@ export default function RecruitmentModal({ isOpen, onClose, defaultCommittee = '
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', marginBottom: '1.25rem' }}>
                     <div>
                       <div style={{ fontSize: '0.7rem', color: '#a3a3b2' }}>{isAr ? 'الكلية:' : 'Faculty:'}</div>
-                      <div style={{ fontSize: '0.88rem', fontWeight: 700, color: '#e0e0ec' }}>{currentFaculty}</div>
+                      <div style={{ fontSize: '0.88rem', fontWeight: 700, color: '#e0e0ec' }}>
+                        {submittedInfo.faculty || currentFaculty || ''}
+                      </div>
                     </div>
                     <div>
                       <div style={{ fontSize: '0.7rem', color: '#a3a3b2' }}>{isAr ? 'اللجنة:' : 'Committee:'}</div>
-                      <div style={{ fontSize: '0.88rem', fontWeight: 700, color: '#ffb800' }}>{currentCommittee}</div>
+                      <div style={{ fontSize: '0.88rem', fontWeight: 700, color: '#ffb800' }}>
+                        {submittedInfo.committee || currentCommittee || ''}
+                      </div>
                     </div>
                   </div>
 
