@@ -31,6 +31,7 @@ import {
   X,
   Trash2,
   Eye,
+  Camera,
 } from 'lucide-react';
 
 const PAGE_SIZE = 10;
@@ -61,6 +62,7 @@ export default function AttendancePage() {
   const [isScannerOpen, setIsScannerOpen] = useState(false);
   const [isLiveSessionOpen, setIsLiveSessionOpen] = useState(false);
   const [selectedLiveSession, setSelectedLiveSession] = useState(null);
+  const [liveModalInitialTab, setLiveModalInitialTab] = useState('scanner');
   const [isCreateSessionOpen, setIsCreateSessionOpen] = useState(false);
   const [sessionToEdit, setSessionToEdit] = useState(null);
   const [isExcuseModalOpen, setIsExcuseModalOpen] = useState(false);
@@ -598,22 +600,51 @@ export default function AttendancePage() {
       label: isAr ? 'الإجراءات' : 'Actions',
       render: (row) => (
         <div
-          style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}
+          style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', flexWrap: 'wrap' }}
           onClick={(e) => e.stopPropagation()}
         >
+          {canManage && (
+            <button
+              type="button"
+              onClick={() => {
+                setSelectedLiveSession(row);
+                setLiveModalInitialTab('scanner');
+                setIsLiveSessionOpen(true);
+              }}
+              title={isAr ? 'مسح كود الحضور لهذه الجلسة' : 'Scan Attendance'}
+              style={{
+                padding: '0.35rem 0.65rem',
+                background: 'rgba(255, 184, 0, 0.2)',
+                border: '1px solid rgba(255, 184, 0, 0.45)',
+                borderRadius: '6px',
+                color: '#ffd54f',
+                cursor: 'pointer',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '0.35rem',
+                fontSize: '0.78rem',
+                fontWeight: 700,
+              }}
+            >
+              <Camera size={13} />
+              <span>{isAr ? 'مسح الحضور' : 'Scan'}</span>
+            </button>
+          )}
+
           <button
             type="button"
             onClick={() => {
               setSelectedLiveSession(row);
+              setLiveModalInitialTab('live_list');
               setIsLiveSessionOpen(true);
             }}
-            title={isAr ? 'فتح الجلسة وإدارتها' : 'Open session'}
+            title={isAr ? 'فتح تفاصيل الجلسة' : 'View session details'}
             style={{
               padding: '0.35rem 0.6rem',
-              background: 'rgba(255, 184, 0, 0.1)',
-              border: '1px solid rgba(255, 184, 0, 0.3)',
+              background: 'rgba(255, 255, 255, 0.06)',
+              border: '1px solid rgba(255, 255, 255, 0.15)',
               borderRadius: '6px',
-              color: '#ffd54f',
+              color: '#ddd',
               cursor: 'pointer',
               display: 'inline-flex',
               alignItems: 'center',
@@ -924,6 +955,7 @@ export default function AttendancePage() {
             searchPlaceholder={isAr ? 'بحث بعنوان الجلسة...' : 'Search session title...'}
             onRowClick={(row) => {
               setSelectedLiveSession(row);
+              setLiveModalInitialTab('scanner');
               setIsLiveSessionOpen(true);
             }}
             emptyTitle={isAr ? 'لا توجد جلسات' : 'No sessions found'}
@@ -1213,13 +1245,40 @@ export default function AttendancePage() {
                             type="button"
                             onClick={() => {
                               setSelectedLiveSession(s);
+                              setLiveModalInitialTab('scanner');
+                              setIsLiveSessionOpen(true);
+                            }}
+                            title={isAr ? 'مسح كود الحضور لهذه الجلسة' : 'Scan Attendance'}
+                            style={{
+                              background: 'rgba(255, 184, 0, 0.2)',
+                              border: '1px solid rgba(255, 184, 0, 0.45)',
+                              color: '#ffd54f',
+                              padding: '0.35rem 0.75rem',
+                              borderRadius: '6px',
+                              fontSize: '0.78rem',
+                              fontWeight: 700,
+                              cursor: 'pointer',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '0.35rem',
+                            }}
+                          >
+                            <Camera size={13} />
+                            <span>{isAr ? 'مسح كود الحضور' : 'Scan Attendance'}</span>
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setSelectedLiveSession(s);
+                              setLiveModalInitialTab('live_list');
                               setIsLiveSessionOpen(true);
                             }}
                             title={isAr ? 'فتح الجلسة وإدارتها' : 'Open session'}
                             style={{
-                              background: 'rgba(255, 184, 0, 0.1)',
-                              border: '1px solid rgba(255, 184, 0, 0.3)',
-                              color: '#ffd54f',
+                              background: 'rgba(255, 255, 255, 0.05)',
+                              border: '1px solid rgba(255, 255, 255, 0.15)',
+                              color: '#ddd',
                               padding: '0.35rem 0.65rem',
                               borderRadius: '6px',
                               fontSize: '0.78rem',
@@ -1674,6 +1733,7 @@ export default function AttendancePage() {
           setSelectedLiveSession(null);
         }}
         session={selectedLiveSession}
+        initialTab={liveModalInitialTab}
         onSessionUpdated={(updated) => {
           setSelectedLiveSession(updated);
           queryClient.invalidateQueries({ queryKey: ['dashboard', 'attendance_sessions'] });

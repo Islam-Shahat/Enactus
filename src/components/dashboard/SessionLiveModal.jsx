@@ -1,5 +1,6 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { Html5Qrcode } from 'html5-qrcode';
 import { QRCodeSVG } from 'qrcode.react';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../context/AuthContext';
@@ -9,6 +10,9 @@ import StatusBadge from './StatusBadge';
 import ConfirmDialog from './ConfirmDialog';
 import { useToast } from './Toast';
 import {
+  Camera,
+  CameraOff,
+  Keyboard,
   QrCode,
   ToggleLeft,
   ToggleRight,
@@ -19,19 +23,144 @@ import {
   RefreshCw,
   X,
   UserCheck,
-  ShieldCheck,
   Calendar,
-  Layers,
   MapPin,
   CheckCircle2,
   FileSpreadsheet,
   Trash2,
+  Search,
+  Check,
+  AlertCircle,
 } from 'lucide-react';
+
+// Audio feedback chime on scan success
+function playSuccessBeep() {
+  try {
+    const AudioCtx = window.AudioContext || window.webkitAudioContext;
+    if (!AudioCtx) return;
+    const ctx = new AudioCtx();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(880, ctx.currentTime);
+    osc.frequency.exponentialRampToValueAtTime(1320, ctx.currentTime + 0.12);
+    gain.gain.setValueAtTime(0.2, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.2);
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.start();
+    osc.stop(ctx.currentTime + 0.2);
+  } catch {}
+}
+
+function playNoticeTone() {
+  try {
+    const AudioCtx = window.AudioContext || window.webkitAudioContext;
+    if (!AudioCtx) return;
+    const ctx = new AudioCtx();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.type = 'triangle';
+    osc.frequency.setValueAtTime(440, ctx.currentTime);
+    osc.frequency.setValueAtTime(330, ctx.currentTime + 0.1);
+    gain.gain.setValueAtTime(0.15, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.25);
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.start();
+    osc.stop(ctx.currentTime + 0.25);
+  } catch {}
+}
+
+// Resolver for QR / manual input to member profile
+async function resolveMemberFromCode(rawInput) {
+  if (!rawInput || typeof rawInput !== 'string') return null;
+  const clean = rawInput.trim();
+
+  // 1. ENACTUS-MEMBER format: ENACTUS-MEMBER:<userId>:<memberCode>:<sessionId>
+  if (clean.startsWith('ENACTUS-MEMBER:')) {
+    const parts = clean.split(':');
+    const uId = parts[1];
+    const mCode = parts[2];
+    if (uId && uId.length === 36) {
+      const { data } = await supabase
+        .from('profiles')
+        .select('id, full_name_ar, full_name_en, member_code, avatar_url')
+        .eq('id', uId)
+        .maybeSingle();
+      if (data) return data;
+    }
+    if (mCode) {
+      const { data } = await supabase
+        .from('profiles')
+        .select('id, full_name_ar, full_name_en, member_code, avatar_url')
+        .eq('member_code', mCode)
+        .maybeSingle();
+      if (data) return data;
+    }
+  }
+
+  // 2. Exact UUID match
+  const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+  if (UUID_REGEX.test(clean)) {
+    const { data } = await supabase
+      .from('profiles')
+      .select('id, full_name_ar, full_name_en, member_code, avatar_url')
+      .eq('id', clean)
+      .maybeSingle();
+    if (data) return data;
+  }
+
+  // 3. Match member_code (e.g. 2026001 or any profile member_code)
+  const { data: byMemberCode } = await supabase
+    .from('profiles')
+    .select('id, full_name_ar, full_name_en, member_code, avatar_url')
+    .eq('member_code', clean)
+    .maybeSingle();
+  if (byMemberCode) return byMemberCode;
+
+  // 4. Match 14-digit national ID in profile_private
+  if (/^\d{14}$/.test(clean)) {
+    const { data: priv } = await supabase
+      .from('profile_private')
+      .select('user_id')
+      .eq('national_id', clean)
+      .maybeSingle();
+    if (priv?.user_id) {
+      const { data } = await supabase
+        .from('profiles')
+        .select('id, full_name_ar, full_name_en, member_code, avatar_url')
+        .eq('id', priv.user_id)
+        .maybeSingle();
+      if (data) return data;
+    }
+  }
+
+  // 5. Match email in profile_private
+  if (clean.includes('@')) {
+    const { data: priv } = await supabase
+      .from('profile_private')
+      .select('user_id')
+      .eq('email', clean.toLowerCase())
+      .maybeSingle();
+    if (priv?.user_id) {
+      const { data } = await supabase
+        .from('profiles')
+        .select('id, full_name_ar, full_name_en, member_code, avatar_url')
+        .eq('id', priv.user_id)
+        .maybeSingle();
+      if (data) return data;
+    }
+  }
+
+  return null;
+}
 
 export default function SessionLiveModal({
   isOpen,
   onClose,
   session,
+  initialTab = 'scanner', // 'scanner' | 'live_list' | 'manual_sheet' | 'projector'
   onSessionUpdated,
 }) {
   const { user } = useAuth();
@@ -41,25 +170,235 @@ export default function SessionLiveModal({
   const toast = useToast();
   const queryClient = useQueryClient();
 
-  // Active view: 'qr' | 'live_list' | 'manual_sheet'
-  const [activeTab, setActiveTab] = useState('qr');
+  // Active view: 'scanner' | 'live_list' | 'manual_sheet' | 'projector'
+  const [activeTab, setActiveTab] = useState(initialTab || 'scanner');
 
-  // Rotating Token state
+  // Scanner sub-mode: 'camera' | 'manual'
+  const [scannerSubMode, setScannerSubMode] = useState('camera');
+  const [manualMemberCode, setManualMemberCode] = useState('');
+  const [isCheckingIn, setIsCheckingIn] = useState(false);
+  const [lastScannedMember, setLastScannedMember] = useState(null);
+  const [cameraError, setCameraError] = useState(null);
+
+  // Rotating Token state (for optional projector view)
   const [qrToken, setQrToken] = useState(null);
-  const [manualCode, setManualCode] = useState(null);
+  const [projectorCode, setProjectorCode] = useState(null);
   const [secondsRemaining, setSecondsRemaining] = useState(20);
 
-  // Close session confirm dialog
+  // Confirm dialogs
   const [isCloseConfirmOpen, setIsCloseConfirmOpen] = useState(false);
-  // Delete session confirm dialog
   const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
 
   const sessionId = session?.id;
   const isCheckInOpen = Boolean(session?.check_in_open);
 
-  // Fetch token from Edge Function
+  const cameraScannerRef = useRef(null);
+  const isScanningReadyRef = useRef(true);
+
+  // Sync initialTab when modal opens
+  useEffect(() => {
+    if (isOpen) {
+      setActiveTab(initialTab || 'scanner');
+      setScannerSubMode('camera');
+      setLastScannedMember(null);
+      setCameraError(null);
+      setManualMemberCode('');
+      isScanningReadyRef.current = true;
+    }
+  }, [isOpen, initialTab]);
+
+  // Safely stop camera media tracks and html5-qrcode instance
+  const stopCamera = useCallback(async () => {
+    try {
+      const container = document.getElementById('session-qr-reader-region');
+      if (container) {
+        const videos = container.querySelectorAll('video');
+        videos.forEach((video) => {
+          if (video.srcObject && typeof video.srcObject.getTracks === 'function') {
+            video.srcObject.getTracks().forEach((track) => {
+              try {
+                track.stop();
+              } catch {}
+            });
+            video.srcObject = null;
+          }
+        });
+      }
+    } catch (e) {
+      console.warn('[SessionLiveModal] stop tracks error:', e);
+    }
+
+    const scanner = cameraScannerRef.current;
+    if (scanner) {
+      try {
+        if (typeof scanner.getState === 'function') {
+          const state = scanner.getState();
+          if (state === 2 || state === 3) {
+            await scanner.stop();
+          }
+        }
+      } catch (err) {
+        console.warn('[SessionLiveModal] stop scanner error:', err);
+      }
+      try {
+        scanner.clear();
+      } catch {}
+      cameraScannerRef.current = null;
+    }
+  }, []);
+
+  const handleModalClose = async () => {
+    await stopCamera();
+    onClose();
+  };
+
+  // Check in a member by code/UUID
+  const handleCheckinMember = async (rawInput, method = 'qr') => {
+    if (!rawInput || !rawInput.trim() || !session?.id) return;
+    try {
+      setIsCheckingIn(true);
+      const member = await resolveMemberFromCode(rawInput.trim());
+
+      if (!member) {
+        toast.show(
+          isAr
+            ? `لم يتم العثور على عضو بهذا الكود: "${rawInput.trim()}"`
+            : `No member found with code: "${rawInput.trim()}"`,
+          'error'
+        );
+        return;
+      }
+
+      // Check if already in attendees
+      const existing = attendees.find((a) => a.user_id === member.id);
+      if (existing && existing.status === 'present') {
+        playNoticeTone();
+        toast.show(
+          isAr
+            ? `العضو ${member.full_name_ar || member.full_name_en} مسجل حضوره بالفعل مسبقاً!`
+            : `${member.full_name_en || member.full_name_ar} is already marked present!`,
+          'info'
+        );
+        setLastScannedMember({ ...member, status: 'already_present' });
+        return;
+      }
+
+      // Upsert attendance record
+      const { error: attErr } = await supabase.from('attendance').upsert(
+        {
+          session_id: session.id,
+          user_id: member.id,
+          status: 'present',
+          method,
+          recorded_by: user?.id || null,
+          checked_in_at: new Date().toISOString(),
+          notes: method === 'qr' ? 'تم المسح عبر الكاميرا' : 'تم الإدخال اليدوي لكود العضو',
+        },
+        { onConflict: 'session_id,user_id' }
+      );
+
+      if (attErr) throw attErr;
+
+      playSuccessBeep();
+      setLastScannedMember({ ...member, status: 'present' });
+      setManualMemberCode('');
+
+      toast.show(
+        isAr
+          ? `تم تسجيل حضور: ${member.full_name_ar || member.full_name_en} (${member.member_code || ''}) بنجاح`
+          : `Checked in: ${member.full_name_en || member.full_name_ar} (${member.member_code || ''})`,
+        'success'
+      );
+
+      queryClient.invalidateQueries({ queryKey: ['dashboard', 'session_attendees', session.id] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard', 'attendance_stats'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard', 'attendance_sessions'] });
+    } catch (err) {
+      toast.show(err.message || (isAr ? 'فشل تسجيل الحضور' : 'Failed to record attendance'), 'error');
+    } finally {
+      setIsCheckingIn(false);
+    }
+  };
+
+  // Continuous Camera Scanner Lifecycle
+  useEffect(() => {
+    if (!isOpen || activeTab !== 'scanner' || scannerSubMode !== 'camera') {
+      stopCamera();
+      return;
+    }
+
+    let isMounted = true;
+    const qrRegionId = 'session-qr-reader-region';
+
+    const timer = setTimeout(async () => {
+      if (!isMounted) return;
+
+      await stopCamera();
+      if (!isMounted) return;
+
+      const container = document.getElementById(qrRegionId);
+      if (!container) return;
+
+      try {
+        const html5QrCode = new Html5Qrcode(qrRegionId);
+        cameraScannerRef.current = html5QrCode;
+
+        await html5QrCode.start(
+          { facingMode: 'environment' },
+          {
+            fps: 10,
+            qrbox: { width: 250, height: 250 },
+            aspectRatio: 1.0,
+          },
+          async (decodedText) => {
+            if (!isScanningReadyRef.current) return;
+            // Prevent duplicate triggers in rapid succession
+            isScanningReadyRef.current = false;
+            await handleCheckinMember(decodedText, 'qr');
+
+            // Re-arm camera for next attendee after 1.5 seconds
+            setTimeout(() => {
+              isScanningReadyRef.current = true;
+            }, 1500);
+          },
+          () => {}
+        );
+      } catch (err) {
+        if (!isMounted) return;
+        console.error('[Session Scanner Error]:', err);
+        const errStr = String(err?.message || err || '');
+        if (errStr.includes('NotAllowedError') || errStr.includes('Permission')) {
+          setCameraError(
+            isAr
+              ? 'تم رفض إذن الكاميرا في المتصفح. يمكنك استخدام الإدخال اليدوي للكود.'
+              : 'Camera permission denied. Use manual code entry.'
+          );
+        } else if (errStr.includes('NotFoundError') || errStr.includes('device')) {
+          setCameraError(
+            isAr
+              ? 'لم يتم العثور على كاميرا في هذا الجهاز.'
+              : 'No camera found on this device.'
+          );
+        } else {
+          setCameraError(
+            isAr
+              ? 'تعذر تشغيل الكاميرا. يمكنك استخدام الإدخال اليدوي للكود.'
+              : 'Could not access camera. Switch to manual code entry.'
+          );
+        }
+      }
+    }, 250);
+
+    return () => {
+      isMounted = false;
+      clearTimeout(timer);
+      stopCamera();
+    };
+  }, [isOpen, activeTab, scannerSubMode, isAr, stopCamera]);
+
+  // Fetch token for optional projector view
   const fetchQrToken = useCallback(async () => {
-    if (!sessionId || !isCheckInOpen) return;
+    if (!sessionId || !isCheckInOpen || activeTab !== 'projector') return;
     try {
       const {
         data: { session: authSession },
@@ -80,25 +419,20 @@ export default function SessionLiveModal({
       );
 
       const data = await res.json();
-      if (!res.ok) {
-        throw new Error(data.error || 'Failed to generate token');
-      }
+      if (!res.ok) throw new Error(data.error);
 
       setQrToken(data.token);
-      setManualCode(data.code);
+      setProjectorCode(data.code);
       setSecondsRemaining(20);
     } catch (err) {
-      console.error('[fetchQrToken error]:', err);
+      // Quiet fallback
     }
-  }, [sessionId, isCheckInOpen]);
+  }, [sessionId, isCheckInOpen, activeTab]);
 
-  // Rotate token every 20 seconds while modal is open and check_in_open is true
   useEffect(() => {
-    if (!isOpen || !sessionId || !isCheckInOpen) return;
-
+    if (!isOpen || !sessionId || !isCheckInOpen || activeTab !== 'projector') return;
     fetchQrToken();
     const interval = setInterval(fetchQrToken, 20000);
-
     const countdown = setInterval(() => {
       setSecondsRemaining((prev) => (prev > 0 ? prev - 1 : 20));
     }, 1000);
@@ -107,7 +441,7 @@ export default function SessionLiveModal({
       clearInterval(interval);
       clearInterval(countdown);
     };
-  }, [isOpen, sessionId, isCheckInOpen, fetchQrToken]);
+  }, [isOpen, sessionId, isCheckInOpen, activeTab, fetchQrToken]);
 
   // Toggle check_in_open mutation
   const toggleCheckinMutation = useMutation({
@@ -140,7 +474,7 @@ export default function SessionLiveModal({
     },
   });
 
-  // Query Live Attendees with 10s polling fallback
+  // Query Live Attendees
   const { data: attendees = [], isLoading: loadingAttendees } = useQuery({
     queryKey: ['dashboard', 'session_attendees', session?.id],
     queryFn: async () => {
@@ -158,6 +492,7 @@ export default function SessionLiveModal({
             id,
             full_name_ar,
             full_name_en,
+            member_code,
             avatar_url
           )
         `)
@@ -167,7 +502,7 @@ export default function SessionLiveModal({
       return data || [];
     },
     enabled: Boolean(isOpen && session?.id),
-    refetchInterval: 10000, // 10s polling fallback
+    refetchInterval: 10000,
   });
 
   // Realtime subscription on attendance table
@@ -186,6 +521,7 @@ export default function SessionLiveModal({
         },
         () => {
           queryClient.invalidateQueries({ queryKey: ['dashboard', 'session_attendees', session.id] });
+          queryClient.invalidateQueries({ queryKey: ['dashboard', 'attendance_stats'] });
         }
       )
       .subscribe();
@@ -210,6 +546,7 @@ export default function SessionLiveModal({
             id,
             full_name_ar,
             full_name_en,
+            member_code,
             avatar_url
           )
         `)
@@ -269,7 +606,7 @@ export default function SessionLiveModal({
       queryClient.invalidateQueries({ queryKey: ['dashboard', 'attendance_stats'] });
       queryClient.invalidateQueries({ queryKey: ['dashboard', 'my_attendance'] });
       queryClient.invalidateQueries({ queryKey: ['dashboard', 'upcoming_sessions'] });
-      onClose();
+      handleModalClose();
     },
     onError: (err) => {
       toast.show(err.message || (isAr ? 'فشل حذف الجلسة' : 'Failed to delete session'), 'error');
@@ -326,8 +663,8 @@ export default function SessionLiveModal({
         membersQuery = membersQuery.eq('committee_id', session.committee_id);
       }
 
-      const { data: eligibleMembers } = await membersQuery;
-      const eligibleUserIds = Array.from(new Set((eligibleMembers || []).map((m) => m.user_id)));
+      const { data: eligibleMembersData } = await membersQuery;
+      const eligibleUserIds = Array.from(new Set((eligibleMembersData || []).map((m) => m.user_id)));
 
       // Fetch existing attendance records
       const { data: existingRecords } = await supabase
@@ -428,16 +765,16 @@ export default function SessionLiveModal({
         padding: '1rem',
         zIndex: 9999,
       }}
-      onClick={onClose}
+      onClick={handleModalClose}
     >
       <div
         className="glass-panel gold-border-glow"
         dir={dir}
         style={{
           borderRadius: '20px',
-          maxWidth: '850px',
+          maxWidth: '860px',
           width: '100%',
-          maxHeight: '90vh',
+          maxHeight: '92vh',
           display: 'flex',
           flexDirection: 'column',
           boxShadow: isDark ? '0 30px 60px rgba(0,0,0,0.85)' : '0 25px 60px rgba(184, 120, 0, 0.15)',
@@ -518,26 +855,28 @@ export default function SessionLiveModal({
             </button>
 
             {/* Close Session Final Button */}
-            <button
-              type="button"
-              onClick={() => setIsCloseConfirmOpen(true)}
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '0.4rem',
-                padding: '0.45rem 0.9rem',
-                borderRadius: '8px',
-                background: 'rgba(239, 68, 68, 0.15)',
-                color: '#ef4444',
-                border: '1px solid rgba(239, 68, 68, 0.4)',
-                fontSize: '0.82rem',
-                fontWeight: 600,
-                cursor: 'pointer',
-              }}
-            >
-              <Lock size={14} />
-              <span>{isAr ? 'إغلاق واعتماد الغياب' : 'Close Session'}</span>
-            </button>
+            {session.check_in_open && (
+              <button
+                type="button"
+                onClick={() => setIsCloseConfirmOpen(true)}
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '0.4rem',
+                  padding: '0.45rem 0.9rem',
+                  borderRadius: '8px',
+                  background: 'rgba(239, 68, 68, 0.15)',
+                  color: '#ef4444',
+                  border: '1px solid rgba(239, 68, 68, 0.4)',
+                  fontSize: '0.82rem',
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                }}
+              >
+                <Lock size={14} />
+                <span>{isAr ? 'إغلاق واعتماد الغياب' : 'Close Session'}</span>
+              </button>
+            )}
 
             {/* Delete Session Button */}
             <button
@@ -564,7 +903,7 @@ export default function SessionLiveModal({
 
             <button
               type="button"
-              onClick={onClose}
+              onClick={handleModalClose}
               style={{ background: 'transparent', border: 'none', color: '#888', cursor: 'pointer', padding: '0.2rem' }}
             >
               <X size={22} />
@@ -579,29 +918,34 @@ export default function SessionLiveModal({
             padding: '0 1.5rem',
             borderBottom: '1px solid rgba(255, 255, 255, 0.06)',
             background: 'rgba(255, 255, 255, 0.02)',
+            overflowX: 'auto',
+            gap: '0.25rem',
           }}
         >
+          {/* TAB 1: Scan Attendance (Default & Main) */}
           <button
             type="button"
-            onClick={() => setActiveTab('qr')}
+            onClick={() => setActiveTab('scanner')}
             style={{
               padding: '0.75rem 1rem',
               background: 'transparent',
               border: 'none',
-              borderBottom: activeTab === 'qr' ? '2px solid #ffb800' : '2px solid transparent',
-              color: activeTab === 'qr' ? '#ffd54f' : '#888',
-              fontWeight: activeTab === 'qr' ? 700 : 500,
+              borderBottom: activeTab === 'scanner' ? '2px solid #ffb800' : '2px solid transparent',
+              color: activeTab === 'scanner' ? '#ffd54f' : '#888',
+              fontWeight: activeTab === 'scanner' ? 700 : 500,
               fontSize: '0.88rem',
               display: 'flex',
               alignItems: 'center',
               gap: '0.4rem',
               cursor: 'pointer',
+              whiteSpace: 'nowrap',
             }}
           >
-            <QrCode size={16} />
-            <span>{isAr ? 'الكود الدوار (QR)' : 'Rotating QR'}</span>
+            <Camera size={16} />
+            <span>{isAr ? 'مسح كود الحضور' : 'Scan Attendance'}</span>
           </button>
 
+          {/* TAB 2: Live Attendees */}
           <button
             type="button"
             onClick={() => setActiveTab('live_list')}
@@ -617,23 +961,26 @@ export default function SessionLiveModal({
               alignItems: 'center',
               gap: '0.4rem',
               cursor: 'pointer',
+              whiteSpace: 'nowrap',
             }}
           >
             <Users size={16} />
-            <span>{isAr ? 'سجل الحضور المباشر' : 'Live Attendees'}</span>
+            <span>{isAr ? 'سجل الحاضرين' : 'Attendees'}</span>
             <span
               style={{
                 fontSize: '0.72rem',
-                padding: '0.1rem 0.4rem',
+                padding: '0.1rem 0.45rem',
                 borderRadius: '9999px',
                 background: 'rgba(255,184,0,0.15)',
                 color: '#ffd54f',
+                fontWeight: 700,
               }}
             >
               {attendees.length}
             </span>
           </button>
 
+          {/* TAB 3: Manual Full Sheet */}
           <button
             type="button"
             onClick={() => setActiveTab('manual_sheet')}
@@ -649,120 +996,415 @@ export default function SessionLiveModal({
               alignItems: 'center',
               gap: '0.4rem',
               cursor: 'pointer',
+              whiteSpace: 'nowrap',
             }}
           >
             <FileSpreadsheet size={16} />
             <span>{isAr ? 'كشف التحضير اليدوي' : 'Manual Sheet'}</span>
           </button>
+
+          {/* TAB 4: Projector Rotating QR */}
+          <button
+            type="button"
+            onClick={() => setActiveTab('projector')}
+            style={{
+              padding: '0.75rem 1rem',
+              background: 'transparent',
+              border: 'none',
+              borderBottom: activeTab === 'projector' ? '2px solid #ffb800' : '2px solid transparent',
+              color: activeTab === 'projector' ? '#ffd54f' : '#888',
+              fontWeight: activeTab === 'projector' ? 700 : 500,
+              fontSize: '0.88rem',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.4rem',
+              cursor: 'pointer',
+              whiteSpace: 'nowrap',
+            }}
+          >
+            <QrCode size={16} />
+            <span>{isAr ? 'عرض البروجيكتور (QR)' : 'Projector QR'}</span>
+          </button>
         </div>
 
         {/* Content Body */}
         <div style={{ flex: 1, overflowY: 'auto', padding: '1.5rem' }}>
-          {/* TAB 1: Large Rotating QR Screen */}
-          {activeTab === 'qr' && (
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1.25rem' }}>
-              {!session.check_in_open ? (
+          {/* ============================================================== */}
+          {/* TAB 1: SCAN ATTENDANCE (CAMERA & MANUAL CODE)                  */}
+          {/* ============================================================== */}
+          <div style={{ display: activeTab === 'scanner' ? 'flex' : 'none', flexDirection: 'column', gap: '1.25rem' }}>
+            {/* Top Toggle Switch: Camera vs Manual Code */}
+            <div
+              style={{
+                display: 'flex',
+                background: 'rgba(255, 255, 255, 0.04)',
+                borderRadius: '10px',
+                padding: '0.3rem',
+                gap: '0.3rem',
+                maxWidth: '460px',
+                margin: '0 auto',
+                width: '100%',
+              }}
+            >
+              <button
+                type="button"
+                onClick={() => {
+                  setCameraError(null);
+                  setScannerSubMode('camera');
+                }}
+                style={{
+                  flex: 1,
+                  padding: '0.6rem',
+                  borderRadius: '8px',
+                  border: 'none',
+                  background: scannerSubMode === 'camera' ? 'rgba(255, 184, 0, 0.22)' : 'transparent',
+                  color: scannerSubMode === 'camera' ? '#ffd54f' : '#888',
+                  fontWeight: scannerSubMode === 'camera' ? 800 : 500,
+                  fontSize: '0.88rem',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '0.45rem',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s',
+                }}
+              >
+                <Camera size={17} />
+                <span>{isAr ? 'مسح الكاميرا للـ QR' : 'Camera QR Scan'}</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={async () => {
+                  await stopCamera();
+                  setScannerSubMode('manual');
+                }}
+                style={{
+                  flex: 1,
+                  padding: '0.6rem',
+                  borderRadius: '8px',
+                  border: 'none',
+                  background: scannerSubMode === 'manual' ? 'rgba(255, 184, 0, 0.22)' : 'transparent',
+                  color: scannerSubMode === 'manual' ? '#ffd54f' : '#888',
+                  fontWeight: scannerSubMode === 'manual' ? 800 : 500,
+                  fontSize: '0.88rem',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '0.45rem',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s',
+                }}
+              >
+                <Keyboard size={17} />
+                <span>{isAr ? 'إدخال الكود يدوياً' : 'Manual Code'}</span>
+              </button>
+            </div>
+
+            {/* Mode A: Camera Scanner for Member QR Passes */}
+            <div
+              style={{
+                display: scannerSubMode === 'camera' ? 'flex' : 'none',
+                flexDirection: 'column',
+                alignItems: 'center',
+                gap: '1rem',
+              }}
+            >
+              {cameraError ? (
                 <div
                   style={{
-                    padding: '3rem 2rem',
+                    background: 'rgba(239, 68, 68, 0.1)',
+                    border: '1px solid rgba(239, 68, 68, 0.3)',
+                    borderRadius: '12px',
+                    padding: '1.5rem',
                     textAlign: 'center',
-                    background: 'rgba(239, 68, 68, 0.05)',
-                    border: '1px dashed rgba(239, 68, 68, 0.3)',
-                    borderRadius: '16px',
-                    maxWidth: '480px',
+                    color: '#f87171',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    gap: '0.5rem',
+                    maxWidth: '420px',
                     width: '100%',
                   }}
                 >
-                  <Lock size={44} color="#f87171" style={{ marginBottom: '1rem' }} />
-                  <h3 style={{ margin: 0, color: '#f87171', fontSize: '1.15rem' }}>
-                    {isAr ? 'باب تسجيل الحضور مغلق' : 'Check-in is Currently Closed'}
-                  </h3>
-                  <p style={{ color: '#aaa', fontSize: '0.86rem', marginTop: '0.4rem' }}>
-                    {isAr
-                      ? 'اضغط على زر "فتح التسجيل" بالأعلى لتوليد الكود الدوار والسماح للأعضاء بالتسجيل.'
-                      : 'Click "Open Check-in" above to generate rotating QR tokens.'}
-                  </p>
+                  <CameraOff size={36} />
+                  <p style={{ margin: 0, fontSize: '0.9rem', lineHeight: 1.5 }}>{cameraError}</p>
+                  <button
+                    type="button"
+                    onClick={() => setScannerSubMode('manual')}
+                    className="btn-primary"
+                    style={{ marginTop: '0.5rem', padding: '0.5rem 1.25rem', fontSize: '0.85rem' }}
+                  >
+                    {isAr ? 'الانتقال للإدخال اليدوي' : 'Switch to Manual Code'}
+                  </button>
                 </div>
               ) : (
-                <>
-                  {/* Rotating QR Box */}
-                  <div
-                    style={{
-                      background: '#ffffff',
-                      padding: '1.5rem',
-                      borderRadius: '16px',
-                      boxShadow: '0 10px 30px rgba(0,0,0,0.5)',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                    }}
-                  >
-                    {qrToken ? (
-                      <QRCodeSVG
-                        value={qrToken}
-                        size={260}
-                        level="H"
-                        includeMargin={false}
-                        fgColor="#111218"
-                        bgColor="#ffffff"
-                      />
-                    ) : (
-                      <div
-                        style={{
-                          width: 260,
-                          height: 260,
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          color: '#333',
-                        }}
-                      >
-                        <RefreshCw size={36} className="animate-spin" />
-                      </div>
-                    )}
-                  </div>
+                <div
+                  style={{
+                    width: '100%',
+                    maxWidth: '420px',
+                    background: '#000',
+                    borderRadius: '16px',
+                    overflow: 'hidden',
+                    position: 'relative',
+                    minHeight: '260px',
+                    boxShadow: '0 10px 30px rgba(0,0,0,0.5)',
+                    border: '2px solid rgba(255, 184, 0, 0.4)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                  }}
+                >
+                  <div id="session-qr-reader-region" style={{ width: '100%' }} />
 
-                  {/* Manual 8-Character Code Box */}
-                  <div
-                    style={{
-                      background: 'rgba(255, 184, 0, 0.08)',
-                      border: '1px solid rgba(255, 184, 0, 0.35)',
-                      borderRadius: '12px',
-                      padding: '0.75rem 1.75rem',
-                      textAlign: 'center',
-                    }}
-                  >
-                    <div style={{ fontSize: '0.75rem', color: '#aaa', textTransform: 'uppercase', letterSpacing: '0.05rem' }}>
-                      {isAr ? 'كود الإدخال اليدوي' : 'Manual Entry Code'}
-                    </div>
+                  {isCheckingIn && (
                     <div
                       style={{
-                        fontSize: '1.8rem',
-                        fontWeight: 900,
+                        position: 'absolute',
+                        inset: 0,
+                        background: 'rgba(0,0,0,0.75)',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: '0.5rem',
                         color: '#ffd54f',
-                        letterSpacing: '0.3rem',
-                        fontFamily: 'monospace',
-                        marginTop: '0.2rem',
+                        zIndex: 10,
                       }}
                     >
-                      {manualCode || '••••••••'}
+                      <RefreshCw size={36} className="animate-spin" />
+                      <span style={{ fontSize: '0.95rem', fontWeight: 700 }}>
+                        {isAr ? 'جاري تسجيل حضور العضو...' : 'Recording check-in...'}
+                      </span>
                     </div>
-                  </div>
-
-                  {/* Progress Indicator */}
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', color: '#aaa', fontSize: '0.8rem' }}>
-                    <Clock size={14} color="#ffd54f" />
-                    <span>
-                      {isAr ? 'يتجدد الكود تلقائياً كل 20 ثانية' : 'Rotates automatically every 20s'}{' '}
-                      ({secondsRemaining}s)
-                    </span>
-                  </div>
-                </>
+                  )}
+                </div>
               )}
-            </div>
-          )}
 
-          {/* TAB 2: Live Attendee Stream */}
+              <p style={{ color: '#aaa', fontSize: '0.85rem', margin: 0, textAlign: 'center', maxWidth: '420px' }}>
+                {isAr
+                  ? 'وجّه الكاميرا نحو الـ QR الخاص بالعضو (المعروض في هاتفه) لتسجيل حضوره فوراً في هذه الجلسة.'
+                  : 'Point camera at member QR code to record their attendance immediately.'}
+              </p>
+            </div>
+
+            {/* Mode B: Manual Code Entry Form */}
+            <div
+              style={{
+                display: scannerSubMode === 'manual' ? 'flex' : 'none',
+                flexDirection: 'column',
+                alignItems: 'center',
+                gap: '1rem',
+                maxWidth: '460px',
+                margin: '0 auto',
+                width: '100%',
+              }}
+            >
+              <form
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  handleCheckinMember(manualMemberCode, 'manual');
+                }}
+                style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: '1rem' }}
+              >
+                <div>
+                  <label
+                    style={{
+                      display: 'block',
+                      fontSize: '0.88rem',
+                      fontWeight: 700,
+                      color: titleColor,
+                      marginBottom: '0.5rem',
+                    }}
+                  >
+                    {isAr ? 'كود العضو أو الرقم القومي' : 'Member Code or National ID'}
+                  </label>
+                  <input
+                    type="text"
+                    value={manualMemberCode}
+                    onChange={(e) => setManualMemberCode(e.target.value)}
+                    placeholder={isAr ? 'مثال: 2026001 أو الرقم القومي' : 'e.g. 2026001'}
+                    autoFocus
+                    style={{
+                      width: '100%',
+                      padding: '0.85rem 1rem',
+                      borderRadius: '10px',
+                      background: 'rgba(255, 255, 255, 0.05)',
+                      border: '1.5px solid rgba(255, 184, 0, 0.4)',
+                      color: '#ffd54f',
+                      fontSize: '1.25rem',
+                      fontWeight: 800,
+                      textAlign: 'center',
+                      letterSpacing: '1px',
+                    }}
+                  />
+                  <p style={{ color: '#888', fontSize: '0.78rem', marginTop: '0.4rem', margin: '0.4rem 0 0' }}>
+                    {isAr
+                      ? 'يمكنك إدخال كود العضو المكون من 7 أرقام (الموجود في بطاقة العضو) أو الرقم القومي.'
+                      : 'Enter 7-digit member code (from member pass) or national ID.'}
+                  </p>
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={isCheckingIn || !manualMemberCode.trim()}
+                  className="btn-primary"
+                  style={{
+                    padding: '0.8rem',
+                    borderRadius: '10px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '0.5rem',
+                    fontSize: '0.95rem',
+                    fontWeight: 700,
+                  }}
+                >
+                  {isCheckingIn ? (
+                    <>
+                      <RefreshCw size={18} className="animate-spin" />
+                      <span>{isAr ? 'جاري الرصد...' : 'Recording...'}</span>
+                    </>
+                  ) : (
+                    <>
+                      <UserCheck size={18} />
+                      <span>{isAr ? 'تسجيل الحضور بالكود' : 'Record Check-in'}</span>
+                    </>
+                  )}
+                </button>
+              </form>
+            </div>
+
+            {/* Instant Scanned Member Confirmation Card */}
+            {lastScannedMember && (
+              <div
+                style={{
+                  maxWidth: '460px',
+                  margin: '0 auto',
+                  width: '100%',
+                  padding: '1rem',
+                  borderRadius: '12px',
+                  background:
+                    lastScannedMember.status === 'already_present'
+                      ? 'rgba(234, 179, 8, 0.12)'
+                      : 'rgba(34, 197, 94, 0.12)',
+                  border: `1.5px solid ${
+                    lastScannedMember.status === 'already_present'
+                      ? 'rgba(234, 179, 8, 0.4)'
+                      : 'rgba(34, 197, 94, 0.5)'
+                  }`,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.85rem',
+                }}
+              >
+                <div
+                  style={{
+                    width: 46,
+                    height: 46,
+                    borderRadius: '50%',
+                    background:
+                      lastScannedMember.status === 'already_present'
+                        ? 'rgba(234, 179, 8, 0.2)'
+                        : 'rgba(34, 197, 94, 0.2)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    flexShrink: 0,
+                    overflow: 'hidden',
+                  }}
+                >
+                  {lastScannedMember.avatar_url ? (
+                    <img
+                      src={lastScannedMember.avatar_url}
+                      alt=""
+                      style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                    />
+                  ) : lastScannedMember.status === 'already_present' ? (
+                    <AlertCircle size={24} color="#facc15" />
+                  ) : (
+                    <CheckCircle2 size={24} color="#4ade80" />
+                  )}
+                </div>
+
+                <div style={{ flex: 1 }}>
+                  <div style={{ color: '#fff', fontSize: '1rem', fontWeight: 800 }}>
+                    {isAr
+                      ? lastScannedMember.full_name_ar || lastScannedMember.full_name_en
+                      : lastScannedMember.full_name_en || lastScannedMember.full_name_ar}
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', marginTop: '0.2rem' }}>
+                    <span
+                      style={{
+                        fontSize: '0.75rem',
+                        color: lastScannedMember.status === 'already_present' ? '#facc15' : '#4ade80',
+                        fontWeight: 700,
+                      }}
+                    >
+                      {lastScannedMember.status === 'already_present'
+                        ? isAr
+                          ? 'مسجل مسبقاً في هذه الجلسة'
+                          : 'Already registered'
+                        : isAr
+                        ? 'تم تسجيل الحضور بنجاح (حاضر)'
+                        : 'Attendance confirmed (Present)'}
+                    </span>
+                    {lastScannedMember.member_code && (
+                      <span style={{ fontSize: '0.72rem', color: '#ffd54f', fontFamily: 'monospace' }}>
+                        • {lastScannedMember.member_code}
+                      </span>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Quick Live Attendees Counter Banner */}
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                padding: '0.85rem 1.25rem',
+                background: 'rgba(255, 184, 0, 0.05)',
+                border: '1px solid rgba(255, 184, 0, 0.2)',
+                borderRadius: '10px',
+                maxWidth: '600px',
+                margin: '0 auto',
+                width: '100%',
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <Users size={16} color="#ffd54f" />
+                <span style={{ color: '#fff', fontSize: '0.88rem', fontWeight: 600 }}>
+                  {isAr ? 'إجمالي الحاضرين حتى الآن:' : 'Total attendees checked in:'}
+                </span>
+                <span style={{ color: '#ffd54f', fontSize: '1.1rem', fontWeight: 800 }}>
+                  {presentCount}
+                </span>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setActiveTab('live_list')}
+                style={{
+                  background: 'transparent',
+                  border: 'none',
+                  color: '#ffd54f',
+                  fontSize: '0.82rem',
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  textDecoration: 'underline',
+                }}
+              >
+                {isAr ? 'عرض القائمة الكاملة ←' : 'View full roster →'}
+              </button>
+            </div>
+          </div>
+
+          {/* ============================================================== */}
+          {/* TAB 2: LIVE ATTENDEE STREAM LIST                              */}
+          {/* ============================================================== */}
           {activeTab === 'live_list' && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
               {/* Stat Counters Row */}
@@ -845,6 +1487,7 @@ export default function SessionLiveModal({
                                 ? new Date(att.checked_in_at).toLocaleTimeString(isAr ? 'ar-EG' : 'en-US')
                                 : '—'}{' '}
                               • {att.method.toUpperCase()}
+                              {att.profiles?.member_code && ` • كود: ${att.profiles.member_code}`}
                             </div>
                           </div>
                         </div>
@@ -858,7 +1501,9 @@ export default function SessionLiveModal({
             </div>
           )}
 
-          {/* TAB 3: Manual Attendance Sheet */}
+          {/* ============================================================== */}
+          {/* TAB 3: MANUAL BULK ATTENDANCE SHEET                            */}
+          {/* ============================================================== */}
           {activeTab === 'manual_sheet' && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
               <div style={{ color: '#aaa', fontSize: '0.84rem' }}>
@@ -868,19 +1513,21 @@ export default function SessionLiveModal({
               </div>
 
               {loadingEligible ? (
-                <div style={{ color: '#888', padding: '2rem', textAlign: 'center' }}>
-                  {isAr ? 'تحميل كشف الأعضاء...' : 'Loading roster...'}
+                <div style={{ color: '#888', textAlign: 'center', padding: '2rem' }}>
+                  {isAr ? 'تحميل كشف الأعضاء...' : 'Loading members...'}
+                </div>
+              ) : eligibleMembers.length === 0 ? (
+                <div style={{ color: '#777', textAlign: 'center', padding: '2rem', fontStyle: 'italic' }}>
+                  {isAr ? 'لا يوجد أعضاء مؤهلين مسجلين في هذا النطاق.' : 'No eligible members found.'}
                 </div>
               ) : (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
                   {eligibleMembers.map((m) => {
-                    const mName = isAr
+                    const existingAtt = attendees.find((a) => a.user_id === m.user_id);
+                    const currentStatus = existingAtt ? existingAtt.status : 'absent';
+                    const memberName = isAr
                       ? m.profiles?.full_name_ar || m.profiles?.full_name_en
                       : m.profiles?.full_name_en || m.profiles?.full_name_ar;
-
-                    // Match existing attendance record
-                    const existing = attendees.find((a) => a.user_id === m.user_id);
-                    const currentStatus = existing?.status || 'none';
 
                     return (
                       <div
@@ -890,21 +1537,24 @@ export default function SessionLiveModal({
                           alignItems: 'center',
                           justifyContent: 'space-between',
                           flexWrap: 'wrap',
-                          gap: '0.75rem',
+                          gap: '0.5rem',
                           padding: '0.75rem 1rem',
                           background: 'rgba(255, 255, 255, 0.02)',
-                          border: '1px solid rgba(255, 184, 0, 0.15)',
+                          border: '1px solid rgba(255, 184, 0, 0.12)',
                           borderRadius: '8px',
                         }}
                       >
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
-                          <div style={{ fontWeight: 600, color: '#fff', fontSize: '0.88rem' }}>{mName}</div>
-                          <StatusBadge status={m.position} />
+                        <div>
+                          <div style={{ fontWeight: 600, color: '#fff', fontSize: '0.9rem' }}>{memberName}</div>
+                          <div style={{ fontSize: '0.74rem', color: '#888' }}>
+                            {m.position || (isAr ? 'عضو' : 'Member')}
+                            {m.profiles?.member_code && ` • كود: ${m.profiles.member_code}`}
+                          </div>
                         </div>
 
-                        {/* Status Select Buttons */}
-                        <div style={{ display: 'flex', gap: '0.35rem', alignItems: 'center' }}>
-                          {['present', 'late', 'absent', 'excused'].map((st) => (
+                        {/* Status Radio Pills */}
+                        <div style={{ display: 'flex', gap: '0.35rem' }}>
+                          {['present', 'late', 'excused', 'absent'].map((st) => (
                             <button
                               key={st}
                               type="button"
@@ -912,15 +1562,13 @@ export default function SessionLiveModal({
                                 updateManualAttendanceMutation.mutate({
                                   userId: m.user_id,
                                   status: st,
-                                  notes: 'Manual sheet update',
                                 })
                               }
-                              disabled={updateManualAttendanceMutation.isPending}
                               style={{
-                                padding: '0.3rem 0.6rem',
+                                padding: '0.25rem 0.55rem',
                                 borderRadius: '6px',
-                                fontSize: '0.75rem',
-                                fontWeight: 700,
+                                fontSize: '0.72rem',
+                                fontWeight: 600,
                                 cursor: 'pointer',
                                 background:
                                   currentStatus === st
@@ -942,6 +1590,112 @@ export default function SessionLiveModal({
                     );
                   })}
                 </div>
+              )}
+            </div>
+          )}
+
+          {/* ============================================================== */}
+          {/* TAB 4: PROJECTOR ROTATING QR DISPLAY                           */}
+          {/* ============================================================== */}
+          {activeTab === 'projector' && (
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1.25rem' }}>
+              {!session.check_in_open ? (
+                <div
+                  style={{
+                    padding: '3rem 2rem',
+                    textAlign: 'center',
+                    background: 'rgba(239, 68, 68, 0.05)',
+                    border: '1px dashed rgba(239, 68, 68, 0.3)',
+                    borderRadius: '16px',
+                    maxWidth: '480px',
+                    width: '100%',
+                  }}
+                >
+                  <Lock size={44} color="#f87171" style={{ marginBottom: '1rem' }} />
+                  <h3 style={{ margin: 0, color: '#f87171', fontSize: '1.15rem' }}>
+                    {isAr ? 'باب تسجيل الحضور مغلق' : 'Check-in is Currently Closed'}
+                  </h3>
+                  <p style={{ color: '#aaa', fontSize: '0.86rem', marginTop: '0.4rem' }}>
+                    {isAr
+                      ? 'اضغط على زر "فتح التسجيل" بالأعلى لتوليد الكود الدوار والسماح للأعضاء بالتسجيل.'
+                      : 'Click "Open Check-in" above to generate rotating QR tokens.'}
+                  </p>
+                </div>
+              ) : (
+                <>
+                  {/* Rotating QR Box */}
+                  <div
+                    style={{
+                      background: '#ffffff',
+                      padding: '1.5rem',
+                      borderRadius: '16px',
+                      boxShadow: '0 10px 30px rgba(0,0,0,0.5)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                    }}
+                  >
+                    {qrToken ? (
+                      <QRCodeSVG
+                        value={qrToken}
+                        size={260}
+                        level="H"
+                        includeMargin={false}
+                        fgColor="#111218"
+                        bgColor="#ffffff"
+                      />
+                    ) : (
+                      <div
+                        style={{
+                          width: 260,
+                          height: 260,
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          color: '#333',
+                        }}
+                      >
+                        <RefreshCw size={36} className="animate-spin" />
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Manual 8-Character Code Box */}
+                  <div
+                    style={{
+                      background: 'rgba(255, 184, 0, 0.08)',
+                      border: '1px solid rgba(255, 184, 0, 0.35)',
+                      borderRadius: '12px',
+                      padding: '0.75rem 1.75rem',
+                      textAlign: 'center',
+                    }}
+                  >
+                    <div style={{ fontSize: '0.75rem', color: '#aaa', textTransform: 'uppercase', letterSpacing: '0.05rem' }}>
+                      {isAr ? 'كود البروجيكتور المؤقت' : 'Projector Temporary Code'}
+                    </div>
+                    <div
+                      style={{
+                        fontSize: '1.8rem',
+                        fontWeight: 900,
+                        color: '#ffd54f',
+                        letterSpacing: '0.3rem',
+                        fontFamily: 'monospace',
+                        marginTop: '0.2rem',
+                      }}
+                    >
+                      {projectorCode || '••••••••'}
+                    </div>
+                  </div>
+
+                  {/* Progress Indicator */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', color: '#aaa', fontSize: '0.8rem' }}>
+                    <Clock size={14} color="#ffd54f" />
+                    <span>
+                      {isAr ? 'يتجدد الكود تلقائياً كل 20 ثانية' : 'Rotates automatically every 20s'}{' '}
+                      ({secondsRemaining}s)
+                    </span>
+                  </div>
+                </>
               )}
             </div>
           )}
