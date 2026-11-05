@@ -18,16 +18,18 @@ export default function LanguageToggle({ variant = 'compact', className = '', st
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
-          padding: '0.85rem 1rem',
+          padding: '0.75rem 0.95rem',
           borderRadius: '14px',
           background: isDark ? 'rgba(255, 255, 255, 0.04)' : 'rgba(0, 0, 0, 0.04)',
           border: '1px solid rgba(255, 184, 0, 0.25)',
           cursor: 'pointer',
           transition: 'all 0.25s ease',
+          width: '100%',
+          boxSizing: 'border-box',
           ...style,
         }}
       >
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', minWidth: 0, flex: 1 }}>
           <div
             style={{
               width: '36px',
@@ -39,16 +41,17 @@ export default function LanguageToggle({ variant = 'compact', className = '', st
               alignItems: 'center',
               justifyContent: 'center',
               boxShadow: '0 2px 10px rgba(255, 184, 0, 0.35)',
+              flexShrink: 0,
             }}
           >
             <Globe size={18} strokeWidth={2.4} />
           </div>
-          <div style={{ textAlign: isAr ? 'right' : 'left' }}>
-            <div style={{ fontSize: '0.92rem', fontWeight: 700, color: isDark ? '#fff' : '#14171f' }}>
+          <div style={{ textAlign: isAr ? 'right' : 'left', minWidth: 0, flex: 1 }}>
+            <div style={{ fontSize: '0.9rem', fontWeight: 700, color: isDark ? '#fff' : '#14171f', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
               {isAr ? 'English (الإنجليزية)' : 'العربية (Arabic)'}
             </div>
-            <div style={{ fontSize: '0.75rem', color: isDark ? '#a3a3b2' : '#6b7280' }}>
-              {isAr ? 'اللغة الحالية: العربية' : 'Current Language: English'}
+            <div style={{ fontSize: '0.74rem', color: isDark ? '#a3a3b2' : '#6b7280', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+              {isAr ? 'اللغة الحالية: العربية' : 'Current: English'}
             </div>
           </div>
         </div>
@@ -60,6 +63,7 @@ export default function LanguageToggle({ variant = 'compact', className = '', st
             padding: '0.25rem 0.6rem',
             borderRadius: '9999px',
             fontWeight: 800,
+            flexShrink: 0,
           }}
         >
           {label}

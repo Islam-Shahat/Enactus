@@ -55,17 +55,12 @@ export default function TeamPage() {
           style={{
             borderRadius: '24px',
             overflow: 'hidden',
-            padding: '2.5rem',
             marginBottom: '4.5rem',
             background: 'linear-gradient(135deg, rgba(20, 22, 32, 0.95), rgba(10, 11, 16, 0.98))',
-            display: 'grid',
-            gridTemplateColumns: '1.1fr 0.9fr',
-            gap: '2.5rem',
-            alignItems: 'center',
             textAlign: isAr ? 'right' : 'left',
           }}
         >
-          <div style={{ borderRadius: '18px', overflow: 'hidden', boxShadow: '0 15px 40px rgba(0,0,0,0.8)' }}>
+          <div className="team-banner-image-wrap" style={{ borderRadius: '18px', overflow: 'hidden', boxShadow: '0 15px 40px rgba(0,0,0,0.8)' }}>
             <img
               src="/assets/E6.jpg"
               alt="Enactus Qena Pharaohs Team"
@@ -73,7 +68,7 @@ export default function TeamPage() {
             />
           </div>
 
-          <div>
+          <div className="team-banner-content">
             <span className="badge-gold font-cinzel" style={{ marginBottom: '0.85rem' }}>
               ONE TEAM • ONE LEGACY
             </span>

@@ -321,7 +321,7 @@ export default function Navbar() {
           }}
         >
           {/* Mobile Controls: Language & Theme Toggles */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.6rem', marginBottom: '0.4rem' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.55rem', marginBottom: '0.6rem', width: '100%' }}>
             <LanguageToggle variant="mobile" />
             <ThemeToggle variant="mobile" />
           </div>

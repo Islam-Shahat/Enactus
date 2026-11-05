@@ -1033,6 +1033,16 @@ select option {
   width: 100%;
 }
 
+.team-banner-grid {
+  display: grid;
+  grid-template-columns: 1.1fr 0.9fr;
+  gap: 2.5rem;
+  align-items: center;
+  padding: 2.5rem;
+  width: 100%;
+  box-sizing: border-box;
+}
+
 .hero-tagline-pill {
   padding: 0.45rem 1.25rem;
   border-radius: 9999px;
@@ -1093,6 +1103,25 @@ select option {
   .project-row > * {
     min-width: 0 !important;
     max-width: 100% !important;
+  }
+  .team-banner-grid {
+    grid-template-columns: minmax(0, 1fr) !important;
+    gap: 1.75rem !important;
+    padding: 1.5rem 1.15rem !important;
+    width: 100% !important;
+  }
+  .team-banner-grid > * {
+    min-width: 0 !important;
+    max-width: 100% !important;
+    width: 100% !important;
+  }
+  .team-banner-image-wrap {
+    max-height: 280px !important;
+  }
+  .team-banner-content .btn-primary {
+    width: 100% !important;
+    justify-content: center !important;
+    text-align: center !important;
   }
   .footer-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr)) !important;

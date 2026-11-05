@@ -1,9 +1,12 @@
 import React from 'react';
 import { Sun, Moon } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
+import { useLanguage } from '../context/LanguageContext';
 
 export default function ThemeToggle({ variant = 'compact', className = '' }) {
   const { isDark, toggleTheme } = useTheme();
+  const { lang } = useLanguage();
+  const isAr = lang === 'ar';
 
   if (variant === 'pill') {
     return (
@@ -87,15 +90,17 @@ export default function ThemeToggle({ variant = 'compact', className = '' }) {
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
-          padding: '0.85rem 1rem',
+          padding: '0.75rem 0.95rem',
           borderRadius: '14px',
           background: isDark ? 'rgba(255, 255, 255, 0.04)' : 'rgba(0, 0, 0, 0.04)',
           border: '1px solid rgba(255, 184, 0, 0.25)',
           cursor: 'pointer',
           transition: 'all 0.25s ease',
+          width: '100%',
+          boxSizing: 'border-box',
         }}
       >
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', minWidth: 0, flex: 1 }}>
           <div
             style={{
               width: '36px',
@@ -107,16 +112,17 @@ export default function ThemeToggle({ variant = 'compact', className = '' }) {
               alignItems: 'center',
               justifyContent: 'center',
               boxShadow: '0 2px 10px rgba(255, 184, 0, 0.35)',
+              flexShrink: 0,
             }}
           >
             {isDark ? <Sun size={18} strokeWidth={2.4} /> : <Moon size={18} strokeWidth={2.4} />}
           </div>
-          <div style={{ textAlign: 'right' }}>
-            <div style={{ fontSize: '0.92rem', fontWeight: 700, color: isDark ? '#fff' : '#14171f' }}>
-              {isDark ? 'الوضع النهاري (Light Mode)' : 'الوضع الليلي (Dark Mode)'}
+          <div style={{ textAlign: isAr ? 'right' : 'left', minWidth: 0, flex: 1 }}>
+            <div style={{ fontSize: '0.9rem', fontWeight: 700, color: isDark ? '#fff' : '#14171f', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+              {isDark ? (isAr ? 'الوضع النهاري' : 'Light Mode') : (isAr ? 'الوضع الليلي' : 'Dark Mode')}
             </div>
-            <div style={{ fontSize: '0.75rem', color: isDark ? '#a3a3b2' : '#6b7280' }}>
-              الوضع الحالي: {isDark ? 'ليلي / Dark' : 'نهاري / Light'}
+            <div style={{ fontSize: '0.74rem', color: isDark ? '#a3a3b2' : '#6b7280', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+              {isAr ? `الوضع الحالي: ${isDark ? 'ليلي' : 'نهاري'}` : `Current: ${isDark ? 'Dark' : 'Light'}`}
             </div>
           </div>
         </div>
@@ -131,6 +137,7 @@ export default function ThemeToggle({ variant = 'compact', className = '' }) {
             background: isDark ? 'rgba(255, 184, 0, 0.15)' : 'rgba(212, 136, 0, 0.2)',
             border: '1.5px solid rgba(255, 184, 0, 0.4)',
             padding: '2px',
+            flexShrink: 0,
           }}
         >
           <div
