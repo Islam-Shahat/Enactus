@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Html5Qrcode } from 'html5-qrcode';
 import { supabase } from '../../lib/supabase';
 import { useLanguage } from '../../context/LanguageContext';
@@ -10,7 +10,6 @@ import {
   CameraOff,
   KeyRound,
   CheckCircle2,
-  AlertTriangle,
   X,
   Loader2,
   Sparkles,
@@ -38,6 +37,65 @@ export default function QrScannerModal({
 
   const scannerRef = useRef(null);
 
+  // Stop camera media tracks and safely stop scanner instance
+  const stopCamera = useCallback(async () => {
+    // 1. Stop video stream tracks directly to turn off camera immediately
+    try {
+      const container = document.getElementById('qr-reader-region');
+      if (container) {
+        const videos = container.querySelectorAll('video');
+        videos.forEach((video) => {
+          if (video.srcObject && typeof video.srcObject.getTracks === 'function') {
+            video.srcObject.getTracks().forEach((track) => {
+              try {
+                track.stop();
+              } catch {}
+            });
+            video.srcObject = null;
+          }
+        });
+      }
+    } catch (e) {
+      console.warn('[QrScannerModal] Error stopping media tracks:', e);
+    }
+
+    // 2. Stop Html5Qrcode instance
+    const scanner = scannerRef.current;
+    if (scanner) {
+      try {
+        if (typeof scanner.getState === 'function') {
+          const state = scanner.getState();
+          // State 2: SCANNING, State 3: PAUSED
+          if (state === 2 || state === 3) {
+            await scanner.stop();
+          }
+        }
+      } catch (err) {
+        console.warn('[QrScannerModal] Error stopping scanner:', err);
+      }
+      try {
+        scanner.clear();
+      } catch {}
+      scannerRef.current = null;
+    }
+  }, []);
+
+  // Safe mode switchers
+  const handleSwitchToManual = async () => {
+    await stopCamera();
+    setActiveMode('manual');
+  };
+
+  const handleSwitchToCamera = () => {
+    setCameraError(null);
+    setActiveMode('camera');
+  };
+
+  const handleClose = async () => {
+    await stopCamera();
+    onClose();
+  };
+
   // Reset states on open
   useEffect(() => {
     if (isOpen) {
@@ -45,11 +103,14 @@ export default function QrScannerModal({
       setCheckinResult(null);
       setIsProcessing(false);
       setManualCode('');
+      setActiveMode('camera');
       if (sessions.length > 0) {
         setSelectedSessionId((prev) => prev || sessions[0].id);
       }
+    } else {
+      stopCamera();
     }
-  }, [isOpen, sessions]);
+  }, [isOpen, sessions, stopCamera]);
 
   // Execute check-in via Edge Function
   const executeCheckin = async (payload) => {
@@ -63,19 +124,28 @@ export default function QrScannerModal({
         throw new Error(isAr ? 'جلسة المستخدم منتهية. يرجى تسجيل الدخول مجدداً.' : 'User session expired.');
       }
 
-      const res = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/qr-checkin`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${authSession.access_token}`,
-          },
-          body: JSON.stringify(payload),
-        }
-      );
+      let res;
+      try {
+        res = await fetch(
+          `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/qr-checkin`,
+          {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              Authorization: `Bearer ${authSession.access_token}`,
+            },
+            body: JSON.stringify(payload),
+          }
+        );
+      } catch (fetchErr) {
+        throw new Error(
+          isAr
+            ? 'تعذر الاتصال بخدمة التحقق من الحضور. يرجى التأكد من اتصالك بالإنترنت.'
+            : 'Could not reach attendance check-in service.'
+        );
+      }
 
-      const data = await res.json();
+      const data = await res.json().catch(() => ({}));
       if (!res.ok) {
         throw new Error(data.error || (isAr ? 'فشل تسجيل الحضور' : 'Check-in failed'));
       }
@@ -91,7 +161,6 @@ export default function QrScannerModal({
       if (onCheckinSuccess) onCheckinSuccess(data);
     } catch (err) {
       toast.show(err.message, 'error');
-      // If camera mode and error occurred, allow re-scan after 2 seconds
       setTimeout(() => {
         setIsProcessing(false);
       }, 2000);
@@ -111,11 +180,7 @@ export default function QrScannerModal({
   // Start / Stop Camera Scanner
   useEffect(() => {
     if (!isOpen || activeMode !== 'camera' || checkinResult) {
-      if (scannerRef.current?.isScanning) {
-        scannerRef.current.stop().catch(() => {}).then(() => {
-          scannerRef.current = null;
-        });
-      }
+      stopCamera();
       return;
     }
 
@@ -123,14 +188,20 @@ export default function QrScannerModal({
     const qrRegionId = 'qr-reader-region';
 
     // Delay start slightly to ensure DOM element is mounted
-    const timer = setTimeout(() => {
+    const timer = setTimeout(async () => {
       if (!isMounted) return;
 
-      const html5QrCode = new Html5Qrcode(qrRegionId);
-      scannerRef.current = html5QrCode;
+      await stopCamera();
+      if (!isMounted) return;
 
-      html5QrCode
-        .start(
+      const container = document.getElementById(qrRegionId);
+      if (!container) return;
+
+      try {
+        const html5QrCode = new Html5Qrcode(qrRegionId);
+        scannerRef.current = html5QrCode;
+
+        await html5QrCode.start(
           { facingMode: 'environment' },
           {
             fps: 10,
@@ -139,49 +210,45 @@ export default function QrScannerModal({
           },
           (decodedText) => {
             if (isProcessingRef.current) return;
-            // Stop scanning and call check-in
-            html5QrCode.stop().catch(() => {});
+            stopCamera();
             executeCheckinRef.current({ token: decodedText });
           },
           () => {
             // Frame scan miss, normal behavior
           }
-        )
-        .catch((err) => {
-          console.error('[Html5Qrcode Error]:', err);
-          const errStr = String(err || '');
-          if (errStr.includes('NotAllowedError') || errStr.includes('Permission')) {
-            setCameraError(
-              isAr
-                ? 'تم رفض إذن الوصول إلى الكاميرا. يرجى تفعيل إذن الكاميرا من إعدادات المتصفح أو استخدام الرمز اليدوي.'
-                : 'Camera permission denied. Please allow camera access in browser settings or use manual code.'
-            );
-          } else if (errStr.includes('NotFoundError') || errStr.includes('device')) {
-            setCameraError(
-              isAr
-                ? 'لم يتم العثور على كاميرا في جهازك. يرجى استخدام الرمز اليدوي.'
-                : 'No camera found. Please use the manual code fallback.'
-            );
-          } else {
-            setCameraError(
-              isAr
-                ? 'تعذر تشغيل الكاميرا. يمكنك إدخال الرمز المكون من 8 أحرف يدوياً.'
-                : 'Failed to access camera. You can enter the 8-character code manually.'
-            );
-          }
-        });
-    }, 200);
+        );
+      } catch (err) {
+        if (!isMounted) return;
+        console.error('[Html5Qrcode Error]:', err);
+        const errStr = String(err?.message || err || '');
+        if (errStr.includes('NotAllowedError') || errStr.includes('Permission')) {
+          setCameraError(
+            isAr
+              ? 'تم رفض إذن الوصول إلى الكاميرا. يرجى تفعيل إذن الكاميرا من إعدادات المتصفح أو استخدام الرمز اليدوي.'
+              : 'Camera permission denied. Please allow camera access in browser settings or use manual code.'
+          );
+        } else if (errStr.includes('NotFoundError') || errStr.includes('device')) {
+          setCameraError(
+            isAr
+              ? 'لم يتم العثور على كاميرا في جهازك. يرجى استخدام الرمز اليدوي.'
+              : 'No camera found. Please use the manual code fallback.'
+          );
+        } else {
+          setCameraError(
+            isAr
+              ? 'تعذر تشغيل الكاميرا. يمكنك إدخال الرمز المكون من 8 أحرف يدوياً.'
+              : 'Failed to access camera. You can enter the 8-character code manually.'
+          );
+        }
+      }
+    }, 250);
 
     return () => {
       isMounted = false;
       clearTimeout(timer);
-      if (scannerRef.current?.isScanning) {
-        scannerRef.current.stop().catch(() => {}).then(() => {
-          scannerRef.current = null;
-        });
-      }
+      stopCamera();
     };
-  }, [isOpen, activeMode, checkinResult, isAr]);
+  }, [isOpen, activeMode, checkinResult, isAr, stopCamera]);
 
   const handleManualSubmit = (e) => {
     e.preventDefault();
@@ -217,7 +284,7 @@ export default function QrScannerModal({
         padding: '1rem',
         zIndex: 9999,
       }}
-      onClick={onClose}
+      onClick={handleClose}
     >
       <div
         className="glass-panel gold-border-glow"
@@ -261,7 +328,7 @@ export default function QrScannerModal({
           </div>
           <button
             type="button"
-            onClick={onClose}
+            onClick={handleClose}
             style={{
               background: 'transparent',
               border: 'none',
@@ -350,7 +417,7 @@ export default function QrScannerModal({
 
             <button
               type="button"
-              onClick={onClose}
+              onClick={handleClose}
               className="btn-primary"
               style={{ marginTop: '1rem', padding: '0.65rem 1.5rem', borderRadius: '8px' }}
             >
@@ -371,7 +438,7 @@ export default function QrScannerModal({
             >
               <button
                 type="button"
-                onClick={() => setActiveMode('camera')}
+                onClick={handleSwitchToCamera}
                 style={{
                   flex: 1,
                   padding: '0.55rem',
@@ -395,7 +462,7 @@ export default function QrScannerModal({
 
               <button
                 type="button"
-                onClick={() => setActiveMode('manual')}
+                onClick={handleSwitchToManual}
                 style={{
                   flex: 1,
                   padding: '0.55rem',
@@ -418,83 +485,90 @@ export default function QrScannerModal({
               </button>
             </div>
 
-            {/* Mode 1: Camera Scanner */}
-            {activeMode === 'camera' && (
-              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1rem' }}>
-                {cameraError ? (
-                  <div
-                    style={{
-                      background: 'rgba(239, 68, 68, 0.1)',
-                      border: '1px solid rgba(239, 68, 68, 0.3)',
-                      borderRadius: '10px',
-                      padding: '1.25rem',
-                      textAlign: 'center',
-                      color: '#f87171',
-                      display: 'flex',
-                      flexDirection: 'column',
-                      alignItems: 'center',
-                      gap: '0.5rem',
-                    }}
+            {/* Mode 1: Camera Scanner (Kept mounted to prevent DOM destruction during scan) */}
+            <div
+              style={{
+                display: activeMode === 'camera' ? 'flex' : 'none',
+                flexDirection: 'column',
+                alignItems: 'center',
+                gap: '1rem',
+                width: '100%',
+              }}
+            >
+              {cameraError ? (
+                <div
+                  style={{
+                    width: '100%',
+                    background: 'rgba(239, 68, 68, 0.1)',
+                    border: '1px solid rgba(239, 68, 68, 0.3)',
+                    borderRadius: '10px',
+                    padding: '1.25rem',
+                    textAlign: 'center',
+                    color: '#f87171',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    gap: '0.5rem',
+                  }}
+                >
+                  <CameraOff size={32} />
+                  <p style={{ margin: 0, fontSize: '0.86rem', lineHeight: 1.5 }}>{cameraError}</p>
+                  <button
+                    type="button"
+                    onClick={handleSwitchToManual}
+                    className="btn-primary"
+                    style={{ marginTop: '0.5rem', padding: '0.5rem 1rem', fontSize: '0.82rem' }}
                   >
-                    <CameraOff size={32} />
-                    <p style={{ margin: 0, fontSize: '0.86rem', lineHeight: 1.5 }}>{cameraError}</p>
-                    <button
-                      type="button"
-                      onClick={() => setActiveMode('manual')}
-                      className="btn-primary"
-                      style={{ marginTop: '0.5rem', padding: '0.5rem 1rem', fontSize: '0.82rem' }}
-                    >
-                      {isAr ? 'الانتقال للإدخال اليدوي' : 'Switch to Manual Code'}
-                    </button>
-                  </div>
-                ) : (
-                  <div
-                    style={{
-                      width: '100%',
-                      background: '#000',
-                      borderRadius: '12px',
-                      overflow: 'hidden',
-                      position: 'relative',
-                      minHeight: '260px',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                    }}
-                  >
-                    <div id="qr-reader-region" style={{ width: '100%' }} />
+                    {isAr ? 'الانتقال للإدخال اليدوي' : 'Switch to Manual Code'}
+                  </button>
+                </div>
+              ) : (
+                <div
+                  style={{
+                    width: '100%',
+                    background: '#000',
+                    borderRadius: '12px',
+                    overflow: 'hidden',
+                    position: 'relative',
+                    minHeight: '260px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                  }}
+                >
+                  <div id="qr-reader-region" style={{ width: '100%' }} />
 
-                    {isProcessing && (
-                      <div
-                        style={{
-                          position: 'absolute',
-                          inset: 0,
-                          background: 'rgba(0,0,0,0.7)',
-                          display: 'flex',
-                          flexDirection: 'column',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          gap: '0.5rem',
-                          color: '#ffd54f',
-                        }}
-                      >
-                        <Loader2 size={32} className="animate-spin" />
-                        <span style={{ fontSize: '0.9rem', fontWeight: 600 }}>
-                          {isAr ? 'جاري التحقق من الكود...' : 'Verifying code...'}
-                        </span>
-                      </div>
-                    )}
-                  </div>
-                )}
-                <p style={{ color: '#888', fontSize: '0.78rem', margin: 0, textAlign: 'center' }}>
-                  {isAr
-                    ? 'وجّه الكاميرا نحو الكود الدوار المعروض في شاشة الجلسة'
-                    : 'Point your camera at the rotating QR on the session display'}
-                </p>
-              </div>
-            )}
+                  {isProcessing && (
+                    <div
+                      style={{
+                        position: 'absolute',
+                        inset: 0,
+                        background: 'rgba(0,0,0,0.7)',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: '0.5rem',
+                        color: '#ffd54f',
+                      }}
+                    >
+                      <Loader2 size={32} className="animate-spin" />
+                      <span style={{ fontSize: '0.9rem', fontWeight: 600 }}>
+                        {isAr ? 'جاري التحقق من الكود...' : 'Verifying code...'}
+                      </span>
+                    </div>
+                  )}
+                </div>
+              )}
+              <p style={{ color: '#888', fontSize: '0.78rem', margin: 0, textAlign: 'center' }}>
+                {isAr
+                  ? 'وجّه الكاميرا نحو الكود الدوار المعروض في شاشة الجلسة'
+                  : 'Point your camera at the rotating QR on the session display'}
+              </p>
+            </div>
 
             {/* Mode 2: Manual 8-Character Code Fallback */}
-            {activeMode === 'manual' && (
+            <div style={{ display: activeMode === 'manual' ? 'block' : 'none', width: '100%' }}>
               <form onSubmit={handleManualSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                 <FormField label={isAr ? 'الجلسة الحالية' : 'Attendance Session'} required>
                   <select
@@ -515,7 +589,7 @@ export default function QrScannerModal({
                     </option>
                     {sessions.map((s) => (
                       <option key={s.id} value={s.id} style={{ background: '#181920', color: '#fff' }}>
-                        {s.title} ({new Date(s.starts_at).toLocaleDateString(isAr ? 'ar-EG' : 'en-US')})
+                        {s.title} ({s.starts_at ? new Date(s.starts_at).toLocaleDateString(isAr ? 'ar-EG' : 'en-US') : ''})
                       </option>
                     ))}
                   </select>
@@ -572,11 +646,10 @@ export default function QrScannerModal({
                   )}
                 </button>
               </form>
-            )}
+            </div>
           </>
         )}
       </div>
     </div>
   );
 }
-
