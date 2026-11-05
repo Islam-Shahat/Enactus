@@ -86,11 +86,12 @@ export default function Hero({ onOpenJoinModal }) {
           top: '20%',
           right: isAr ? '5%' : 'auto',
           left: isAr ? 'auto' : '5%',
-          fontSize: '12rem',
+          fontSize: 'clamp(5rem, 15vw, 12rem)',
           color: 'rgba(255, 184, 0, 0.02)',
           userSelect: 'none',
           pointerEvents: 'none',
           fontFamily: 'serif',
+          lineHeight: 1,
         }}
       >
         𓂀
@@ -101,11 +102,12 @@ export default function Hero({ onOpenJoinModal }) {
           bottom: '10%',
           left: isAr ? '5%' : 'auto',
           right: isAr ? 'auto' : '5%',
-          fontSize: '14rem',
+          fontSize: 'clamp(6rem, 18vw, 14rem)',
           color: 'rgba(255, 184, 0, 0.02)',
           userSelect: 'none',
           pointerEvents: 'none',
           fontFamily: 'serif',
+          lineHeight: 1,
         }}
       >
         ☥
@@ -478,9 +480,9 @@ export default function Hero({ onOpenJoinModal }) {
               className="badge-glow hero-stamp-badge"
               style={{
                 position: 'absolute',
-                top: '-20px',
-                right: isAr ? '-10px' : 'auto',
-                left: isAr ? 'auto' : '-10px',
+                top: '-15px',
+                right: isAr ? '0px' : 'auto',
+                left: isAr ? 'auto' : '0px',
                 width: '72px',
                 height: '72px',
                 borderRadius: '50%',
