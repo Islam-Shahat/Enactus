@@ -437,11 +437,14 @@ export default function Hero({ onOpenJoinModal }) {
 
               {/* Thumbnails Navigator */}
               <div
+                className="hero-visual-nav"
                 style={{
                   display: 'grid',
-                  gridTemplateColumns: 'repeat(3, 1fr)',
-                  gap: '0.65rem',
+                  gridTemplateColumns: 'repeat(3, minmax(0, 1fr))',
+                  gap: '0.45rem',
                   marginTop: '0.85rem',
+                  width: '100%',
+                  boxSizing: 'border-box',
                 }}
               >
                 {visualCards.map((card, idx) => (
@@ -452,14 +455,17 @@ export default function Hero({ onOpenJoinModal }) {
                       background: activeVisual === idx ? 'rgba(255, 184, 0, 0.18)' : 'rgba(255, 255, 255, 0.04)',
                       border: activeVisual === idx ? '1.5px solid #ffb800' : '1px solid rgba(255, 255, 255, 0.08)',
                       borderRadius: '10px',
-                      padding: '0.6rem 0.5rem',
+                      padding: '0.55rem 0.25rem',
                       cursor: 'pointer',
                       textAlign: 'center',
                       transition: 'all 0.25s ease',
                       boxShadow: activeVisual === idx ? '0 0 15px rgba(255, 184, 0, 0.25)' : 'none',
+                      minWidth: 0,
+                      width: '100%',
+                      boxSizing: 'border-box',
                     }}
                   >
-                    <span className="font-cinzel" style={{ fontSize: '0.68rem', fontWeight: 800, color: activeVisual === idx ? '#ffd54f' : '#a3a3b2', display: 'block', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                    <span className="font-cinzel" style={{ fontSize: 'clamp(0.58rem, 1.8vw, 0.68rem)', fontWeight: 800, color: activeVisual === idx ? '#ffd54f' : '#a3a3b2', display: 'block', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                       {card.tag}
                     </span>
                   </button>
