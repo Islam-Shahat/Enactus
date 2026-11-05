@@ -154,4 +154,45 @@ describe('Attendance Workflow & Backend Database Contract', () => {
       expect(stats.total).toBe(5);
     });
   });
+
+  describe('Member Active Sessions & Committee Scoping', () => {
+    function filterSessionsForMember(sessionsList, memberCommitteeIds, canManage) {
+      if (canManage) {
+        return sessionsList.filter(
+          (s) => s.check_in_open || new Date(s.starts_at).getTime() >= Date.now() - 24 * 60 * 60 * 1000
+        );
+      }
+      return sessionsList.filter((s) => {
+        const matchesCommittee = !s.committee_id || memberCommitteeIds.includes(s.committee_id);
+        if (!matchesCommittee) return false;
+        const isOpenNow = Boolean(s.check_in_open);
+        const isUpcoming = new Date(s.starts_at).getTime() >= Date.now() - 4 * 60 * 60 * 1000;
+        return isOpenNow || isUpcoming;
+      });
+    }
+
+    it('shows general sessions and sessions matching member committee when active', () => {
+      const nowIso = new Date().toISOString();
+      const sessions = [
+        { id: 's1', title: 'جلسة عامة', committee_id: null, check_in_open: true, starts_at: nowIso },
+        { id: 's2', title: 'جلسة التسويق', committee_id: 'comm-marketing', check_in_open: true, starts_at: nowIso },
+        { id: 's3', title: 'جلسة الموارد البشرية', committee_id: 'comm-hr', check_in_open: true, starts_at: nowIso },
+      ];
+
+      const forMarketingMember = filterSessionsForMember(sessions, ['comm-marketing'], false);
+      expect(forMarketingMember.map((s) => s.id)).toEqual(['s1', 's2']);
+      expect(forMarketingMember.some((s) => s.id === 's3')).toBe(false);
+    });
+
+    it('excludes past closed sessions for members', () => {
+      const pastIso = new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString();
+      const sessions = [
+        { id: 's1', title: 'جلسة سابقة مغلقة', committee_id: 'comm-marketing', check_in_open: false, starts_at: pastIso },
+        { id: 's2', title: 'جلسة نشطة مفتوحة', committee_id: 'comm-marketing', check_in_open: true, starts_at: pastIso },
+      ];
+
+      const forMember = filterSessionsForMember(sessions, ['comm-marketing'], false);
+      expect(forMember.map((s) => s.id)).toEqual(['s2']);
+    });
+  });
 });

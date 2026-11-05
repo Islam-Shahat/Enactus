@@ -224,19 +224,101 @@ export default function AttendancePage() {
     enabled: Boolean(user?.id),
   });
 
-  // 5. Query Upcoming Sessions (for scan & excuse submission)
-  const { data: upcomingSessions = [] } = useQuery({
-    queryKey: ['dashboard', 'upcoming_sessions', activeSeason?.id],
+  // 4b. Query Member's Active Committee IDs (from memberships and roles)
+  const { data: memberCommitteeIds = [] } = useQuery({
+    queryKey: ['dashboard', 'my_member_committee_ids', user?.id, activeSeason?.id],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('attendance_sessions')
-        .select('id, title, type, location, starts_at, ends_at, check_in_open, committee_id')
-        .gte('starts_at', new Date(Date.now() - 4 * 60 * 60 * 1000).toISOString()) // last 4 hours or upcoming
-        .order('starts_at', { ascending: true })
-        .limit(10);
-      if (error) throw error;
-      return data || [];
+      if (!user?.id) return [];
+      const ids = [];
+
+      // A. Query active memberships
+      let q = supabase
+        .from('memberships')
+        .select('committee_id')
+        .eq('user_id', user.id)
+        .eq('status', 'active');
+      if (activeSeason?.id) {
+        q = q.eq('season_id', activeSeason.id);
+      }
+      const { data: mems } = await q;
+      (mems || []).forEach((m) => {
+        if (m.committee_id) ids.push(m.committee_id);
+      });
+
+      // B. Query user_roles
+      (roles || []).forEach((r) => {
+        if (r.committee_id) ids.push(r.committee_id);
+      });
+
+      // C. Fallback: all memberships without season filter if empty
+      if (ids.length === 0) {
+        const { data: allMems } = await supabase
+          .from('memberships')
+          .select('committee_id')
+          .eq('user_id', user.id);
+        (allMems || []).forEach((m) => {
+          if (m.committee_id) ids.push(m.committee_id);
+        });
+      }
+
+      return Array.from(new Set(ids));
     },
+    enabled: Boolean(user?.id),
+    staleTime: 5 * 60 * 1000,
+  });
+
+  // 5. Query Active & Upcoming Sessions for Member's Committee or General
+  const { data: upcomingSessions = [] } = useQuery({
+    queryKey: ['dashboard', 'upcoming_sessions', activeSeason?.id, memberCommitteeIds, canManage],
+    queryFn: async () => {
+      let q = supabase
+        .from('attendance_sessions')
+        .select(`
+          id,
+          title,
+          type,
+          location,
+          starts_at,
+          ends_at,
+          check_in_open,
+          committee_id,
+          season_id,
+          committees(id, name_ar, name_en, color)
+        `);
+
+      if (activeSeason?.id) {
+        q = q.eq('season_id', activeSeason.id);
+      }
+
+      q = q.order('starts_at', { ascending: false }).limit(30);
+
+      const { data, error } = await q;
+      if (error) throw error;
+
+      const sessionsList = data || [];
+
+      // For members: show active sessions (check_in_open is true OR upcoming in next 48h)
+      // that belong to the member's committee OR are general (committee_id is null)
+      if (!canManage) {
+        return sessionsList.filter((s) => {
+          // 1. Committee match: general (null) or matches user's committee
+          const matchesCommittee = !s.committee_id || memberCommitteeIds.includes(s.committee_id);
+          if (!matchesCommittee) return false;
+
+          // 2. Must be an active session (check_in_open = true) OR upcoming session
+          const isOpenNow = Boolean(s.check_in_open);
+          const isUpcoming = new Date(s.starts_at).getTime() >= Date.now() - 4 * 60 * 60 * 1000;
+          return isOpenNow || isUpcoming;
+        });
+      }
+
+      // For managers: show active or upcoming/recent sessions
+      return sessionsList.filter(
+        (s) => s.check_in_open || new Date(s.starts_at).getTime() >= Date.now() - 24 * 60 * 60 * 1000
+      );
+    },
+    enabled: Boolean(user?.id),
+    refetchInterval: 5000,
   });
 
   // 6. Query My Excuse Requests
@@ -1140,14 +1222,14 @@ export default function AttendancePage() {
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
                 <Calendar size={18} color="#ffd54f" />
                 <h3 style={{ margin: 0, color: '#fff', fontSize: '1.05rem', fontWeight: 700 }}>
-                  {isAr ? 'الجلسات القادمة والنشطة حالياً' : 'Active & Upcoming Sessions'}
+                  {isAr ? 'الجلسات النشطة والقادمة الخاصة بلجنتك' : 'Active & Upcoming Sessions for Your Committee'}
                 </h3>
               </div>
             </div>
 
             {upcomingSessions.length === 0 ? (
               <div style={{ color: '#777', fontSize: '0.85rem', fontStyle: 'italic' }}>
-                {isAr ? 'لا توجد جلسات قادمة مجدولة حالياً.' : 'No upcoming sessions scheduled.'}
+                {isAr ? 'لا توجد جلسات نشطة حالياً خاصة بلجنتك.' : 'No active sessions for your committee at the moment.'}
               </div>
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
