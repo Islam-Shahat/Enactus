@@ -269,7 +269,6 @@ export default function ProjectsImpact({ onOpenJoinModal }) {
         @media (max-width: 900px) {
           .project-row {
             grid-template-columns: 1fr !important;
-            direction: ltr !important;
           }
           .project-row > div:first-child {
             order: 2;

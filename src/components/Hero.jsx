@@ -69,6 +69,9 @@ export default function Hero({ onOpenJoinModal }) {
       style={{
         position: 'relative',
         minHeight: '100vh',
+        width: '100%',
+        maxWidth: '100%',
+        boxSizing: 'border-box',
         paddingTop: '120px',
         paddingBottom: '80px',
         display: 'flex',
@@ -81,6 +84,7 @@ export default function Hero({ onOpenJoinModal }) {
 
       {/* Decorative Ancient Egyptian Glyphs in backdrop */}
       <div
+        className="hero-bg-glyph hero-bg-glyph-top"
         style={{
           position: 'absolute',
           top: '20%',
@@ -97,6 +101,7 @@ export default function Hero({ onOpenJoinModal }) {
         𓂀
       </div>
       <div
+        className="hero-bg-glyph hero-bg-glyph-bottom"
         style={{
           position: 'absolute',
           bottom: '10%',

@@ -117,10 +117,29 @@ function DashboardFallback() {
 
 function PublicLayout({ onOpenJoinModal }) {
   return (
-    <div style={{ position: 'relative', minHeight: '100vh', overflowX: 'hidden' }}>
+    <div
+      className="public-layout-root"
+      style={{
+        position: 'relative',
+        minHeight: '100vh',
+        width: '100%',
+        maxWidth: '100%',
+        overflowX: 'hidden',
+        boxSizing: 'border-box',
+      }}
+    >
       <GoldenParticles />
       <Navbar onOpenJoinModal={onOpenJoinModal} />
-      <main style={{ position: 'relative', zIndex: 1 }}>
+      <main
+        style={{
+          position: 'relative',
+          zIndex: 1,
+          width: '100%',
+          maxWidth: '100%',
+          overflowX: 'hidden',
+          boxSizing: 'border-box',
+        }}
+      >
         <Outlet />
       </main>
       <Footer onOpenJoinModal={onOpenJoinModal} />

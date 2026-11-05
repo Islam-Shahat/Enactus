@@ -27,15 +27,19 @@ export default function Footer({ onOpenJoinModal: _onOpenJoinModal }) {
     >
       {/* Background Glyphs */}
       <div
+        className="footer-bg-glyphs"
         style={{
           position: 'absolute',
           top: '10px',
           left: '50%',
           transform: 'translateX(-50%)',
-          fontSize: '7rem',
+          fontSize: 'clamp(2.5rem, 8vw, 6rem)',
           color: 'rgba(255, 184, 0, 0.02)',
           pointerEvents: 'none',
           userSelect: 'none',
+          maxWidth: '100%',
+          whiteSpace: 'nowrap',
+          overflow: 'hidden',
         }}
       >
         𓂀 ☥ 𓁹 𓊹
