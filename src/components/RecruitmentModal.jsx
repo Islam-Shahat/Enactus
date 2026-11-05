@@ -369,7 +369,7 @@ export default function RecruitmentModal({ isOpen, onClose, defaultCommittee = '
               </div>
 
               {/* Field: Email & Phone */}
-              <div className="form-grid-2" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1.25rem' }}>
+              <div className="form-grid-2" style={{ marginBottom: '1.25rem' }}>
                 <div>
                   <label htmlFor="recruitment-email" style={{ display: 'block', color: '#ffd54f', fontSize: '0.88rem', fontWeight: 700, marginBottom: '0.4rem' }}>
                     {isAr ? 'البريد الإلكتروني الشخصي *' : 'Personal Email *'}
@@ -436,7 +436,7 @@ export default function RecruitmentModal({ isOpen, onClose, defaultCommittee = '
               </div>
 
               {/* Field 2 & 3: Faculty & Year */}
-              <div className="form-grid-2" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1.25rem' }}>
+              <div className="form-grid-2" style={{ marginBottom: '1.25rem' }}>
                 <div>
                   <label htmlFor="recruitment-faculty" style={{ display: 'block', color: '#ffd54f', fontSize: '0.88rem', fontWeight: 700, marginBottom: '0.4rem' }}>
                     {isAr ? 'الكلية بجامعة جنوب الوادي *' : 'Faculty at SVU *'}

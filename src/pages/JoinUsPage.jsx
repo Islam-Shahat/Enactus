@@ -341,7 +341,7 @@ export default function JoinUsPage() {
                 </div>
 
                 {/* Email & Phone */}
-                <div className="form-grid-2" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.25rem', marginBottom: '1.5rem' }}>
+                <div className="form-grid-2" style={{ marginBottom: '1.5rem' }}>
                   <div>
                     <label htmlFor="join-email" style={{ display: 'block', color: '#ffd54f', fontSize: '0.92rem', fontWeight: 700, marginBottom: '0.5rem' }}>
                       {isAr ? 'البريد الإلكتروني الشخصي *' : 'Personal Email Address *'}
@@ -408,7 +408,7 @@ export default function JoinUsPage() {
                 </div>
 
                 {/* Faculty & Academic Year */}
-                <div className="form-grid-2" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.25rem', marginBottom: '1.5rem' }}>
+                <div className="form-grid-2" style={{ marginBottom: '1.5rem' }}>
                   <div>
                     <label htmlFor="join-faculty" style={{ display: 'block', color: '#ffd54f', fontSize: '0.92rem', fontWeight: 700, marginBottom: '0.5rem' }}>
                       {isAr ? 'الكلية بجامعة جنوب الوادي *' : 'Faculty at SVU *'}

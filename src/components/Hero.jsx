@@ -111,18 +111,18 @@ export default function Hero({ onOpenJoinModal }) {
         ☥
       </div>
 
-      <div className="container" style={{ position: 'relative', zIndex: 10 }}>
+      <div className="container" style={{ position: 'relative', zIndex: 10, width: '100%', maxWidth: '100%' }}>
         {/* Top Tagline Pill */}
-        <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '1.5rem', width: '100%' }}>
+        <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '1.5rem', width: '100%', maxWidth: '100%' }}>
           <div
             className="glass-panel hero-tagline-pill"
           >
             <span style={{ color: '#ffb800' }}>☥</span>
-            <span className="font-outfit hero-tagline-text" style={{ fontSize: '0.85rem', fontWeight: 700, color: '#ffd54f', letterSpacing: '0.08em', textAlign: 'center' }}>
+            <span className="font-outfit hero-tagline-text" style={{ fontWeight: 700, color: '#ffd54f', letterSpacing: '0.06em', textAlign: 'center' }}>
               ENACTUS SOUTH VALLEY UNIVERSITY
             </span>
             <span style={{ color: '#ffb800' }}>•</span>
-            <span className="hero-tagline-loc" style={{ fontSize: '0.85rem', color: '#fff', fontWeight: 600 }}>
+            <span className="hero-tagline-loc" style={{ color: '#fff', fontWeight: 600 }}>
               {isAr ? 'قنا، صعيد مصر' : 'Qena, Upper Egypt'}
             </span>
           </div>
@@ -131,15 +131,15 @@ export default function Hero({ onOpenJoinModal }) {
         {/* Main Hero Grid */}
         <div className="hero-grid">
           {/* Column 1 (Text & Urgency) */}
-          <div style={{ textAlign: isAr ? 'right' : 'left' }}>
-            <div style={{ marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+          <div style={{ textAlign: isAr ? 'right' : 'left', width: '100%', minWidth: 0, maxWidth: '100%' }}>
+            <div style={{ marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap', width: '100%', maxWidth: '100%' }}>
               <span className="badge-gold">
                 <Flame size={14} color="#ffb800" />
                 {isAr ? 'استعدوا.. قادمون للـ NC' : 'Get Ready.. NC 2026'}
               </span>
-              <span className="badge-gold">
-                <ShieldCheck size={14} color="#ffd54f" />
-                Empowering Change, Inspiring Innovation
+              <span className="badge-gold" style={{ maxWidth: '100%', whiteSpace: 'normal', textWrap: 'balance' }}>
+                <ShieldCheck size={14} color="#ffd54f" style={{ flexShrink: 0 }} />
+                <span>Empowering Change, Inspiring Innovation</span>
               </span>
             </div>
 
@@ -178,6 +178,9 @@ export default function Hero({ onOpenJoinModal }) {
                 lineHeight: 1.75,
                 marginBottom: '2rem',
                 maxWidth: '620px',
+                width: '100%',
+                overflowWrap: 'break-word',
+                wordBreak: 'break-word',
               }}
             >
               {isAr ? (
@@ -196,27 +199,31 @@ export default function Hero({ onOpenJoinModal }) {
               className={`glass-panel card-shine countdown-urgency-banner ${!applicationsOpen ? 'countdown-banner-closed' : ''}`}
               style={{
                 borderRadius: '18px',
-                padding: '1.25rem 1.6rem',
+                padding: '1.25rem 1.25rem',
                 marginBottom: '2.5rem',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'space-between',
                 flexWrap: 'wrap',
                 gap: '1.25rem',
+                width: '100%',
+                maxWidth: '100%',
+                boxSizing: 'border-box',
               }}
             >
-              <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', flex: '1 1 280px' }}>
+              <div className="countdown-banner-content" style={{ display: 'flex', alignItems: 'center', gap: '0.85rem', flex: '1 1 auto', minWidth: 0, maxWidth: '100%' }}>
                 <div
                   className="countdown-clock-icon"
                   style={!applicationsOpen ? {
                     background: 'rgba(239, 68, 68, 0.15)',
                     color: '#ef4444',
                     borderColor: 'rgba(239, 68, 68, 0.35)',
-                  } : undefined}
+                    flexShrink: 0,
+                  } : { flexShrink: 0 }}
                 >
                   <Clock size={22} />
                 </div>
-                <div>
+                <div style={{ minWidth: 0, flex: '1 1 auto' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', marginBottom: '0.25rem', flexWrap: 'wrap' }}>
                     <span
                       className="countdown-banner-title"
@@ -246,7 +253,7 @@ export default function Hero({ onOpenJoinModal }) {
                   </div>
                   <p
                     className="countdown-banner-subtitle"
-                    style={!applicationsOpen ? { color: '#e2e8f0', opacity: 0.9 } : undefined}
+                    style={!applicationsOpen ? { color: '#e2e8f0', opacity: 0.9, overflowWrap: 'break-word', wordBreak: 'break-word' } : { overflowWrap: 'break-word', wordBreak: 'break-word' }}
                   >
                     {applicationsOpen
                       ? (isAr
@@ -285,33 +292,34 @@ export default function Hero({ onOpenJoinModal }) {
                 </div>
               ) : (
                 <div
+                  className="countdown-closed-tag"
                   style={{
                     display: 'flex',
                     alignItems: 'center',
                     gap: '0.55rem',
                     background: 'rgba(239, 68, 68, 0.12)',
                     border: '1px solid rgba(239, 68, 68, 0.35)',
-                    padding: '0.6rem 1.1rem',
+                    padding: '0.6rem 1rem',
                     borderRadius: '12px',
                     color: '#fca5a5',
                     fontSize: '0.86rem',
                     fontWeight: 700,
-                    flexShrink: 0,
+                    maxWidth: '100%',
+                    boxSizing: 'border-box',
                   }}
                 >
-                  <ShieldCheck size={18} color="#ef4444" />
+                  <ShieldCheck size={18} color="#ef4444" style={{ flexShrink: 0 }} />
                   <span>{isAr ? 'اكتملت المقاعد لهذا الموسم' : 'Season Fully Staffed'}</span>
                 </div>
               )}
             </div>
 
             {/* CTAs */}
-            <div className="hero-cta-buttons" style={{ display: 'flex', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>
+            <div className="hero-cta-buttons" style={{ display: 'flex', alignItems: 'center', gap: '1rem', flexWrap: 'wrap', width: '100%', maxWidth: '100%' }}>
               {applicationsOpen ? (
                 <button
                   onClick={onOpenJoinModal}
                   className="btn-primary animate-pulse-glow"
-                  style={{ fontSize: '1.05rem', padding: '0.9rem 2rem' }}
                 >
                   <Sparkles size={20} />
                   <span>{isAr ? 'انضم للأسطورة (سجل الآن)' : 'Join the Legacy (Apply)'}</span>
@@ -320,7 +328,6 @@ export default function Hero({ onOpenJoinModal }) {
                 <a
                   href="#committees"
                   className="btn-primary"
-                  style={{ fontSize: '1.05rem', padding: '0.9rem 2rem' }}
                 >
                   <Sparkles size={20} />
                   <span>{isAr ? 'استكشف كتيبة الفراعنة' : 'Explore Committees'}</span>
@@ -336,7 +343,6 @@ export default function Hero({ onOpenJoinModal }) {
                 <button
                   onClick={onOpenJoinModal}
                   className="btn-secondary"
-                  style={{ fontSize: '0.95rem', padding: '0.75rem 1.4rem' }}
                 >
                   <span>{isAr ? 'معلومات التقديم' : 'Recruitment Info'}</span>
                   <ArrowIcon size={16} />

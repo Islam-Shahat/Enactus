@@ -122,17 +122,27 @@ body {
   max-width: 1280px;
   margin: 0 auto;
   padding: 0 1.5rem;
+  box-sizing: border-box;
 }
 
 @media (max-width: 768px) {
   .container {
     padding: 0 1.15rem;
+    box-sizing: border-box;
   }
 }
 
 @media (max-width: 480px) {
   .container {
     padding: 0 0.85rem;
+    box-sizing: border-box;
+  }
+}
+
+@media (max-width: 360px) {
+  .container {
+    padding: 0 0.65rem;
+    box-sizing: border-box;
   }
 }
 
@@ -419,6 +429,15 @@ p, h1, h2, h3, h4, h5, h6, span, a, label, div {
   display: inline-flex;
   align-items: center;
   gap: 0.4rem;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+@media (max-width: 480px) {
+  .badge-gold {
+    font-size: 0.78rem;
+    padding: 0.28rem 0.65rem;
+  }
 }
 
 /* Global Theme Transition */
@@ -979,6 +998,7 @@ select option {
   grid-template-columns: 1.15fr 0.85fr;
   gap: 3.5rem;
   align-items: center;
+  width: 100%;
 }
 
 .mascot-banner-grid {
@@ -986,6 +1006,7 @@ select option {
   grid-template-columns: 1.1fr 0.9fr;
   gap: 2.5rem;
   align-items: center;
+  width: 100%;
 }
 
 .strategic-partner-grid {
@@ -993,6 +1014,7 @@ select option {
   grid-template-columns: 1.1fr 0.9fr;
   gap: 2.5rem;
   align-items: center;
+  width: 100%;
 }
 
 .project-row {
@@ -1000,6 +1022,7 @@ select option {
   grid-template-columns: 1.2fr 0.8fr;
   gap: 2.5rem;
   align-items: center;
+  width: 100%;
 }
 
 .footer-grid {
@@ -1007,6 +1030,7 @@ select option {
   grid-template-columns: 1.4fr 1fr 1fr 1fr;
   gap: 3rem;
   margin-bottom: 4rem;
+  width: 100%;
 }
 
 .hero-tagline-pill {
@@ -1019,28 +1043,61 @@ select option {
   border: 1px solid rgba(255, 184, 0, 0.4);
   box-shadow: 0 0 20px rgba(255, 184, 0, 0.15);
   max-width: 100%;
+  box-sizing: border-box;
+}
+
+/* Two-column form grids with fluid minmax */
+.form-grid-2 {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 @media (max-width: 992px) {
   .hero-grid {
-    grid-template-columns: 1fr !important;
+    grid-template-columns: minmax(0, 1fr) !important;
     gap: 2.25rem !important;
+    width: 100% !important;
+  }
+  .hero-grid > * {
+    min-width: 0 !important;
+    max-width: 100% !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
   }
   .mascot-banner-grid {
-    grid-template-columns: 1fr !important;
+    grid-template-columns: minmax(0, 1fr) !important;
     gap: 2rem !important;
+    width: 100% !important;
+  }
+  .mascot-banner-grid > * {
+    min-width: 0 !important;
+    max-width: 100% !important;
   }
   .strategic-partner-grid {
-    grid-template-columns: 1fr !important;
+    grid-template-columns: minmax(0, 1fr) !important;
     gap: 2rem !important;
+    width: 100% !important;
+  }
+  .strategic-partner-grid > * {
+    min-width: 0 !important;
+    max-width: 100% !important;
   }
   .project-row {
-    grid-template-columns: 1fr !important;
+    grid-template-columns: minmax(0, 1fr) !important;
     gap: 2rem !important;
+    width: 100% !important;
+  }
+  .project-row > * {
+    min-width: 0 !important;
+    max-width: 100% !important;
   }
   .footer-grid {
-    grid-template-columns: repeat(2, 1fr) !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
     gap: 2.5rem !important;
+    width: 100% !important;
   }
 }
 
@@ -1050,20 +1107,26 @@ select option {
     padding-top: 85px !important;
     padding-bottom: 45px !important;
     min-height: auto !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
   }
 
   .hero-tagline-pill {
-    padding: 0.35rem 0.85rem !important;
+    padding: 0.4rem 0.85rem !important;
     gap: 0.4rem !important;
+    flex-wrap: wrap !important;
+    justify-content: center !important;
+    text-align: center !important;
+    border-radius: 14px !important;
   }
 
   .hero-tagline-text {
-    font-size: 0.75rem !important;
-    letter-spacing: 0.04em !important;
+    font-size: 0.74rem !important;
+    letter-spacing: 0.03em !important;
   }
 
   .hero-tagline-loc {
-    font-size: 0.75rem !important;
+    font-size: 0.74rem !important;
   }
 
   .hero-stamp-badge {
@@ -1076,16 +1139,25 @@ select option {
     flex-direction: column !important;
     align-items: stretch !important;
     gap: 0.75rem !important;
+    width: 100% !important;
+    max-width: 100% !important;
   }
 
   .hero-cta-buttons > * {
     width: 100% !important;
+    max-width: 100% !important;
     justify-content: center !important;
     text-align: center !important;
+    box-sizing: border-box !important;
+    padding-left: 1.25rem !important;
+    padding-right: 1.25rem !important;
+    font-size: 0.95rem !important;
   }
 
   .hero-social-pill {
     justify-content: center !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
   }
 
   .footer-grid {
@@ -1098,6 +1170,8 @@ select option {
   section {
     padding-top: 60px !important;
     padding-bottom: 60px !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
   }
 
   .page-container-padding {
@@ -1107,21 +1181,25 @@ select option {
 
   /* Responsive Glass Panels & Card Padding */
   .responsive-card-p {
-    padding: 1.5rem 1.15rem !important;
+    padding: 1.25rem 1rem !important;
   }
 
   .responsive-panel-p {
-    padding: 1.5rem 1.15rem !important;
+    padding: 1.25rem 1rem !important;
   }
 
   .responsive-form-p {
-    padding: 1.75rem 1.15rem !important;
+    padding: 1.5rem 1rem !important;
   }
 
   /* Form two-column grids collapse to full width on phone */
-  .form-grid-2 {
+  .form-grid-2,
+  div[style*="grid-template-columns: 1fr 1fr"],
+  div[style*="gridTemplateColumns: '1fr 1fr'"],
+  div[style*="grid-template-columns: 1fr  1fr"] {
     grid-template-columns: 1fr !important;
     gap: 1rem !important;
+    width: 100% !important;
   }
 
   /* Agenda & Milestones on Mobile */
@@ -1144,33 +1222,65 @@ select option {
 
   /* Modal responsiveness */
   .modal-overlay-responsive {
-    padding: 0.75rem !important;
+    padding: 0.65rem !important;
   }
 
   .modal-dialog-responsive {
     max-height: 94vh !important;
     border-radius: 18px !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
   }
 
   .modal-body-responsive {
-    padding: 1.25rem 1rem !important;
+    padding: 1.25rem 0.85rem !important;
   }
 
   /* Countdown Urgency Banner on Mobile */
   .countdown-urgency-banner {
-    padding: 1rem 1.15rem !important;
+    padding: 1.15rem 0.95rem !important;
+    flex-direction: column !important;
+    align-items: stretch !important;
     justify-content: center !important;
-    text-align: center;
+    text-align: center !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+    gap: 1rem !important;
   }
 
-  .countdown-urgency-banner > div:first-child {
+  .countdown-urgency-banner > div:first-child,
+  .countdown-banner-content {
     flex-direction: column !important;
-    text-align: center;
+    text-align: center !important;
     align-items: center !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    flex: 1 1 100% !important;
+  }
+
+  .countdown-urgency-banner > div:first-child > div:last-child {
+    text-align: center !important;
+    width: 100% !important;
+  }
+
+  .countdown-urgency-banner > div:first-child > div:last-child > div:first-child {
+    justify-content: center !important;
+  }
+
+  .countdown-closed-tag {
+    width: 100% !important;
+    justify-content: center !important;
+    text-align: center !important;
+    box-sizing: border-box !important;
   }
 
   .countdown-timer-wrap {
-    margin: 0 auto;
+    margin: 0 auto !important;
+    width: 100% !important;
+    justify-content: center !important;
   }
 
   /* Auto grid lists that were causing mobile horizontal scroll */

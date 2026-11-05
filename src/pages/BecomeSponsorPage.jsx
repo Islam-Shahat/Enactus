@@ -162,7 +162,7 @@ export default function BecomeSponsorPage() {
                   <input type="text" tabIndex={-1} autoComplete="off" {...register('honeypot')} />
                 </div>
 
-                <div className="form-grid-2" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.25rem', marginBottom: '1.25rem' }}>
+                <div className="form-grid-2" style={{ marginBottom: '1.25rem' }}>
                   <div>
                     <label htmlFor="sponsor-companyName" style={{ display: 'block', color: '#ffd54f', fontSize: '0.9rem', fontWeight: 700, marginBottom: '0.4rem' }}>
                       {isAr ? 'اسم الشركة أو المؤسسة *' : 'Company or Organization Name *'}
@@ -218,7 +218,7 @@ export default function BecomeSponsorPage() {
                   </div>
                 </div>
 
-                <div className="form-grid-2" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.25rem', marginBottom: '1.25rem' }}>
+                <div className="form-grid-2" style={{ marginBottom: '1.25rem' }}>
                   <div>
                     <label htmlFor="sponsor-email" style={{ display: 'block', color: '#ffd54f', fontSize: '0.9rem', fontWeight: 700, marginBottom: '0.4rem' }}>
                       {isAr ? 'البريد الإلكتروني الرسمي *' : 'Official Business Email *'}

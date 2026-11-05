@@ -386,7 +386,7 @@ export default function CreateMemberModal({ isOpen, onClose, committees = [], se
             </div>
 
             {/* Row 1: Full Names */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+            <div className="form-grid-2">
               <div>
                 <label style={{ display: 'block', color: '#ffd54f', fontSize: '0.85rem', fontWeight: 700, marginBottom: '0.4rem' }}>
                   {isAr ? 'الاسم الكامل بالعربية *' : 'Full Name (Arabic) *'}
@@ -506,7 +506,7 @@ export default function CreateMemberModal({ isOpen, onClose, committees = [], se
             </div>
 
             {/* Row 3: Committee & Position */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+            <div className="form-grid-2">
               <div>
                 <label style={{ display: 'block', color: '#ffd54f', fontSize: '0.85rem', fontWeight: 700, marginBottom: '0.4rem' }}>
                   {isAr ? 'اللجنة التابع لها *' : 'Assigned Committee *'}
@@ -561,7 +561,7 @@ export default function CreateMemberModal({ isOpen, onClose, committees = [], se
             </div>
 
             {/* Row 4: Phone & Email */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+            <div className="form-grid-2">
               <div>
                 <label style={{ display: 'block', color: '#ffd54f', fontSize: '0.85rem', fontWeight: 700, marginBottom: '0.4rem' }}>
                   {isAr ? 'رقم الهاتف (واتساب)' : 'Phone Number'}
@@ -610,7 +610,7 @@ export default function CreateMemberModal({ isOpen, onClose, committees = [], se
             </div>
 
             {/* Row 5: Faculty & Study Year */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+            <div className="form-grid-2">
               <div>
                 <label style={{ display: 'block', color: '#ffd54f', fontSize: '0.85rem', fontWeight: 700, marginBottom: '0.4rem' }}>
                   {isAr ? 'الكلية' : 'Faculty'}
