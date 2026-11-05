@@ -57,24 +57,27 @@ export default function Partnerships() {
     },
   ];
 
-  const strategicPartners =
+  const strategicList =
     dbPartners && Array.isArray(dbPartners) && dbPartners.length > 0
-      ? dbPartners
-          .filter((p) => p.kind === 'strategic' || p.tier === 'strategic')
-          .map((p) => {
-            const fallback = defaultStrategicPartners.find((f) => f.id === p.id) || defaultStrategicPartners[0];
-            return {
-              id: p.id,
-              name: p.name || fallback.name,
-              englishName: fallback.englishName,
-              badge: p.tier || fallback.badge,
-              slogan: fallback.slogan,
-              image: p.logo || p.cover || fallback.image,
-              desc: p.description || fallback.desc,
-              points: fallback.points,
-              linkText: fallback.linkText,
-            };
-          })
+      ? dbPartners.filter((p) => (p.kind === 'strategic' || p.tier === 'strategic') && p.is_visible !== false)
+      : [];
+
+  const strategicPartners =
+    strategicList.length > 0
+      ? strategicList.map((p, idx) => {
+          const fallback = defaultStrategicPartners[idx] || defaultStrategicPartners[0];
+          return {
+            id: p.id,
+            name: p.name || fallback.name,
+            englishName: p.englishName || fallback.englishName,
+            badge: p.tier ? (isAr ? `شريك (${p.tier})` : `${p.tier} Partner`) : (fallback.badge),
+            slogan: p.description ? (p.description.length > 60 ? p.description.slice(0, 58) + '...' : p.description) : fallback.slogan,
+            image: p.cover || p.logo || fallback.image,
+            desc: p.description || fallback.desc,
+            points: fallback.points || [],
+            linkText: fallback.linkText,
+          };
+        })
       : defaultStrategicPartners;
 
   const defaultSponsors = [
@@ -124,7 +127,30 @@ export default function Partnerships() {
     },
   ];
 
-  const sponsors = defaultSponsors;
+  const sponsorsList =
+    dbPartners && Array.isArray(dbPartners) && dbPartners.length > 0
+      ? dbPartners.filter((p) => p.kind !== 'strategic' && p.tier !== 'strategic' && p.is_visible !== false)
+      : [];
+
+  const sponsors =
+    sponsorsList.length > 0
+      ? sponsorsList.map((sp, idx) => {
+          const fallback = defaultSponsors[idx] || defaultSponsors[0];
+          const Icon = fallback.icon || Coffee;
+          return {
+            id: sp.id,
+            number: String(idx + 1),
+            name: sp.name || fallback.name,
+            arabicName: sp.name || fallback.arabicName,
+            category: sp.tier ? (isAr ? `راعي (${sp.tier})` : `${sp.tier} Sponsor`) : fallback.category,
+            icon: Icon,
+            desc: sp.description || fallback.desc,
+            perk: sp.description ? (sp.description.length > 50 ? sp.description.slice(0, 48) + '...' : sp.description) : fallback.perk,
+            logo: sp.logo || sp.cover || '',
+            website: sp.website || '',
+          };
+        })
+      : defaultSponsors;
 
   return (
     <section id="partners" style={{ padding: '110px 0', position: 'relative' }}>
@@ -261,9 +287,19 @@ export default function Partnerships() {
                           alignItems: 'center',
                           justifyContent: 'center',
                           color: '#ffb800',
+                          overflow: 'hidden',
+                          padding: sp.logo ? '6px' : '0',
                         }}
                       >
-                        <Icon size={24} />
+                        {sp.logo ? (
+                          <img
+                            src={sp.logo}
+                            alt={sp.name}
+                            style={{ width: '100%', height: '100%', objectFit: 'contain' }}
+                          />
+                        ) : (
+                          <Icon size={24} />
+                        )}
                       </div>
 
                       <div

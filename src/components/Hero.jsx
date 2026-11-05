@@ -3,6 +3,7 @@ import { Sparkles, ArrowLeft, ArrowRight, Clock, Flame, ExternalLink, ShieldChec
 import { FacebookIcon } from './Icons';
 import { useLanguage } from '../context/LanguageContext';
 import { useApplicationsOpen } from '../hooks/usePublicContent';
+import { useGallery } from '../hooks/usePublicContent';
 
 export default function Hero({ onOpenJoinModal }) {
   const { lang } = useLanguage();
@@ -10,6 +11,7 @@ export default function Hero({ onOpenJoinModal }) {
   const ArrowIcon = isAr ? ArrowLeft : ArrowRight;
 
   const { data: applicationsOpen = true } = useApplicationsOpen();
+  const { data: dbGallery } = useGallery();
 
   // Countdown timer simulation for recruitment
   const [timeLeft, setTimeLeft] = useState({ hours: 23, minutes: 48, seconds: 12 });
@@ -32,7 +34,7 @@ export default function Hero({ onOpenJoinModal }) {
     return () => clearInterval(timer);
   }, [applicationsOpen]);
 
-  const visualCards = [
+  const defaultVisualCards = [
     {
       title: isAr ? "قميص معبد دندرة 2026" : "Dendera Temple Kit 2026",
       subtitle: "FROM QENA TO THE WORLD",
@@ -61,6 +63,23 @@ export default function Hero({ onOpenJoinModal }) {
       img: "/assets/E7.jpg",
     },
   ];
+
+  const visualCards =
+    dbGallery && Array.isArray(dbGallery) && dbGallery.length >= 3
+      ? dbGallery.slice(0, 3).map((item, idx) => {
+          const fallback = defaultVisualCards[idx] || defaultVisualCards[0];
+          const caption = isAr
+            ? (item.caption_ar || item.caption || fallback.title)
+            : (item.caption_en || item.caption || fallback.title);
+          return {
+            title: caption,
+            subtitle: fallback.subtitle,
+            desc: caption || fallback.desc,
+            tag: fallback.tag,
+            img: item.media_url || fallback.img,
+          };
+        })
+      : defaultVisualCards;
 
   return (
     <section

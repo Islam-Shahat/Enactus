@@ -24,7 +24,7 @@ export default function CmsItemDrawer({
   allMembers = [],
   onSaved,
 }) {
-  const isEdit = Boolean(item?.id || (tabKey === 'content' && item?.key) || (tabKey === 'settings'));
+  const isEdit = Boolean(item?.id || (tabKey === 'content' && item?.key) || (tabKey === 'stats' && item?.key) || (tabKey === 'settings'));
 
   const [loading, setLoading] = useState(false);
   const [uploadingImage, setUploadingImage] = useState(false);
@@ -198,7 +198,7 @@ export default function CmsItemDrawer({
         case 'stats': {
           const parsed = StatSchema.parse(formData);
           if (isEdit) {
-            const { error: err } = await supabase.from('site_stats').update(parsed).eq('id', item.id);
+            const { error: err } = await supabase.from('site_stats').update(parsed).eq('key', item.key);
             if (err) throw err;
           } else {
             const { error: err } = await supabase.from('site_stats').insert([parsed]);
@@ -535,6 +535,14 @@ export default function CmsItemDrawer({
               value={formData.logo_url}
               onChange={(url) => setFormData({ ...formData, logo_url: url })}
               onUpload={(e) => handleFileUpload(e, 'logo_url', 'partners')}
+              uploading={uploadingImage}
+            />
+
+            <ImageUploadField
+              label="صورة البانر أو الغلاف (Cover Banner)"
+              value={formData.cover_url}
+              onChange={(url) => setFormData({ ...formData, cover_url: url })}
+              onUpload={(e) => handleFileUpload(e, 'cover_url', 'partners')}
               uploading={uploadingImage}
             />
 

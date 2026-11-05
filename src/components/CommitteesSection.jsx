@@ -181,19 +181,30 @@ export default function CommitteesSection({ onOpenJoinModal }) {
     },
   ];
 
-  const committees = defaultCommittees.map((comm) => {
-    if (!dbCommittees || !Array.isArray(dbCommittees)) return comm;
-    const match = dbCommittees.find((c) => c.slug === comm.id || c.code?.toLowerCase() === comm.code.toLowerCase());
-    if (!match) return comm;
-    return {
-      ...comm,
-      name: match.name || comm.name,
-      arabicName: match.arabicName || comm.arabicName,
-      mascotDesc: match.mascotDesc || comm.mascotDesc,
-      role: match.brief || match.description || comm.role,
-      quote: match.quote || comm.quote,
-    };
-  });
+  const committees =
+    dbCommittees && Array.isArray(dbCommittees) && dbCommittees.length > 0
+      ? dbCommittees
+          .filter((c) => c.is_active !== false && c.is_visible !== false)
+          .map((match, idx) => {
+            const fallback =
+              defaultCommittees.find(
+                (d) => d.id === match.slug || d.code?.toLowerCase() === match.code?.toLowerCase()
+              ) || defaultCommittees[idx] || defaultCommittees[0];
+            return {
+              ...fallback,
+              id: match.slug || fallback.id,
+              code: match.code || fallback.code,
+              name: match.name || fallback.name,
+              arabicName: match.arabicName || fallback.arabicName,
+              mascotDesc: match.mascotDesc || fallback.mascotDesc,
+              role: match.brief || match.description || fallback.role,
+              quote: match.quote || fallback.quote,
+              skills: Array.isArray(match.skillsGained) && match.skillsGained.length > 0
+                ? match.skillsGained
+                : fallback.skills,
+            };
+          })
+      : defaultCommittees;
 
   return (
     <section id="committees" style={{ padding: '110px 0', position: 'relative' }}>

@@ -1,13 +1,15 @@
 import React, { useState } from 'react';
 import { Image as ImageIcon, X, ZoomIn } from 'lucide-react';
+import { useGallery } from '../hooks/usePublicContent';
 import { useLanguage } from '../context/LanguageContext';
 
 export default function VisualGallery() {
   const [activeImage, setActiveImage] = useState(null);
   const { lang } = useLanguage();
   const isAr = lang === 'ar';
+  const { data: dbGallery } = useGallery();
 
-  const galleryItems = [
+  const defaultGalleryItems = [
     {
       src: '/assets/E9.jpg',
       title: isAr ? 'قميص معبد دندرة 2026' : 'Dendera Temple Kit 2026',
@@ -99,6 +101,30 @@ export default function VisualGallery() {
         : 'Carved into the memory of the university.. Enactus South Valley University with pride.',
     },
   ];
+
+  const galleryItems =
+    dbGallery && Array.isArray(dbGallery) && dbGallery.length > 0
+      ? dbGallery
+          .filter((item) => item.is_visible !== false)
+          .map((item, idx) => {
+            const fallback = defaultGalleryItems[idx] || {};
+            const caption = isAr
+              ? (item.caption_ar || item.caption || fallback.caption || '')
+              : (item.caption_en || item.caption || fallback.caption || '');
+            const title =
+              caption.length > 40
+                ? caption.slice(0, 38) + '...'
+                : (caption || fallback.title || (isAr ? `صورة ${idx + 1}` : `Asset ${idx + 1}`));
+            return {
+              id: item.id || idx,
+              src: item.media_url || item.url || fallback.src || '',
+              title,
+              caption,
+              tag: fallback.tag || (item.kind === 'video' ? 'VIDEO' : 'VISUAL VAULT'),
+              category: fallback.category || (isAr ? 'معرض الهوية البصرية' : 'Visual Identity'),
+            };
+          })
+      : defaultGalleryItems;
 
   return (
     <section id="gallery" style={{ padding: '100px 0', position: 'relative' }}>

@@ -35,20 +35,24 @@ export default function ProjectsImpact({ onOpenJoinModal }) {
     },
   ];
 
-  const stats = defaultStats.map((item) => {
-    if (!dbStats || !Array.isArray(dbStats)) return item;
-    const match = dbStats.find((s) => s.key === item.key);
-    if (!match) return item;
-    const numFormatted =
-      match.suffix === '+'
-        ? `+${match.value.toLocaleString()}`
-        : `${match.value.toLocaleString()}${match.suffix || ''}`;
-    return {
-      ...item,
-      number: numFormatted,
-      label: match.label || item.label,
-    };
-  });
+  const stats =
+    dbStats && Array.isArray(dbStats) && dbStats.length > 0
+      ? dbStats
+          .filter((s) => s.is_visible !== false)
+          .map((s, idx) => {
+            const fallback = defaultStats.find((d) => d.key === s.key) || defaultStats[idx] || {};
+            const numFormatted =
+              s.suffix === '+'
+                ? `+${s.value.toLocaleString()}`
+                : `${s.value.toLocaleString()}${s.suffix || ''}`;
+            return {
+              key: s.key,
+              number: numFormatted,
+              label: s.label || fallback.label || s.key,
+              sub: fallback.sub || (isAr ? 'إيناكوس قنا' : 'Enactus Qena'),
+            };
+          })
+      : defaultStats;
 
   const projects = [
     {

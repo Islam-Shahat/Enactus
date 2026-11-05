@@ -94,7 +94,8 @@ export default function SiteCmsPage() {
 
   // Invalidate matching React Query keys after any CMS mutation
   function invalidateCmsCaches(tab) {
-    queryClient.invalidateQueries(['cms-items', tab]);
+    queryClient.invalidateQueries({ queryKey: ['cms-items'] });
+    queryClient.invalidateQueries({ queryKey: ['cms-items', tab] });
     switch (tab) {
       case 'stats':
         queryClient.invalidateQueries({ queryKey: ['stats'] });
@@ -147,6 +148,8 @@ export default function SiteCmsPage() {
       let query = supabase.from(tableName).update(updatePayload);
       if (isContent) {
         query = query.eq('key', item.key).eq('locale', item.locale);
+      } else if (activeTabKey === 'stats') {
+        query = query.eq('key', item.key);
       } else {
         query = query.eq('id', item.id);
       }
@@ -173,10 +176,17 @@ export default function SiteCmsPage() {
     if (!tableName) return;
 
     try {
-      await Promise.all([
-        supabase.from(tableName).update({ sort_order: updatedCurrent.sort_order }).eq('id', currentItem.id),
-        supabase.from(tableName).update({ sort_order: updatedTarget.sort_order }).eq('id', targetItem.id),
-      ]);
+      if (activeTabKey === 'stats') {
+        await Promise.all([
+          supabase.from(tableName).update({ sort_order: updatedCurrent.sort_order }).eq('key', currentItem.key),
+          supabase.from(tableName).update({ sort_order: updatedTarget.sort_order }).eq('key', targetItem.key),
+        ]);
+      } else {
+        await Promise.all([
+          supabase.from(tableName).update({ sort_order: updatedCurrent.sort_order }).eq('id', currentItem.id),
+          supabase.from(tableName).update({ sort_order: updatedTarget.sort_order }).eq('id', targetItem.id),
+        ]);
+      }
 
       invalidateCmsCaches(activeTabKey);
       refetch();
@@ -195,6 +205,8 @@ export default function SiteCmsPage() {
       let query = supabase.from(tableName).delete();
       if (activeTabKey === 'content') {
         query = query.eq('key', deleteItemConfirm.key).eq('locale', deleteItemConfirm.locale);
+      } else if (activeTabKey === 'stats') {
+        query = query.eq('key', deleteItemConfirm.key);
       } else {
         query = query.eq('id', deleteItemConfirm.id);
       }
