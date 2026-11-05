@@ -247,6 +247,28 @@ export default function DashboardHome() {
                 {isAr ? 'عضو' : 'Member'}
               </span>
             )}
+
+            {profile?.member_code && (
+              <span
+                style={{
+                  background: 'rgba(255, 184, 0, 0.18)',
+                  border: '1px solid rgba(255, 184, 0, 0.5)',
+                  color: '#ffd54f',
+                  padding: '0.35rem 0.85rem',
+                  borderRadius: '8px',
+                  fontWeight: 800,
+                  fontSize: '0.82rem',
+                  fontFamily: 'monospace',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '0.4rem',
+                  letterSpacing: '1px',
+                }}
+              >
+                <span>🆔 {isAr ? 'كود العضو:' : 'ID:'}</span>
+                <span style={{ color: '#fff' }}>{profile.member_code}</span>
+              </span>
+            )}
           </div>
         </div>
 

@@ -48,3 +48,30 @@ export const convertApplicationSchema = z.object({
   position: z.enum(['member', 'vice', 'head', 'coordinator']).default('member'),
 });
 
+export const createMemberSchema = z.object({
+  fullNameAr: z.string().trim().min(3, 'الاسم بالعربية يجب ألا يقل عن 3 أحرف').max(150),
+  fullNameEn: z.string().trim().max(150).optional(),
+  nationalId: z.string().trim().regex(/^\d{14}$/, 'الرقم القومي يجب أن يتكون من 14 رقماً'),
+  phone: z.string().trim().max(25).optional(),
+  email: z.string().trim().email('البريد الإلكتروني غير صالح').optional().or(z.literal('')),
+  committeeId: z.string().uuid('يرجى اختيار لجنة صالحة'),
+  position: z.enum(['member', 'head', 'vice', 'coordinator']).default('member'),
+  faculty: z.string().trim().max(120).optional(),
+  studyYear: z.union([z.number().int().min(1).max(8), z.string()]).optional().transform((val) => {
+    if (val === undefined || val === null || val === '') return 1;
+    if (typeof val === 'number') return val;
+    const match = val.match(/\d+/);
+    if (match) return parseInt(match[0], 10);
+    if (val.includes('أولى') || val.includes('1')) return 1;
+    if (val.includes('ثانية') || val.includes('2')) return 2;
+    if (val.includes('ثالثة') || val.includes('3')) return 3;
+    if (val.includes('رابعة') || val.includes('4')) return 4;
+    if (val.includes('خامسة') || val.includes('5')) return 5;
+    return 1;
+  }),
+  birthDate: z.string().trim().max(30).optional(),
+  gender: z.enum(['male', 'female', 'other']).optional(),
+  governorate: z.string().trim().max(60).optional(),
+  seasonId: z.string().uuid().optional(),
+});
+

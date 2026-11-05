@@ -12,6 +12,7 @@ import AttendanceSessionModal from '../../components/dashboard/AttendanceSession
 import ExcuseRequestModal from '../../components/dashboard/ExcuseRequestModal';
 import { exportToCsv } from '../../lib/csvExport';
 import { useToast } from '../../components/dashboard/Toast';
+import { QRCodeSVG } from 'qrcode.react';
 import {
   CalendarCheck,
   QrCode,
@@ -32,7 +33,7 @@ import {
 const PAGE_SIZE = 10;
 
 export default function AttendancePage() {
-  const { user, roles, isSuperAdmin, hasRole } = useAuth();
+  const { user, profile, roles, isSuperAdmin, hasRole } = useAuth();
   const { lang } = useLanguage();
   const isAr = lang === 'ar';
   const toast = useToast();
@@ -853,6 +854,132 @@ export default function AttendancePage() {
       {/* ============================================================== */}
       {activeTab === 'my_attendance' && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+          {/* Member Smart Attendance Card & Active Session QR */}
+          {(() => {
+            const openSessionNow = upcomingSessions.find((s) => s.check_in_open);
+            const memberCode = profile?.member_code || '2026001';
+            const qrPayload = `ENACTUS-MEMBER:${user?.id || ''}:${memberCode}:${openSessionNow?.id || 'ANY'}`;
+
+            return (
+              <div
+                className="glass-panel"
+                style={{
+                  padding: '1.5rem',
+                  borderRadius: '16px',
+                  border: '1.5px solid rgba(255, 184, 0, 0.4)',
+                  background: 'linear-gradient(135deg, rgba(255, 184, 0, 0.08), rgba(20, 22, 32, 0.95))',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  flexWrap: 'wrap',
+                  gap: '1.5rem',
+                }}
+              >
+                <div style={{ flex: '1 1 320px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', marginBottom: '0.5rem', flexWrap: 'wrap' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                      <QrCode size={20} color="#ffb800" />
+                      <span className="badge-gold font-cinzel" style={{ fontSize: '0.75rem' }}>
+                        {isAr ? 'بطاقة الحضور الذكية' : 'MEMBER ATTENDANCE PASS'}
+                      </span>
+                    </div>
+
+                    {openSessionNow ? (
+                      <span
+                        style={{
+                          background: 'rgba(74, 222, 128, 0.2)',
+                          border: '1px solid #4ade80',
+                          color: '#4ade80',
+                          padding: '0.2rem 0.6rem',
+                          borderRadius: '6px',
+                          fontSize: '0.75rem',
+                          fontWeight: 700,
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '0.3rem',
+                        }}
+                      >
+                        <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#4ade80', display: 'inline-block' }} />
+                        {isAr ? `جلسة نشطة الآن: ${openSessionNow.title}` : `Active Now: ${openSessionNow.title}`}
+                      </span>
+                    ) : (
+                      <span
+                        style={{
+                          background: 'rgba(255, 255, 255, 0.05)',
+                          border: '1px solid rgba(255, 255, 255, 0.1)',
+                          color: '#aaa',
+                          padding: '0.2rem 0.6rem',
+                          borderRadius: '6px',
+                          fontSize: '0.75rem',
+                        }}
+                      >
+                        {isAr ? 'جاهز للمسح في الجلسات القادمة' : 'Ready for session scanning'}
+                      </span>
+                    )}
+                  </div>
+
+                  <h2 style={{ fontSize: '1.35rem', fontWeight: 800, color: '#fff', margin: '0 0 0.5rem 0' }}>
+                    {profile?.full_name_ar || profile?.full_name_en || (isAr ? 'عضو إيناكوس قنا' : 'Enactus Member')}
+                  </h2>
+
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.75rem', flexWrap: 'wrap' }}>
+                    <div
+                      style={{
+                        background: 'rgba(255, 184, 0, 0.15)',
+                        border: '1px solid rgba(255, 184, 0, 0.35)',
+                        padding: '0.35rem 0.85rem',
+                        borderRadius: '8px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '0.5rem',
+                      }}
+                    >
+                      <span style={{ fontSize: '0.78rem', color: '#ffd54f' }}>{isAr ? 'كود العضو: ' : 'Member Code: '}</span>
+                      <span style={{ fontWeight: 900, color: '#ffb800', fontFamily: 'monospace', fontSize: '1.15rem', letterSpacing: '1px' }}>
+                        {memberCode}
+                      </span>
+                    </div>
+                  </div>
+
+                  <p style={{ color: '#a0a0b2', fontSize: '0.85rem', margin: 0, lineHeight: 1.6 }}>
+                    {openSessionNow
+                      ? isAr
+                        ? `أظهر هذا الرمز لمسؤول اللجنة المنظمة (OC) لتسجيل حضورك مباشرة في الجلسة المفتوحة حالياً.`
+                        : `Present this QR code to the OC organizer to record your attendance for the active session.`
+                      : isAr
+                      ? 'يستخدم هذا الرمز وكود العضو المكون من 7 أرقام لتسجيل حضورك في كافة اجتماعات وورش عمل إيناكوس قنا.'
+                      : 'Use this 7-digit code and QR pass for your official meeting and workshop attendance.'}
+                  </p>
+                </div>
+
+                {/* QR Code Canvas */}
+                <div
+                  style={{
+                    background: '#fff',
+                    padding: '0.85rem',
+                    borderRadius: '16px',
+                    boxShadow: '0 10px 30px rgba(0, 0, 0, 0.7), 0 0 25px rgba(255, 184, 0, 0.35)',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    gap: '0.35rem',
+                    flexShrink: 0,
+                  }}
+                >
+                  <QRCodeSVG
+                    value={qrPayload}
+                    size={128}
+                    level="M"
+                    includeMargin={false}
+                  />
+                  <span style={{ color: '#000', fontSize: '0.78rem', fontWeight: 900, fontFamily: 'monospace', letterSpacing: '1px' }}>
+                    {memberCode}
+                  </span>
+                </div>
+              </div>
+            );
+          })()}
+
           {/* Stat Cards Overview */}
           <div
             style={{

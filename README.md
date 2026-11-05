@@ -37,7 +37,7 @@ cp .env.example .env.local
 npm run dev
 
 # 4. تشغيل الاختبارات والفحص
-npm test              # تشغيل اختبارات Vitest (336 اختبار عبر 28 ملف اختبار)
+npm test              # تشغيل اختبارات Vitest (349 اختبار عبر 30 ملف اختبار)
 npm run lint          # فحص الكود بواسطة Oxlint
 npm run i18n:check    # تدقيق تطابق مفاتيح الترجمة (AR/EN)
 npm run build         # بناء حزمة الإنتاج

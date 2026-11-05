@@ -8,7 +8,8 @@ import StatusBadge from '../../components/dashboard/StatusBadge';
 import Drawer from '../../components/dashboard/Drawer';
 import FormField from '../../components/dashboard/FormField';
 import { useToast } from '../../components/dashboard/Toast';
-import { User, Mail, Phone, BookOpen, GraduationCap, ShieldCheck, Edit3, Save } from 'lucide-react';
+import CreateMemberModal from '../../components/dashboard/members/CreateMemberModal';
+import { User, Mail, Phone, BookOpen, GraduationCap, ShieldCheck, Edit3, Save, UserPlus, CreditCard, Calendar } from 'lucide-react';
 
 const PAGE_SIZE = 10;
 
@@ -29,6 +30,9 @@ export default function MembersPage() {
   const [statusFilter, setStatusFilter] = useState('all');
   const [sortBy, setSortBy] = useState('joined_at');
   const [sortOrder, setSortOrder] = useState('desc');
+
+  // Add Member Modal state
+  const [isAddMemberOpen, setIsAddMemberOpen] = useState(false);
 
   // Drawer state
   const [selectedMembership, setSelectedMembership] = useState(null);
@@ -120,6 +124,7 @@ export default function MembersPage() {
             id,
             full_name_ar,
             full_name_en,
+            member_code,
             avatar_url,
             bio,
             locale,
@@ -241,6 +246,33 @@ export default function MembersPage() {
   // Columns definition
   const columns = [
     {
+      key: 'memberCode',
+      label: isAr ? 'كود العضو' : 'Code',
+      render: (row) => {
+        const code = row.profiles?.member_code;
+        return code ? (
+          <span
+            style={{
+              fontFamily: 'monospace',
+              fontWeight: 800,
+              fontSize: '0.88rem',
+              color: '#ffb800',
+              background: 'rgba(255, 184, 0, 0.1)',
+              padding: '0.2rem 0.55rem',
+              borderRadius: '6px',
+              border: '1px solid rgba(255, 184, 0, 0.25)',
+              letterSpacing: '1px',
+              display: 'inline-block',
+            }}
+          >
+            {code}
+          </span>
+        ) : (
+          <span style={{ color: '#666' }}>—</span>
+        );
+      },
+    },
+    {
       key: 'member',
       label: isAr ? 'العضو' : 'Member',
       render: (row) => {
@@ -338,20 +370,45 @@ export default function MembersPage() {
           </p>
         </div>
 
-        {canManage && (
-          <span
-            style={{
-              fontSize: '0.8rem',
-              color: '#ffb800',
-              background: 'rgba(255, 184, 0, 0.1)',
-              padding: '0.4rem 0.8rem',
-              borderRadius: '6px',
-              border: '1px solid rgba(255, 184, 0, 0.3)',
-            }}
-          >
-            {isAr ? 'صلاحية الإدارة مفعلة (HR / إدارة)' : 'Management permissions active (HR / Exec)'}
-          </span>
-        )}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
+          {canManage && (
+            <>
+              <button
+                type="button"
+                onClick={() => setIsAddMemberOpen(true)}
+                className="btn-gold"
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.5rem',
+                  padding: '0.55rem 1.15rem',
+                  borderRadius: '10px',
+                  fontWeight: 700,
+                  fontSize: '0.88rem',
+                  cursor: 'pointer',
+                  border: 'none',
+                }}
+              >
+                <UserPlus size={17} />
+                <span>{isAr ? 'إضافة عضو جديد' : 'Add New Member'}</span>
+              </button>
+
+              <span
+                style={{
+                  fontSize: '0.8rem',
+                  color: '#ffb800',
+                  background: 'rgba(255, 184, 0, 0.1)',
+                  padding: '0.45rem 0.85rem',
+                  borderRadius: '8px',
+                  border: '1px solid rgba(255, 184, 0, 0.3)',
+                  fontWeight: 600,
+                }}
+              >
+                {isAr ? 'صلاحية الإدارة مفعلة (HR / إدارة)' : 'Management permissions active (HR / Exec)'}
+              </span>
+            </>
+          )}
+        </div>
       </div>
 
       {/* Custom Filters for DataTable */}
@@ -757,6 +814,12 @@ export default function MembersPage() {
                   gap: '0.75rem',
                 }}
               >
+                <div style={{ background: 'rgba(255, 184, 0, 0.05)', padding: '0.75rem', borderRadius: '8px', border: '1px solid rgba(255, 184, 0, 0.2)' }}>
+                  <div style={{ fontSize: '0.75rem', color: '#ffb800', fontWeight: 700 }}>{isAr ? 'كود العضو (اسم الدخول)' : 'Member Code (Login ID)'}</div>
+                  <div style={{ color: '#ffd54f', fontWeight: 800, fontSize: '1.05rem', fontFamily: 'monospace' }}>
+                    {selectedMembership.profiles?.member_code || '—'}
+                  </div>
+                </div>
                 <div style={{ background: 'rgba(255,255,255,0.02)', padding: '0.75rem', borderRadius: '8px' }}>
                   <div style={{ fontSize: '0.75rem', color: '#888' }}>{isAr ? 'الاسم بالعربي' : 'Arabic Name'}</div>
                   <div style={{ color: '#fff', fontWeight: 500 }}>{selectedMembership.profiles?.full_name_ar || '—'}</div>
@@ -869,6 +932,36 @@ export default function MembersPage() {
                   </div>
 
                   <div>
+                    <div style={{ fontSize: '0.75rem', color: '#ffb800', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
+                      <CreditCard size={12} />
+                      <span>{isAr ? 'الرقم القومي (كلمة المرور)' : 'National ID (Password)'}</span>
+                    </div>
+                    <div style={{ color: '#ffd54f', fontWeight: 800, fontSize: '0.9rem', direction: 'ltr', textAlign: 'start' }}>
+                      {privateProfile.national_id || '—'}
+                    </div>
+                  </div>
+
+                  <div>
+                    <div style={{ fontSize: '0.75rem', color: '#888', display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
+                      <Calendar size={12} />
+                      <span>{isAr ? 'تاريخ الميلاد والسن' : 'Birth Date & Age'}</span>
+                    </div>
+                    <div style={{ color: '#fff', fontWeight: 500, fontSize: '0.88rem' }}>
+                      {privateProfile.birth_date || '—'}
+                      {privateProfile.age ? ` (${privateProfile.age} ${isAr ? 'سنة' : 'yrs'})` : ''}
+                    </div>
+                  </div>
+
+                  <div>
+                    <div style={{ fontSize: '0.75rem', color: '#888' }}>
+                      {isAr ? 'المحافظة' : 'Governorate'}
+                    </div>
+                    <div style={{ color: '#fff', fontWeight: 500, fontSize: '0.88rem' }}>
+                      {privateProfile.governorate || '—'}
+                    </div>
+                  </div>
+
+                  <div>
                     <div style={{ fontSize: '0.75rem', color: '#888' }}>
                       {isAr ? 'الرقم الجامعي' : 'University ID'}
                     </div>
@@ -897,6 +990,15 @@ export default function MembersPage() {
           </div>
         )}
       </Drawer>
+
+      {/* Create Member Modal for System Admin & HR */}
+      <CreateMemberModal
+        isOpen={isAddMemberOpen}
+        onClose={() => setIsAddMemberOpen(false)}
+        committees={committees}
+        seasonYear={activeSeason?.name?.match(/\d{4}/)?.[0] || '2026'}
+        nextSequence={(membersData?.total || 0) + 1}
+      />
     </div>
   );
 }

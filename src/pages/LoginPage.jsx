@@ -5,17 +5,23 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { Lock, Mail, AlertCircle, KeyRound, ArrowRight } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
-import { isSupabaseConfigured } from '../lib/supabase';
+import { useLanguage } from '../context/LanguageContext';
+import { supabase, isSupabaseConfigured } from '../lib/supabase';
 import { t } from '../lib/strings';
 import LanguageToggle from '../components/LanguageToggle';
 
 const loginSchema = z.object({
-  email: z.email({ message: 'يرجى إدخال بريد إلكتروني صحيح' }),
-  password: z.string().min(1, { message: 'يرجى إدخال كلمة المرور' }),
+  identifier: z
+    .string()
+    .trim()
+    .min(3, { message: 'يرجى إدخال البريد الإلكتروني أو كود العضو (7 أرقام)' }),
+  password: z.string().min(1, { message: 'يرجى إدخال كلمة المرور (الرقم القومي)' }),
 });
 
 export default function LoginPage() {
   const { isAuthenticated, signIn } = useAuth();
+  const { lang } = useLanguage();
+  const isAr = lang === 'ar';
   const location = useLocation();
   const navigate = useNavigate();
   const [serverError, setServerError] = useState('');
@@ -27,7 +33,7 @@ export default function LoginPage() {
   } = useForm({
     resolver: zodResolver(loginSchema),
     defaultValues: {
-      email: '',
+      identifier: '',
       password: '',
     },
   });
@@ -56,10 +62,33 @@ export default function LoginPage() {
       return;
     }
 
+    const input = values.identifier.trim();
+    let emailToUse = input;
+
+    // Check if input is a member code (does not contain @)
+    if (!input.includes('@')) {
+      try {
+        const { data: resolvedEmail } = await supabase.rpc('get_member_login_email', {
+          p_identifier: input,
+        });
+        if (resolvedEmail) {
+          emailToUse = resolvedEmail;
+        } else {
+          emailToUse = `${input}@portal.enactusqena.org`;
+        }
+      } catch {
+        emailToUse = `${input}@portal.enactusqena.org`;
+      }
+    }
+
     try {
-      const { error } = await signIn(values.email.trim(), values.password);
+      const { error } = await signIn(emailToUse, values.password.trim());
       if (error) {
-        setServerError(t('loginGenericError'));
+        setServerError(
+          isAr
+            ? 'فشل تسجيل الدخول. يرجى التحقق من كود العضو / البريد والرقم القومي (كلمة المرور).'
+            : 'Login failed. Please verify your member code / email and National ID.'
+        );
         return;
       }
       const destination = location.state?.from || '/dashboard';
@@ -165,22 +194,35 @@ export default function LoginPage() {
           )}
 
           <form onSubmit={handleSubmit(onSubmit)}>
-            {/* Email Field */}
+            {/* Identifier Field: Email or 7-Digit Member Code */}
             <div style={{ marginBottom: '1.25rem' }}>
-              <label htmlFor="login-email" style={{ display: 'block', color: '#ffd54f', fontSize: '0.88rem', fontWeight: 700, marginBottom: '0.4rem' }}>
-                {t('emailLabel')}
+              <label
+                htmlFor="login-email"
+                style={{
+                  display: 'block',
+                  color: '#ffd54f',
+                  fontSize: '0.88rem',
+                  fontWeight: 700,
+                  marginBottom: '0.4rem',
+                }}
+              >
+                {isAr
+                  ? 'البريد الإلكتروني أو كود العضو (7 أرقام)'
+                  : 'Email or Member Code (7 digits)'}
               </label>
               <div style={{ position: 'relative' }}>
                 <input
                   id="login-email"
-                  type="email"
-                  autoComplete="email"
-                  placeholder={t('emailPlaceholder')}
-                  {...register('email')}
+                  type="text"
+                  autoComplete="username"
+                  placeholder={
+                    isAr ? '2026001 أو example@email.com' : '2026001 or email@domain.com'
+                  }
+                  {...register('identifier')}
                   style={{
                     width: '100%',
                     background: 'rgba(10, 11, 16, 0.85)',
-                    border: errors.email ? '1px solid #ef4444' : '1px solid rgba(255, 184, 0, 0.3)',
+                    border: errors.identifier ? '1px solid #ef4444' : '1px solid rgba(255, 184, 0, 0.3)',
                     borderRadius: '12px',
                     padding: '0.85rem 1rem 0.85rem 2.8rem',
                     color: '#fff',
@@ -196,18 +238,18 @@ export default function LoginPage() {
                   style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)' }}
                 />
               </div>
-              {errors.email && (
+              {errors.identifier && (
                 <span style={{ display: 'block', color: '#ef4444', fontSize: '0.8rem', marginTop: '0.35rem' }}>
-                  {errors.email.message}
+                  {errors.identifier.message}
                 </span>
               )}
             </div>
 
-            {/* Password Field */}
-            <div style={{ marginBottom: '1.5rem' }}>
+            {/* Password Field: National ID for members */}
+            <div style={{ marginBottom: '1.25rem' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.4rem' }}>
                 <label htmlFor="login-password" style={{ color: '#ffd54f', fontSize: '0.88rem', fontWeight: 700 }}>
-                  {t('passwordLabel')}
+                  {isAr ? 'كلمة المرور (الرقم القومي للأعضاء)' : 'Password (National ID for members)'}
                 </label>
                 <Link
                   to="/forgot-password"
@@ -221,7 +263,7 @@ export default function LoginPage() {
                   id="login-password"
                   type="password"
                   autoComplete="current-password"
-                  placeholder={t('passwordPlaceholder')}
+                  placeholder={isAr ? 'الرقم القومي (14 رقماً)' : 'National ID (14 digits)'}
                   {...register('password')}
                   style={{
                     width: '100%',
@@ -247,6 +289,24 @@ export default function LoginPage() {
                   {errors.password.message}
                 </span>
               )}
+            </div>
+
+            {/* Helper callout for members */}
+            <div
+              style={{
+                background: 'rgba(255, 184, 0, 0.05)',
+                border: '1px dashed rgba(255, 184, 0, 0.3)',
+                borderRadius: '12px',
+                padding: '0.75rem 1rem',
+                color: '#ffd54f',
+                fontSize: '0.82rem',
+                marginBottom: '1.5rem',
+                lineHeight: 1.5,
+              }}
+            >
+              {isAr
+                ? '💡 للأعضاء الجدد: كود العضو مكون من 7 أرقام (مثال: 2026001)، وكلمة المرور الافتراضية هي رقمك القومي المكون من 14 رقماً.'
+                : '💡 For new members: Your 7-digit Member Code (e.g., 2026001) is your login ID, and your default password is your 14-digit National ID.'}
             </div>
 
             {/* Submit Button */}
