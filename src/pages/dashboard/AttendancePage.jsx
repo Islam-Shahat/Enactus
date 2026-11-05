@@ -712,48 +712,30 @@ export default function AttendancePage() {
           </p>
         </div>
 
-        {/* Quick Action Buttons */}
-        <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
-          <button
-            type="button"
-            onClick={() => setIsScannerOpen(true)}
-            className="btn-primary"
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '0.5rem',
-              padding: '0.65rem 1.25rem',
-              borderRadius: '8px',
-              fontWeight: 700,
-            }}
-          >
-            <QrCode size={18} />
-            <span>{isAr ? 'مسح كود الحضور (Scan)' : 'Scan Attendance'}</span>
-          </button>
-
-          {canManage && (
+        {/* Quick Action Buttons - Only visible to session managers */}
+        {canManage && (
+          <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
             <button
               type="button"
               onClick={() => {
                 setSessionToEdit(null);
                 setIsCreateSessionOpen(true);
               }}
-              className="btn-secondary"
+              className="btn-primary"
               style={{
                 display: 'inline-flex',
                 alignItems: 'center',
                 gap: '0.5rem',
-                padding: '0.65rem 1.15rem',
+                padding: '0.65rem 1.25rem',
                 borderRadius: '8px',
-                borderColor: 'rgba(255, 184, 0, 0.4)',
-                color: '#ffd54f',
+                fontWeight: 700,
               }}
             >
               <Plus size={18} />
               <span>{isAr ? 'إنشاء جلسة جديدة' : 'Create Session'}</span>
             </button>
-          )}
-        </div>
+          </div>
+        )}
       </div>
 
       {/* Navigation Tabs */}
@@ -785,7 +767,7 @@ export default function AttendancePage() {
           }}
         >
           <CalendarCheck size={17} />
-          <span>{isAr ? 'سجل حضوري ومسح الكود' : 'My Attendance & Scan'}</span>
+          <span>{isAr ? 'سجل حضوري' : 'My Attendance'}</span>
         </button>
 
         <button
@@ -1219,25 +1201,6 @@ export default function AttendancePage() {
                       >
                         {isAr ? 'طلب عذر' : 'Request Excuse'}
                       </button>
-
-                      {s.check_in_open && (
-                        <button
-                          type="button"
-                          onClick={() => setIsScannerOpen(true)}
-                          className="btn-primary"
-                          style={{
-                            padding: '0.35rem 0.75rem',
-                            borderRadius: '6px',
-                            fontSize: '0.78rem',
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            gap: '0.3rem',
-                          }}
-                        >
-                          <QrCode size={13} />
-                          <span>{isAr ? 'تسجيل الحضور' : 'Check In'}</span>
-                        </button>
-                      )}
 
                       {canManage && (
                         <>
