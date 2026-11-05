@@ -168,10 +168,6 @@ export default function ProjectsImpact({ onOpenJoinModal }) {
                 style={{
                   borderRadius: '24px',
                   padding: '2rem',
-                  display: 'grid',
-                  gridTemplateColumns: '1.2fr 0.8fr',
-                  gap: '2.5rem',
-                  alignItems: 'center',
                   direction: gridDir,
                 }}
               >

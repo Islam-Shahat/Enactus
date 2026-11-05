@@ -235,15 +235,7 @@ export default function CommitteesSection({ onOpenJoinModal }) {
             marginBottom: '4rem',
           }}
         >
-          <div
-            style={{
-              display: 'grid',
-              gridTemplateColumns: '1.1fr 0.9fr',
-              gap: '2.5rem',
-              alignItems: 'center',
-            }}
-            className="mascot-banner-grid"
-          >
+          <div className="mascot-banner-grid">
             {/* Visual */}
             <div
               style={{

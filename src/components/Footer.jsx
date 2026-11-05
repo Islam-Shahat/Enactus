@@ -43,15 +43,7 @@ export default function Footer({ onOpenJoinModal: _onOpenJoinModal }) {
 
       <div className="container" style={{ position: 'relative', zIndex: 10 }}>
         {/* Top Grid */}
-        <div
-          style={{
-            display: 'grid',
-            gridTemplateColumns: '1.4fr 1fr 1fr 1fr',
-            gap: '3rem',
-            marginBottom: '4rem',
-          }}
-          className="footer-grid"
-        >
+        <div className="footer-grid">
           {/* Brand Info */}
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem', marginBottom: '1.25rem' }}>

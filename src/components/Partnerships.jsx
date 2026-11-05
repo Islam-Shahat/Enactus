@@ -162,14 +162,10 @@ export default function Partnerships() {
           {strategicPartners.map((partner, idx) => (
             <div
               key={partner.id || idx}
-              className="glass-panel gold-border-glow card-shine responsive-panel-p"
+              className="glass-panel gold-border-glow card-shine responsive-panel-p strategic-partner-grid"
               style={{
                 borderRadius: '24px',
                 padding: '2.5rem',
-                display: 'grid',
-                gridTemplateColumns: '1.1fr 0.9fr',
-                gap: '2.5rem',
-                alignItems: 'center',
                 textAlign: isAr ? 'right' : 'left',
               }}
             >

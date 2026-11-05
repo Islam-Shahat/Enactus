@@ -129,7 +129,7 @@ export default function Navbar() {
                 QENA
               </span>
             </div>
-            <p style={{ fontSize: '0.68rem', color: isDark ? '#a3a3b2' : '#6b7280', margin: 0, fontWeight: 500, whiteSpace: 'nowrap' }}>
+            <p className="navbar-subtitle" style={{ fontSize: '0.68rem', color: isDark ? '#a3a3b2' : '#6b7280', margin: 0, fontWeight: 500, whiteSpace: 'nowrap' }}>
               South Valley University
             </p>
           </div>
@@ -371,10 +371,14 @@ export default function Navbar() {
       {/* Media query styling */}
       <style>{`
         @media (max-width: 768px) {
-          .navbar-container { height: 72px !important; }
-          .navbar-brand-logo { width: 38px !important; height: 38px !important; border-radius: 10px !important; }
+          .navbar-container { height: 68px !important; padding: 0 0.85rem !important; gap: 0.45rem !important; }
+          .navbar-brand-logo { width: 36px !important; height: 36px !important; border-radius: 9px !important; }
           .navbar-title-text { font-size: 1.05rem !important; }
-          .mobile-nav-drawer { top: 72px !important; maxHeight: calc(100vh - 72px) !important; }
+          .mobile-nav-drawer { top: 68px !important; maxHeight: calc(100vh - 68px) !important; }
+        }
+        @media (max-width: 480px) {
+          .navbar-container { padding: 0 0.55rem !important; gap: 0.35rem !important; }
+          .navbar-subtitle { display: none !important; }
         }
         @media (max-width: 400px) {
           .mobile-drawer-actions { grid-template-columns: 1fr !important; }

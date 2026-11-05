@@ -113,40 +113,23 @@ export default function Hero({ onOpenJoinModal }) {
 
       <div className="container" style={{ position: 'relative', zIndex: 10 }}>
         {/* Top Tagline Pill */}
-        <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '1.5rem' }}>
+        <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '1.5rem', width: '100%' }}>
           <div
-            className="glass-panel"
-            style={{
-              padding: '0.45rem 1.25rem',
-              borderRadius: '9999px',
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '0.65rem',
-              border: '1px solid rgba(255, 184, 0, 0.4)',
-              boxShadow: '0 0 20px rgba(255, 184, 0, 0.15)',
-            }}
+            className="glass-panel hero-tagline-pill"
           >
             <span style={{ color: '#ffb800' }}>☥</span>
-            <span className="font-outfit" style={{ fontSize: '0.85rem', fontWeight: 700, color: '#ffd54f', letterSpacing: '0.08em' }}>
+            <span className="font-outfit hero-tagline-text" style={{ fontSize: '0.85rem', fontWeight: 700, color: '#ffd54f', letterSpacing: '0.08em', textAlign: 'center' }}>
               ENACTUS SOUTH VALLEY UNIVERSITY
             </span>
             <span style={{ color: '#ffb800' }}>•</span>
-            <span style={{ fontSize: '0.85rem', color: '#fff', fontWeight: 600 }}>
+            <span className="hero-tagline-loc" style={{ fontSize: '0.85rem', color: '#fff', fontWeight: 600 }}>
               {isAr ? 'قنا، صعيد مصر' : 'Qena, Upper Egypt'}
             </span>
           </div>
         </div>
 
         {/* Main Hero Grid */}
-        <div
-          style={{
-            display: 'grid',
-            gridTemplateColumns: '1.15fr 0.85fr',
-            gap: '3.5rem',
-            alignItems: 'center',
-          }}
-          className="hero-grid"
-        >
+        <div className="hero-grid">
           {/* Column 1 (Text & Urgency) */}
           <div style={{ textAlign: isAr ? 'right' : 'left' }}>
             <div style={{ marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
@@ -480,12 +463,12 @@ export default function Hero({ onOpenJoinModal }) {
 
             {/* Glowing Pharaoh Stamp Badge */}
             <div
-              className="badge-glow"
+              className="badge-glow hero-stamp-badge"
               style={{
                 position: 'absolute',
                 top: '-20px',
-                right: isAr ? '-15px' : 'auto',
-                left: isAr ? 'auto' : '-15px',
+                right: isAr ? '-10px' : 'auto',
+                left: isAr ? 'auto' : '-10px',
                 width: '72px',
                 height: '72px',
                 borderRadius: '50%',
