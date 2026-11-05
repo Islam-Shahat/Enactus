@@ -792,6 +792,12 @@ select option {
   transition: all 0.35s ease;
 }
 
+.countdown-urgency-banner.countdown-banner-closed {
+  border-color: rgba(239, 68, 68, 0.45) !important;
+  background: rgba(239, 68, 68, 0.06) !important;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5), 0 0 15px rgba(239, 68, 68, 0.1) !important;
+}
+
 .countdown-clock-icon {
   width: 44px;
   height: 44px;
@@ -893,6 +899,12 @@ select option {
   background: rgba(255, 255, 255, 0.95) !important;
   border: 1.5px solid rgba(184, 120, 0, 0.35) !important;
   box-shadow: 0 12px 35px rgba(184, 120, 0, 0.1), 0 2px 8px rgba(0, 0, 0, 0.04) !important;
+}
+
+[data-theme="light"] .countdown-urgency-banner.countdown-banner-closed {
+  border-color: rgba(220, 38, 38, 0.45) !important;
+  background: rgba(254, 242, 242, 0.95) !important;
+  box-shadow: 0 8px 25px rgba(220, 38, 38, 0.1) !important;
 }
 
 [data-theme="light"] .countdown-clock-icon {

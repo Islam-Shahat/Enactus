@@ -1,3 +1,5 @@
+import fs from 'node:fs';
+import path from 'node:path';
 import { describe, it, expect } from 'vitest';
 import {
   getVisibleTabs,
@@ -205,4 +207,27 @@ describe('Zod Validation Schemas', () => {
     expect(valid.success).toBe(true);
   });
 });
+
+describe('Recruitment Gate & Hero Responsiveness', () => {
+  it('Hero.jsx imports and conditions countdown on useApplicationsOpen', () => {
+    const heroPath = path.resolve(__dirname, '../src/components/Hero.jsx');
+    const content = fs.readFileSync(heroPath, 'utf-8');
+
+    expect(content).toContain("import { useApplicationsOpen } from '../hooks/usePublicContent'");
+    expect(content).toContain('useApplicationsOpen()');
+    expect(content).toContain('applicationsOpen');
+    expect(content).toContain('FORM OPEN');
+    expect(content).toContain('باب التقديم مغلق حالياً');
+    expect(content).toContain('countdown-banner-closed');
+  });
+
+  it('SettingsPage.jsx invalidates both applications-open query keys on toggle', () => {
+    const settingsPath = path.resolve(__dirname, '../src/pages/dashboard/SettingsPage.jsx');
+    const content = fs.readFileSync(settingsPath, 'utf-8');
+
+    expect(content).toContain("['applications-open']");
+    expect(content).toContain("['public', 'applications-open']");
+  });
+});
+
 

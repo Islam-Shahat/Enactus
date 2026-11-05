@@ -2,17 +2,21 @@ import React, { useState, useEffect } from 'react';
 import { Sparkles, ArrowLeft, ArrowRight, Clock, Flame, ExternalLink, ShieldCheck } from 'lucide-react';
 import { FacebookIcon } from './Icons';
 import { useLanguage } from '../context/LanguageContext';
+import { useApplicationsOpen } from '../hooks/usePublicContent';
 
 export default function Hero({ onOpenJoinModal }) {
   const { lang } = useLanguage();
   const isAr = lang === 'ar';
   const ArrowIcon = isAr ? ArrowLeft : ArrowRight;
 
+  const { data: applicationsOpen = true } = useApplicationsOpen();
+
   // Countdown timer simulation for recruitment
   const [timeLeft, setTimeLeft] = useState({ hours: 23, minutes: 48, seconds: 12 });
   const [activeVisual, setActiveVisual] = useState(0);
 
   useEffect(() => {
+    if (!applicationsOpen) return;
     const timer = setInterval(() => {
       setTimeLeft((prev) => {
         if (prev.seconds > 0) {
@@ -26,7 +30,7 @@ export default function Hero({ onOpenJoinModal }) {
       });
     }, 1000);
     return () => clearInterval(timer);
-  }, []);
+  }, [applicationsOpen]);
 
   const visualCards = [
     {
@@ -204,9 +208,9 @@ export default function Hero({ onOpenJoinModal }) {
               )}
             </p>
 
-            {/* Countdown Urgency Banner */}
+            {/* Countdown Urgency Banner (Reacts directly to recruitment gate in settings) */}
             <div
-              className="glass-panel card-shine countdown-urgency-banner"
+              className={`glass-panel card-shine countdown-urgency-banner ${!applicationsOpen ? 'countdown-banner-closed' : ''}`}
               style={{
                 borderRadius: '18px',
                 padding: '1.25rem 1.6rem',
@@ -219,67 +223,142 @@ export default function Hero({ onOpenJoinModal }) {
               }}
             >
               <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', flex: '1 1 280px' }}>
-                <div className="countdown-clock-icon">
+                <div
+                  className="countdown-clock-icon"
+                  style={!applicationsOpen ? {
+                    background: 'rgba(239, 68, 68, 0.15)',
+                    color: '#ef4444',
+                    borderColor: 'rgba(239, 68, 68, 0.35)',
+                  } : undefined}
+                >
                   <Clock size={22} />
                 </div>
                 <div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', marginBottom: '0.25rem', flexWrap: 'wrap' }}>
-                    <span className="countdown-banner-title">
-                      {isAr ? 'باب التقديم مفتوح الآن!' : 'Recruitment Is Open!'}
+                    <span
+                      className="countdown-banner-title"
+                      style={!applicationsOpen ? { color: '#fca5a5' } : undefined}
+                    >
+                      {applicationsOpen
+                        ? (isAr ? 'باب التقديم مفتوح الآن!' : 'Recruitment Is Open!')
+                        : (isAr ? 'باب التقديم مغلق حالياً' : 'Recruitment Is Closed')}
                     </span>
-                    <span className="countdown-status-badge">
-                      <span className="countdown-live-pulse" />
-                      FORM OPEN
+                    <span
+                      className="countdown-status-badge"
+                      style={!applicationsOpen ? {
+                        background: 'rgba(239, 68, 68, 0.15)',
+                        color: '#fca5a5',
+                        borderColor: 'rgba(239, 68, 68, 0.4)',
+                      } : undefined}
+                    >
+                      {applicationsOpen ? (
+                        <>
+                          <span className="countdown-live-pulse" />
+                          FORM OPEN
+                        </>
+                      ) : (
+                        (isAr ? 'مغلق' : 'CLOSED')
+                      )}
                     </span>
                   </div>
-                  <p className="countdown-banner-subtitle">
-                    {isAr
-                      ? '"Don\'t just apply... LEAVE YOUR MARK!" لا تكتفِ بالتقديم، اترك أثرك.'
-                      : '"Don\'t just apply... LEAVE YOUR MARK!"'}
+                  <p
+                    className="countdown-banner-subtitle"
+                    style={!applicationsOpen ? { color: '#e2e8f0', opacity: 0.9 } : undefined}
+                  >
+                    {applicationsOpen
+                      ? (isAr
+                          ? '"Don\'t just apply... LEAVE YOUR MARK!" لا تكتفِ بالتقديم، اترك أثرك.'
+                          : '"Don\'t just apply... LEAVE YOUR MARK!"')
+                      : (isAr
+                          ? 'انتهى استقبال طلبات الانضمام لهذا الموسم. تابعوا قنواتنا الرسمية للموجات القادمة.'
+                          : 'Applications are closed for this season. Follow our official channels for updates.')}
                   </p>
                 </div>
               </div>
 
-              {/* Digital Timer */}
-              <div className="countdown-timer-wrap">
-                <div className="countdown-digit-box">
-                  <div className="countdown-digit-num">
-                    {String(timeLeft.hours).padStart(2, '0')}
+              {/* Digital Timer (Active when open) or Closed Status (when closed) */}
+              {applicationsOpen ? (
+                <div className="countdown-timer-wrap">
+                  <div className="countdown-digit-box">
+                    <div className="countdown-digit-num">
+                      {String(timeLeft.hours).padStart(2, '0')}
+                    </div>
+                    <div className="countdown-digit-label">{isAr ? 'ساعة' : 'Hours'}</div>
                   </div>
-                  <div className="countdown-digit-label">{isAr ? 'ساعة' : 'Hours'}</div>
-                </div>
-                <span className="countdown-digit-sep">:</span>
-                <div className="countdown-digit-box">
-                  <div className="countdown-digit-num">
-                    {String(timeLeft.minutes).padStart(2, '0')}
+                  <span className="countdown-digit-sep">:</span>
+                  <div className="countdown-digit-box">
+                    <div className="countdown-digit-num">
+                      {String(timeLeft.minutes).padStart(2, '0')}
+                    </div>
+                    <div className="countdown-digit-label">{isAr ? 'دقيقة' : 'Mins'}</div>
                   </div>
-                  <div className="countdown-digit-label">{isAr ? 'دقيقة' : 'Mins'}</div>
-                </div>
-                <span className="countdown-digit-sep">:</span>
-                <div className="countdown-digit-box">
-                  <div className="countdown-digit-num">
-                    {String(timeLeft.seconds).padStart(2, '0')}
+                  <span className="countdown-digit-sep">:</span>
+                  <div className="countdown-digit-box">
+                    <div className="countdown-digit-num">
+                      {String(timeLeft.seconds).padStart(2, '0')}
+                    </div>
+                    <div className="countdown-digit-label">{isAr ? 'ثانية' : 'Secs'}</div>
                   </div>
-                  <div className="countdown-digit-label">{isAr ? 'ثانية' : 'Secs'}</div>
                 </div>
-              </div>
+              ) : (
+                <div
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.55rem',
+                    background: 'rgba(239, 68, 68, 0.12)',
+                    border: '1px solid rgba(239, 68, 68, 0.35)',
+                    padding: '0.6rem 1.1rem',
+                    borderRadius: '12px',
+                    color: '#fca5a5',
+                    fontSize: '0.86rem',
+                    fontWeight: 700,
+                    flexShrink: 0,
+                  }}
+                >
+                  <ShieldCheck size={18} color="#ef4444" />
+                  <span>{isAr ? 'اكتملت المقاعد لهذا الموسم' : 'Season Fully Staffed'}</span>
+                </div>
+              )}
             </div>
 
             {/* CTAs */}
             <div className="hero-cta-buttons" style={{ display: 'flex', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>
-              <button
-                onClick={onOpenJoinModal}
-                className="btn-primary animate-pulse-glow"
-                style={{ fontSize: '1.05rem', padding: '0.9rem 2rem' }}
-              >
-                <Sparkles size={20} />
-                <span>{isAr ? 'انضم للأسطورة (سجل الآن)' : 'Join the Legacy (Apply)'}</span>
-              </button>
+              {applicationsOpen ? (
+                <button
+                  onClick={onOpenJoinModal}
+                  className="btn-primary animate-pulse-glow"
+                  style={{ fontSize: '1.05rem', padding: '0.9rem 2rem' }}
+                >
+                  <Sparkles size={20} />
+                  <span>{isAr ? 'انضم للأسطورة (سجل الآن)' : 'Join the Legacy (Apply)'}</span>
+                </button>
+              ) : (
+                <a
+                  href="#committees"
+                  className="btn-primary"
+                  style={{ fontSize: '1.05rem', padding: '0.9rem 2rem' }}
+                >
+                  <Sparkles size={20} />
+                  <span>{isAr ? 'استكشف كتيبة الفراعنة' : 'Explore Committees'}</span>
+                </a>
+              )}
 
-              <a href="#committees" className="btn-secondary">
-                <span>{isAr ? 'استكشف كتيبة الفراعنة' : 'Explore Committees'}</span>
-                <ArrowIcon size={18} />
-              </a>
+              {applicationsOpen ? (
+                <a href="#committees" className="btn-secondary">
+                  <span>{isAr ? 'استكشف كتيبة الفراعنة' : 'Explore Committees'}</span>
+                  <ArrowIcon size={18} />
+                </a>
+              ) : (
+                <button
+                  onClick={onOpenJoinModal}
+                  className="btn-secondary"
+                  style={{ fontSize: '0.95rem', padding: '0.75rem 1.4rem' }}
+                >
+                  <span>{isAr ? 'معلومات التقديم' : 'Recruitment Info'}</span>
+                  <ArrowIcon size={16} />
+                </button>
+              )}
 
               <a
                 href="https://www.facebook.com/Enactus.svu"

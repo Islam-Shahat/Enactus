@@ -77,5 +77,5 @@ export const listGallery = (mock = []) =>
 export const getApplicationsOpen = (fallback = true) =>
   withFallback(async () => {
     const row = await table('settings').select('value').eq('key', 'applications_open').maybeSingle().then(unwrap);
-    return row ? row.value === true : fallback;
+    return row ? (row.value === true || row.value === 'true') : fallback;
   }, fallback);

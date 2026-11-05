@@ -75,6 +75,7 @@ export default function SettingsPage() {
       );
       queryClient.invalidateQueries({ queryKey: ['dashboard', 'setting', 'applications_open'] });
       queryClient.invalidateQueries({ queryKey: ['public', 'applications-open'] });
+      queryClient.invalidateQueries({ queryKey: ['applications-open'] });
     },
     onError: (err) => {
       toast.show(err.message || (isAr ? 'فشل تعديل الإعداد' : 'Failed to update setting'), 'error');
