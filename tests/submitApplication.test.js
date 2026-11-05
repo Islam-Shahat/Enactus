@@ -195,5 +195,33 @@ describe('submit-application Field Mapping & Schema Regression Tests', () => {
       }
     });
   });
+
+  describe('20261105224500_secure_application_submission.sql Migration & RPC Contract', () => {
+    it('verifies the RPC migration file exists and enforces security practices', async () => {
+      const fs = await import('fs');
+      const path = await import('path');
+      const migrationPath = path.resolve(
+        __dirname,
+        '../supabase/migrations/20261105224500_secure_application_submission.sql'
+      );
+
+      expect(fs.existsSync(migrationPath)).toBe(true);
+
+      const content = fs.readFileSync(migrationPath, 'utf-8');
+
+      // Function definition & security definer checks
+      expect(content).toContain('function public.submit_recruitment_application');
+      expect(content).toMatch(/security\s+definer/i);
+      expect(content).toMatch(/set\s+search_path\s*=\s*''/i);
+
+      // Permissions: anon execution must be granted
+      expect(content).toMatch(/grant\s+execute\s+on\s+function\s+public\.submit_recruitment_application[\s\S]*to\s+anon/i);
+
+      // Fallback RLS & storage policies
+      expect(content).toContain('applications_insert_anon');
+      expect(content).toContain('cvs_insert_anon');
+      expect(content).toMatch(/grant\s+insert\s+on\s+public\.applications\s+to\s+anon/i);
+    });
+  });
 });
 

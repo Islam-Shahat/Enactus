@@ -122,24 +122,83 @@ export default function JoinUsPage() {
         cvFileName,
       };
 
-      const { data, error } = await supabase.functions.invoke('submit-application', {
-        body: payload,
-      });
+      // 1. Primary: Use secure database RPC function (bypasses un-deployed Edge Functions)
+      let submissionSuccess = false;
+      let resultData = null;
 
-      if (error || data?.error) {
-        setServerError(
-          data?.error || (isAr ? 'تعذر إرسال طلب الانضمام، يرجى المحاولة لاحقاً.' : 'Failed to submit application. Please try again.')
-        );
-        return;
+      try {
+        let cvUrl = null;
+        if (cvFile) {
+          try {
+            const cvId = typeof crypto?.randomUUID === 'function' ? crypto.randomUUID() : `cv-${Date.now()}`;
+            const filePath = `${cvId}/cv.pdf`;
+            const { error: uploadError } = await supabase.storage.from('cvs').upload(filePath, cvFile, {
+              contentType: 'application/pdf',
+              upsert: false,
+            });
+            if (!uploadError) {
+              cvUrl = filePath;
+            }
+          } catch (storageErr) {
+            console.warn('[JoinUsPage] Direct CV upload notice:', storageErr);
+          }
+        }
+
+        const { data: rpcData, error: rpcErr } = await supabase.rpc('submit_recruitment_application', {
+          p_full_name: values.fullName.trim(),
+          p_email: values.email.trim(),
+          p_phone: values.phone?.trim() || null,
+          p_faculty: values.faculty?.trim() || null,
+          p_study_year: values.studyYear || null,
+          p_committee_slug: values.committee || null,
+          p_motivation: values.impactGoal?.trim() || null,
+          p_answers: {
+            impactGoal: values.impactGoal || '',
+            faculty: values.faculty || '',
+            studyYear: values.studyYear || '',
+          },
+          p_cv_url: cvUrl,
+        });
+
+        if (!rpcErr && rpcData) {
+          if (rpcData.ok === false) {
+            setServerError(
+              rpcData.error || (isAr ? 'تعذر إرسال طلب الانضمام.' : 'Failed to submit application.')
+            );
+            return;
+          }
+          resultData = rpcData;
+          submissionSuccess = true;
+        }
+      } catch (rpcException) {
+        console.warn('[JoinUsPage] RPC submission attempt notice:', rpcException);
       }
 
-      if (data?.alreadyApplied) {
+      // 2. Secondary fallback: Edge Function invoke (if deployed or RPC unavailable)
+      if (!submissionSuccess) {
+        const { data, error } = await supabase.functions.invoke('submit-application', {
+          body: payload,
+        });
+
+        if (error || data?.error || data?.ok === false) {
+          const errMsg = data?.error || error?.message;
+          setServerError(
+            errMsg || (isAr ? 'تعذر إرسال طلب الانضمام، يرجى المحاولة لاحقاً.' : 'Failed to submit application. Please try again.')
+          );
+          return;
+        }
+
+        resultData = data;
+      }
+
+      if (resultData?.alreadyApplied) {
         setAlreadyAppliedNotice(
-          data.message || (isAr ? 'لقد تم تسجيل طلب انضمام بهذا البريد الإلكتروني بالفعل لهذا الموسم.' : 'An application with this email was already received.')
+          resultData.message || (isAr ? 'لقد تم تسجيل طلب انضمام بهذا البريد الإلكتروني بالفعل لهذا الموسم.' : 'An application with this email was already received.')
         );
       }
 
-      const passCode = data?.id ? `ENACTUS-SVU-${data.id.substring(0, 4).toUpperCase()}` : 'ENACTUS-SVU-PENDING';
+      const appId = resultData?.id || resultData?.applicationId;
+      const passCode = appId ? `ENACTUS-SVU-${appId.substring(0, 4).toUpperCase()}` : 'ENACTUS-SVU-PENDING';
       setMemberId(passCode);
       setIsSubmitted(true);
 
