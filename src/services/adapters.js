@@ -30,11 +30,13 @@ export function formatDate(value, lang = 'ar') {
 function formatTimeRange(row, lang) {
   const label = pick(row, 'time_label', lang);
   if (label) return label;
-  if (!row.starts_at) return '';
+  const startsAt = row.starts_at || row.startsAt;
+  if (!startsAt) return '';
   const fmt = new Intl.DateTimeFormat(LOCALES[lang] ?? LOCALES.ar, {
     hour: '2-digit', minute: '2-digit', timeZone: 'Africa/Cairo',
   });
-  return row.ends_at ? `${fmt.format(new Date(row.starts_at))} - ${fmt.format(new Date(row.ends_at))}` : fmt.format(new Date(row.starts_at));
+  const endsAt = row.ends_at || row.endsAt;
+  return endsAt ? `${fmt.format(new Date(startsAt))} - ${fmt.format(new Date(endsAt))}` : fmt.format(new Date(startsAt));
 }
 
 // ---------------------------------------------------------------- committees
@@ -64,22 +66,40 @@ export function committeeFromRow(row, head, lang = 'ar') {
 
 // -------------------------------------------------------------------- events
 export function eventFromRow(row, lang = 'ar') {
+  if (!row) return null;
+
+  const startsAt = row.starts_at ?? row.startsAt ?? null;
+  const endsAt = row.ends_at ?? row.endsAt ?? null;
+  const registrationOpen = Boolean(row.registration_open ?? row.registrationOpen);
+  const rawStatus = row.status ?? 'published';
+
   return {
-    slug: row.slug,
-    title: pick(row, 'title', lang),
-    englishTitle: row.title_en ?? '',
-    status: row.status === 'completed' || row.status === 'cancelled' ? 'past' : 'upcoming',
-    date: formatDate(row.starts_at, lang),
-    time: formatTimeRange(row, lang),
-    location: pick(row, 'venue', lang),
-    category: pick(row, 'category', lang),
-    image: row.cover_url ?? '',
-    brief: pick(row, 'brief', lang),
-    description: pick(row, 'description', lang),
-    schedule: (row.schedule ?? []).map((s) => ({ time: pick(s, 'time', lang), activity: pick(s, 'activity', lang) })),
-    partnersInvolved: row.partner_names ?? [],
-    startsAt: row.starts_at,
-    registrationOpen: Boolean(row.registration_open),
+    id: row.id ?? null,
+    slug: row.slug ?? '',
+    title: pick(row, 'title', lang) || row.title || '',
+    englishTitle: row.title_en ?? row.englishTitle ?? '',
+    status: rawStatus,
+    date: row.date ?? (startsAt ? formatDate(startsAt, lang) : ''),
+    time: row.time ?? formatTimeRange(row, lang),
+    location: pick(row, 'venue', lang) || row.location || '',
+    category: pick(row, 'category', lang) || row.category || '',
+    image: row.cover_url ?? row.image ?? '',
+    brief: pick(row, 'brief', lang) || row.brief || '',
+    description: pick(row, 'description', lang) || row.description || '',
+    schedule: Array.isArray(row.schedule)
+      ? row.schedule.map((s) => ({
+          time: pick(s, 'time', lang) || s.time || '',
+          activity: pick(s, 'activity', lang) || s.activity || '',
+        }))
+      : [],
+    partnersInvolved: row.partner_names ?? row.partnersInvolved ?? [],
+    startsAt,
+    endsAt,
+    registrationOpen,
+    // snake_case aliases for seamless compatibility
+    starts_at: startsAt,
+    ends_at: endsAt,
+    registration_open: registrationOpen,
   };
 }
 

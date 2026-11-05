@@ -261,3 +261,4 @@ export function renderAnnouncementDigestHtml(data: {
     preheader: isAr ? 'موجز الإعلانات والتحديثات' : 'New announcements digest',
   });
 }
+

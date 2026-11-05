@@ -143,7 +143,7 @@ export default function EventFeedbackSection({ event, defaultTicketCode = '' }) 
                 type="text"
                 value={ticketCode}
                 onChange={(e) => setTicketCode(e.target.value.toUpperCase())}
-                placeholder="مثال: ENQ-A1B2C3"
+                placeholder="مثال: ENQ-A1B2C3D4E5"
                 dir="ltr"
                 required
                 style={{

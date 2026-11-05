@@ -24,7 +24,7 @@ export default function ContentCalendar({
   const { lang, dir } = useLanguage();
   const isAr = lang === 'ar';
 
-  const [currentDate, setCurrentDate] = useState(new Date());
+  const [currentDate, setCurrentDate] = useState(() => new Date());
 
   const year = currentDate.getFullYear();
   const month = currentDate.getMonth();
@@ -54,7 +54,7 @@ export default function ContentCalendar({
     ? ['الأحد', 'الاثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة', 'السبت']
     : ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
-  const todayStr = new Date().toISOString().split('T')[0];
+  const [todayStr] = useState(() => new Date().toISOString().split('T')[0]);
 
   return (
     <div

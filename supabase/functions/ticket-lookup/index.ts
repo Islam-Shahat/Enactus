@@ -1,8 +1,7 @@
 // supabase/functions/ticket-lookup/index.ts
-import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.45.4';
-import { z } from 'https://esm.sh/zod@3.23.8';
-import { handleCors } from '../_shared/cors.ts';
+import { createClient } from 'jsr:@supabase/supabase-js@2';
+import { z } from 'npm:zod@4.6.7';
+import { handleCors, checkOrigin } from '../_shared/cors.ts';
 import { json, errorResponse, getClientIp } from '../_shared/http.ts';
 import { isRateLimited } from '../_shared/ratelimit.ts';
 
@@ -10,9 +9,13 @@ const LookupSchema = z.object({
   code: z.string().min(3).max(50),
 });
 
-serve(async (req: Request) => {
+if (typeof Deno !== 'undefined' && typeof Deno.serve === 'function') {
+  Deno.serve(async (req: Request) => {
   const corsResponse = handleCors(req);
   if (corsResponse) return corsResponse;
+
+  const originError = checkOrigin(req);
+  if (originError) return originError;
 
   if (req.method !== 'POST') {
     return errorResponse(req, 'Method not allowed', 405);
@@ -100,5 +103,6 @@ serve(async (req: Request) => {
     console.error('Unhandled ticket-lookup error:', err);
     return errorResponse(req, 'An unexpected error occurred', 500);
   }
-});
+  });
+}
 

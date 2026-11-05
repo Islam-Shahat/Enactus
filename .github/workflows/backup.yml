@@ -1,0 +1,155 @@
+name: Supabase Database Backup
+
+on:
+  schedule:
+    # Run every Sunday at 02:00 UTC
+    - cron: '0 2 * * 0'
+  workflow_dispatch:
+    inputs:
+      run_restore_drill:
+        description: 'Run automated restore drill against an isolated ephemeral database'
+        required: false
+        type: boolean
+        default: true
+
+jobs:
+  backup:
+    name: Encrypted Database Backup & Integrity Drill
+    runs-on: ubuntu-latest
+
+    services:
+      # Ephemeral isolated Postgres instance strictly for the automated restore drill
+      ephemeral-postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: restore_drill
+          POSTGRES_USER: drill_user
+          POSTGRES_PASSWORD: drill_password_safe
+        ports:
+          - 5433:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - name: Install PostgreSQL Client & GPG
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y postgresql-client gpg
+
+      - name: Dump and Encrypt Database
+        env:
+          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+          BACKUP_PASSPHRASE: ${{ secrets.BACKUP_PASSPHRASE }}
+        run: |
+          set -euo pipefail
+
+          if [ -z "${SUPABASE_DB_URL:-}" ]; then
+            echo "::error::SUPABASE_DB_URL secret is not configured"
+            exit 1
+          fi
+          if [ -z "${BACKUP_PASSPHRASE:-}" ]; then
+            echo "::error::BACKUP_PASSPHRASE secret is not configured"
+            exit 1
+          fi
+
+          TIMESTAMP=$(date +'%Y%m%d_%H%M%S')
+          DUMP_FILE="enactus_dump_${TIMESTAMP}.sql"
+          ENC_FILE="enactus_backup_${TIMESTAMP}.sql.gpg"
+
+          echo "Dumping PostgreSQL schema and data..."
+          pg_dump "$SUPABASE_DB_URL" \
+            --clean \
+            --if-exists \
+            --no-owner \
+            --no-privileges \
+            --format=plain \
+            --file="$DUMP_FILE"
+
+          # Verify dump file was created and is non-empty
+          if [ ! -s "$DUMP_FILE" ]; then
+            echo "::error::pg_dump produced an empty or missing dump file"
+            exit 1
+          fi
+
+          # Verify dump contains valid PostgreSQL structure header
+          if ! grep -q "PostgreSQL database dump" "$DUMP_FILE"; then
+            echo "::error::Dump file does not contain valid PostgreSQL database dump header"
+            exit 1
+          fi
+
+          echo "Encrypting backup with symmetric GPG cipher (AES256)..."
+          gpg --batch --yes --passphrase "$BACKUP_PASSPHRASE" \
+            --symmetric --cipher-algo AES256 \
+            --output "$ENC_FILE" "$DUMP_FILE"
+
+          # Securely remove plain text dump file immediately
+          rm -f "$DUMP_FILE"
+
+          # Verify encrypted artifact exists and has non-zero size
+          if [ ! -s "$ENC_FILE" ]; then
+            echo "::error::Encrypted backup file was not created or is empty"
+            exit 1
+          fi
+
+          echo "BACKUP_NAME=$ENC_FILE" >> $GITHUB_ENV
+          echo "TIMESTAMP=$TIMESTAMP" >> $GITHUB_ENV
+          echo "Backup file $ENC_FILE generated successfully."
+
+      - name: Verify Decryption and Execute Safe Restore Drill
+        env:
+          BACKUP_PASSPHRASE: ${{ secrets.BACKUP_PASSPHRASE }}
+          DRILL_DB_URL: postgresql://drill_user:drill_password_safe@127.0.0.1:5433/restore_drill
+        run: |
+          set -euo pipefail
+
+          echo "Testing round-trip decryption for $BACKUP_NAME..."
+          DRILL_SQL="drill_restore_${TIMESTAMP}.sql"
+
+          # Decrypt to temporary drill file
+          gpg --batch --yes --passphrase "$BACKUP_PASSPHRASE" \
+            --decrypt --output "$DRILL_SQL" "$BACKUP_NAME"
+
+          if [ ! -s "$DRILL_SQL" ]; then
+            echo "::error::Decrypted drill file is empty or corrupted"
+            exit 1
+          fi
+
+          # Verify decrypted SQL contains expected PostgreSQL structure
+          if ! grep -q "PostgreSQL database dump" "$DRILL_SQL"; then
+            echo "::error::Decrypted file failed PostgreSQL structure validation"
+            rm -f "$DRILL_SQL"
+            exit 1
+          fi
+
+          echo "Decryption verified successfully. Executing safe restore drill against isolated ephemeral database..."
+
+          # Restore strictly into isolated test database (NEVER into production)
+          psql "$DRILL_DB_URL" < "$DRILL_SQL"
+
+          # Securely scrub plain text file immediately
+          rm -f "$DRILL_SQL"
+
+          echo "Validating schema and tables in isolated drill database..."
+          TABLE_COUNT=$(psql "$DRILL_DB_URL" -t -A -c "
+            SELECT count(*) FROM information_schema.tables
+            WHERE table_schema = 'public' AND table_type = 'BASE TABLE';
+          ")
+
+          echo "Isolated drill database contains $TABLE_COUNT public base tables."
+
+          if [ "$TABLE_COUNT" -lt 5 ]; then
+            echo "::error::Restore drill failed: Expected at least 5 public tables, found $TABLE_COUNT"
+            exit 1
+          fi
+
+          echo "Restore drill PASSED: Decryption verified and schema restored into isolated test database without errors."
+
+      - name: Upload Encrypted Backup Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ env.BACKUP_NAME }}
+          path: ${{ env.BACKUP_NAME }}
+          retention-days: 90

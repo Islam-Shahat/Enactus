@@ -224,10 +224,11 @@ export default function ContactPage() {
                 </div>
 
                 <div style={{ marginBottom: '1.25rem' }}>
-                  <label style={{ display: 'block', color: '#ffd54f', fontSize: '0.9rem', fontWeight: 700, marginBottom: '0.4rem' }}>
+                  <label htmlFor="contact-full-name" style={{ display: 'block', color: '#ffd54f', fontSize: '0.9rem', fontWeight: 700, marginBottom: '0.4rem' }}>
                     {isAr ? 'الاسم بالكامل *' : 'Full Name *'}
                   </label>
                   <input
+                    id="contact-full-name"
                     type="text"
                     placeholder={isAr ? 'اسمك الكريم' : 'Your Name'}
                     {...register('fullName')}
@@ -250,10 +251,11 @@ export default function ContactPage() {
                 </div>
 
                 <div style={{ marginBottom: '1.25rem' }}>
-                  <label style={{ display: 'block', color: '#ffd54f', fontSize: '0.9rem', fontWeight: 700, marginBottom: '0.4rem' }}>
+                  <label htmlFor="contact-email" style={{ display: 'block', color: '#ffd54f', fontSize: '0.9rem', fontWeight: 700, marginBottom: '0.4rem' }}>
                     {isAr ? 'البريد الإلكتروني *' : 'Email Address *'}
                   </label>
                   <input
+                    id="contact-email"
                     type="email"
                     placeholder="name@example.com"
                     {...register('email')}
@@ -278,10 +280,11 @@ export default function ContactPage() {
                 </div>
 
                 <div style={{ marginBottom: '1.25rem' }}>
-                  <label style={{ display: 'block', color: '#ffd54f', fontSize: '0.9rem', fontWeight: 700, marginBottom: '0.4rem' }}>
+                  <label htmlFor="contact-subject" style={{ display: 'block', color: '#ffd54f', fontSize: '0.9rem', fontWeight: 700, marginBottom: '0.4rem' }}>
                     {isAr ? 'موضوع الرسالة *' : 'Subject *'}
                   </label>
                   <select
+                    id="contact-subject"
                     {...register('subject')}
                     style={{
                       width: '100%',
@@ -310,10 +313,11 @@ export default function ContactPage() {
                 </div>
 
                 <div style={{ marginBottom: '1.5rem' }}>
-                  <label style={{ display: 'block', color: '#ffd54f', fontSize: '0.9rem', fontWeight: 700, marginBottom: '0.4rem' }}>
+                  <label htmlFor="contact-message" style={{ display: 'block', color: '#ffd54f', fontSize: '0.9rem', fontWeight: 700, marginBottom: '0.4rem' }}>
                     {isAr ? 'نص الرسالة *' : 'Message Body *'}
                   </label>
                   <textarea
+                    id="contact-message"
                     rows="4"
                     placeholder={isAr ? 'اكتب رسالتك هنا...' : 'Write your message here...'}
                     {...register('message')}

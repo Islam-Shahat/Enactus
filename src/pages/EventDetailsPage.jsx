@@ -71,15 +71,27 @@ export default function EventDetailsPage() {
               <span className="badge-gold font-cinzel">{event.category}</span>
               <span
                 style={{
-                  background: event.status === 'upcoming' ? 'rgba(255, 184, 0, 0.95)' : 'rgba(20, 20, 28, 0.85)',
-                  color: event.status === 'upcoming' ? '#08080a' : '#ffd54f',
+                  background:
+                    event.status === 'published' || event.status === 'upcoming' || event.status === 'ongoing'
+                      ? 'rgba(255, 184, 0, 0.95)'
+                      : 'rgba(20, 20, 28, 0.85)',
+                  color:
+                    event.status === 'published' || event.status === 'upcoming' || event.status === 'ongoing'
+                      ? '#08080a'
+                      : '#ffd54f',
                   fontWeight: 800,
                   fontSize: '0.78rem',
                   padding: '0.35rem 0.9rem',
                   borderRadius: '9999px',
                 }}
               >
-                {event.status === 'upcoming' ? (isAr ? 'فعالية قادمة' : 'Upcoming Event') : (isAr ? 'فعالية مكتملة' : 'Completed Event')}
+                {event.status === 'completed' || event.status === 'past'
+                  ? isAr ? 'فعالية مكتملة' : 'Completed Event'
+                  : event.status === 'cancelled'
+                  ? isAr ? 'فعالية ملغاة' : 'Cancelled Event'
+                  : event.status === 'ongoing'
+                  ? isAr ? 'جارية الآن' : 'Ongoing Event'
+                  : isAr ? 'فعالية قادمة' : 'Upcoming Event'}
               </span>
             </div>
 
@@ -217,7 +229,7 @@ export default function EventDetailsPage() {
         )}
 
         {/* Post-event Feedback Section */}
-        {event.status === 'completed' && (
+        {(event.status === 'completed' || event.status === 'past') && (
           <EventFeedbackSection event={event} />
         )}
       </div>

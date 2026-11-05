@@ -10,7 +10,7 @@ import StatusBadge from '../StatusBadge';
 import ConfirmDialog from '../ConfirmDialog';
 import { supabase } from '../../../lib/supabase';
 import { exportToCsv } from '../../../lib/csvExport';
-import { calculateAverageRating, calculateEventCapacity } from '../../../lib/eventHelpers';
+import { calculateAverageRating, calculateEventCapacity, normalizeTicketCode } from '../../../lib/eventHelpers';
 import { Html5Qrcode } from 'html5-qrcode';
 
 export default function EventDetailDrawer({
@@ -66,90 +66,104 @@ export default function EventDetailDrawer({
   // Fetch all related event data when opened
   useEffect(() => {
     if (!isOpen || !event?.id) return;
-    loadEventData();
-    return () => {
-      stopScanner();
-    };
-  }, [isOpen, event?.id]);
+    let isCancelled = false;
 
-  async function loadEventData() {
-    if (!event?.id) return;
-    setLoading(true);
+    async function loadEventData() {
+      setLoading(true);
 
-    try {
-      // 1. Roles
-      const { data: rolesData } = await supabase
-        .from('event_roles')
-        .select('*')
-        .eq('event_id', event.id);
-      setRoles(rolesData || []);
+      try {
+        // 1. Roles
+        const { data: rolesData } = await supabase
+          .from('event_roles')
+          .select('*')
+          .eq('event_id', event.id);
+        if (isCancelled) return;
+        setRoles(rolesData || []);
 
-      // 2. Volunteers
-      const { data: volData } = await supabase
-        .from('event_volunteers')
-        .select('*, profiles(full_name_ar, full_name_en, email, avatar_url), event_roles(name)')
-        .eq('event_id', event.id);
-      setVolunteers(volData || []);
+        // 2. Volunteers
+        const { data: volData } = await supabase
+          .from('event_volunteers')
+          .select('*, profiles(full_name_ar, full_name_en, email, avatar_url), event_roles(name)')
+          .eq('event_id', event.id);
+        if (isCancelled) return;
+        setVolunteers(volData || []);
 
-      // 3. Registrations
-      const { data: regData } = await supabase
-        .from('event_registrations')
-        .select('*')
-        .eq('event_id', event.id)
-        .order('created_at', { ascending: false });
-      setRegistrations(regData || []);
+        // 3. Registrations
+        const { data: regData } = await supabase
+          .from('event_registrations')
+          .select('*')
+          .eq('event_id', event.id)
+          .order('created_at', { ascending: false });
+        if (isCancelled) return;
+        setRegistrations(regData || []);
 
-      // 4. Feedback
-      const { data: feedData } = await supabase
-        .from('event_feedback')
-        .select('*')
-        .eq('event_id', event.id)
-        .order('created_at', { ascending: false });
-      setFeedback(feedData || []);
+        // 4. Feedback
+        const { data: feedData } = await supabase
+          .from('event_feedback')
+          .select('*')
+          .eq('event_id', event.id)
+          .order('created_at', { ascending: false });
+        if (isCancelled) return;
+        setFeedback(feedData || []);
 
-      // 5. Gallery
-      const { data: galData } = await supabase
-        .from('gallery_items')
-        .select('*')
-        .eq('event_id', event.id)
-        .order('sort_order', { ascending: true });
-      setGallery(galData || []);
+        // 5. Gallery
+        const { data: galData } = await supabase
+          .from('gallery_items')
+          .select('*')
+          .eq('event_id', event.id)
+          .order('sort_order', { ascending: true });
+        if (isCancelled) return;
+        setGallery(galData || []);
 
-      // 6. Budgets & Expenses
-      const { data: bData } = await supabase.from('budgets').select('*').eq('event_id', event.id);
-      setBudgets(bData || []);
+        // 6. Budgets & Expenses
+        const { data: bData } = await supabase.from('budgets').select('*').eq('event_id', event.id);
+        if (isCancelled) return;
+        setBudgets(bData || []);
 
-      const { data: exData } = await supabase.from('expenses').select('*').eq('event_id', event.id);
-      setExpenses(exData || []);
+        const { data: exData } = await supabase.from('expenses').select('*').eq('event_id', event.id);
+        if (isCancelled) return;
+        setExpenses(exData || []);
 
-      // 7. Active season members for volunteer assignment
-      if (event.season_id) {
-        const { data: memData } = await supabase
-          .from('memberships')
-          .select('user_id, profiles(id, full_name_ar, full_name_en)')
-          .eq('season_id', event.season_id)
-          .eq('status', 'active');
-        if (memData) {
-          setAvailableMembers(memData.map((m) => m.profiles).filter(Boolean));
+        // 7. Active season members for volunteer assignment
+        if (event.season_id) {
+          const { data: memData } = await supabase
+            .from('memberships')
+            .select('user_id, profiles(id, full_name_ar, full_name_en)')
+            .eq('season_id', event.season_id)
+            .eq('status', 'active');
+          if (memData && !isCancelled) {
+            setAvailableMembers(memData.map((m) => m.profiles).filter(Boolean));
+          }
+        }
+
+        // Initialize impact data
+        if (event.impact && typeof event.impact === 'object' && !isCancelled) {
+          setImpactData({
+            attendees_count: event.impact.attendees_count ?? (regData?.filter((r) => r.status === 'attended').length || 0),
+            satisfaction_rate: event.impact.satisfaction_rate ?? '95%',
+            projects_presented: event.impact.projects_presented ?? 5,
+            certificates_issued: event.impact.certificates_issued ?? 0,
+            notes: event.impact.notes ?? '',
+          });
+        }
+      } catch (err) {
+        if (!isCancelled) {
+          console.error('Failed loading event data:', err);
+        }
+      } finally {
+        if (!isCancelled) {
+          setLoading(false);
         }
       }
-
-      // Initialize impact data
-      if (event.impact && typeof event.impact === 'object') {
-        setImpactData({
-          attendees_count: event.impact.attendees_count ?? (regData?.filter((r) => r.status === 'attended').length || 0),
-          satisfaction_rate: event.impact.satisfaction_rate ?? '95%',
-          projects_presented: event.impact.projects_presented ?? 5,
-          certificates_issued: event.impact.certificates_issued ?? 0,
-          notes: event.impact.notes ?? '',
-        });
-      }
-    } catch (err) {
-      console.error('Failed loading event data:', err);
-    } finally {
-      setLoading(false);
     }
-  }
+
+    loadEventData();
+
+    return () => {
+      isCancelled = true;
+      stopScanner();
+    };
+  }, [isOpen, event?.id, event?.season_id, event?.impact]);
 
   // Camera QR scanner start/stop
   async function startScanner() {
@@ -191,13 +205,9 @@ export default function EventDetailDrawer({
     if (!rawCode || !rawCode.trim()) return;
     setCheckinMessage(null);
 
-    // Extract ticket code if URL was passed (e.g. /ticket/ENQ-123456)
-    let cleanCode = rawCode.trim();
-    if (cleanCode.includes('/ticket/')) {
-      const parts = cleanCode.split('/ticket/');
-      cleanCode = parts[parts.length - 1].split('?')[0].split('#')[0];
-    }
-    cleanCode = cleanCode.toUpperCase();
+    // Extract & normalize ticket code if URL was passed (e.g. /ticket/ENQ-A1B2C3D4E5)
+    const cleanCode = normalizeTicketCode(rawCode);
+    if (!cleanCode) return;
 
     // Find registration in state or fetch from DB
     let reg = registrations.find((r) => r.ticket_code.toUpperCase() === cleanCode);

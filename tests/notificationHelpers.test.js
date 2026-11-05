@@ -126,3 +126,4 @@ describe('Email Templates Rendering', () => {
     expect(html).toContain('يرجى الحضور في موعد الجلسة');
   });
 });
+

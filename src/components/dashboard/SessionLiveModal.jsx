@@ -51,9 +51,12 @@ export default function SessionLiveModal({
   // Close session confirm dialog
   const [isCloseConfirmOpen, setIsCloseConfirmOpen] = useState(false);
 
+  const sessionId = session?.id;
+  const isCheckInOpen = Boolean(session?.check_in_open);
+
   // Fetch token from Edge Function
   const fetchQrToken = useCallback(async () => {
-    if (!session?.id || !session.check_in_open) return;
+    if (!sessionId || !isCheckInOpen) return;
     try {
       const {
         data: { session: authSession },
@@ -69,7 +72,7 @@ export default function SessionLiveModal({
             'Content-Type': 'application/json',
             Authorization: `Bearer ${authSession.access_token}`,
           },
-          body: JSON.stringify({ session_id: session.id }),
+          body: JSON.stringify({ session_id: sessionId }),
         }
       );
 
@@ -84,11 +87,11 @@ export default function SessionLiveModal({
     } catch (err) {
       console.error('[fetchQrToken error]:', err);
     }
-  }, [session?.id, session?.check_in_open]);
+  }, [sessionId, isCheckInOpen]);
 
   // Rotate token every 20 seconds while modal is open and check_in_open is true
   useEffect(() => {
-    if (!isOpen || !session?.id || !session.check_in_open) return;
+    if (!isOpen || !sessionId || !isCheckInOpen) return;
 
     fetchQrToken();
     const interval = setInterval(fetchQrToken, 20000);
@@ -101,7 +104,7 @@ export default function SessionLiveModal({
       clearInterval(interval);
       clearInterval(countdown);
     };
-  }, [isOpen, session?.id, session?.check_in_open, fetchQrToken]);
+  }, [isOpen, sessionId, isCheckInOpen, fetchQrToken]);
 
   // Toggle check_in_open mutation
   const toggleCheckinMutation = useMutation({

@@ -1,8 +1,17 @@
 // supabase/functions/qr-checkin/index.ts
 import { createClient } from 'jsr:@supabase/supabase-js@2';
+import { z } from 'npm:zod@4.6.7';
 import { handleCors, checkOrigin } from '../_shared/cors.ts';
 import { json, errorResponse } from '../_shared/http.ts';
 import { verifyQrToken, verifyManualCode } from '../_shared/qr.ts';
+
+const qrCheckinSchema = z.object({
+  token: z.string().min(10).optional(),
+  session_id: z.string().uuid().optional(),
+  code: z.string().min(4).max(16).optional(),
+}).refine((data) => Boolean(data.token || (data.session_id && data.code)), {
+  message: 'Either token or both session_id and code must be provided',
+});
 
 // Best-effort in-memory isolate rate limiter: 15 attempts / minute per user+session
 interface RateLimitBucket {
@@ -70,26 +79,22 @@ Deno.serve(async (req: Request) => {
   const callerId = callerUser.id;
   const adminClient = createClient(supabaseUrl, supabaseServiceKey);
 
-  // 3. Parse input payload: either { token } or { session_id, code }
-  let body: { token?: string; session_id?: string; code?: string };
+  // 3. Parse input payload with Zod: either { token } or { session_id, code }
+  let rawBody: unknown;
   try {
-    body = await req.json();
+    rawBody = await req.json();
   } catch {
     return errorResponse(req, 'Invalid JSON body', 400);
   }
 
-  let targetSessionId = body.session_id;
-  const rawToken = body.token;
-  const rawCode = body.code;
-
-  if (!rawToken && (!targetSessionId || !rawCode)) {
-    return errorResponse(
-      req,
-      'Either token or both session_id and code must be provided',
-      400,
-      'INVALID_INPUT'
-    );
+  const parsed = qrCheckinSchema.safeParse(rawBody);
+  if (!parsed.success) {
+    return errorResponse(req, parsed.error.issues[0]?.message || 'Invalid input parameters', 400, 'INVALID_INPUT');
   }
+
+  let targetSessionId = parsed.data.session_id;
+  const rawToken = parsed.data.token;
+  const rawCode = parsed.data.code;
 
   // If token is provided, extract session ID from token structure first
   if (rawToken) {

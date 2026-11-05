@@ -112,7 +112,7 @@ export default function PartnerDeliverablesTab() {
     return Object.values(map);
   }, [deliverables]);
 
-  const todayStr = new Date().toISOString().split('T')[0];
+  const [todayStr] = useState(() => new Date().toISOString().split('T')[0]);
   const isLoading = loadingCompanies || loadingDeliverables;
 
   return (
@@ -173,7 +173,7 @@ export default function PartnerDeliverablesTab() {
         </div>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-          {companyGroups.map((group) => {
+          {companyGroups.map((group, gIdx) => {
             const compName = group.company
               ? isAr
                 ? group.company.name_ar
@@ -193,7 +193,7 @@ export default function PartnerDeliverablesTab() {
 
             return (
               <div
-                key={group.company?.id || Math.random()}
+                key={group.company?.id || `group-${gIdx}`}
                 className="glass-panel"
                 style={{
                   padding: '1.5rem',

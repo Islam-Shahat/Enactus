@@ -24,13 +24,13 @@ export default function RecordPaymentModal({
   const toast = useToast();
 
   const [loading, setLoading] = useState(false);
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState(() => ({
     agreement_id: agreementId || '',
     kind: 'installment',
     amount: '',
     due_date: new Date().toISOString().split('T')[0],
     notes: '',
-  });
+  }));
   const [receiptFile, setReceiptFile] = useState(null);
 
   // Sync agreementId when passed as prop

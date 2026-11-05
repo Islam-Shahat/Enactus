@@ -4,7 +4,9 @@ import { ArrowUp, Sparkles, MapPin, Globe, Lock } from 'lucide-react';
 import { FacebookIcon } from './Icons';
 import { useLanguage } from '../context/LanguageContext';
 
-export default function Footer({ onOpenJoinModal }) {
+const CURRENT_YEAR = new Date().getFullYear();
+
+export default function Footer({ onOpenJoinModal: _onOpenJoinModal }) {
   const { lang, t } = useLanguage();
   const isAr = lang === 'ar';
 
@@ -212,7 +214,7 @@ export default function Footer({ onOpenJoinModal }) {
           }}
         >
           <div style={{ fontSize: '0.88rem', color: '#88889a' }}>
-            © {new Date().getFullYear()} Enactus Qena University • {isAr ? 'صُنعت بروح الفراعنة وشغف شباب الصعيد.' : 'Crafted with Pharaonic heritage & passion.'}
+            © {CURRENT_YEAR} Enactus Qena University • {isAr ? 'صُنعت بروح الفراعنة وشغف شباب الصعيد.' : 'Crafted with Pharaonic heritage & passion.'}
           </div>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: '1.25rem' }}>

@@ -20,13 +20,25 @@ import {
 } from '../../lib/cmsHelpers';
 
 export default function SiteCmsPage() {
-  const { user, userRoles = [], isSuperAdmin } = useAuth();
+  const { user, roles = [], userRoles: authUserRoles = [], isSuperAdmin } = useAuth();
   const { lang, dir } = useLanguage();
   const isAr = lang === 'ar';
   const queryClient = useQueryClient();
 
+  // Normalize roles whether array of role objects [{ role: '...' }] or string names ['...']
+  const userRoles = Array.isArray(roles) && roles.length > 0
+    ? roles.map((r) => (typeof r === 'string' ? r : r?.role)).filter(Boolean)
+    : authUserRoles;
+
   const visibleTabs = getVisibleTabs(userRoles, isSuperAdmin);
   const [activeTabKey, setActiveTabKey] = useState(visibleTabs[0]?.key || 'stats');
+
+  // Keep activeTabKey aligned with visibleTabs when user roles resolve
+  React.useEffect(() => {
+    if (visibleTabs.length > 0 && !visibleTabs.some((t) => t.key === activeTabKey)) {
+      setActiveTabKey(visibleTabs[0].key);
+    }
+  }, [visibleTabs, activeTabKey]);
 
   const [search, setSearch] = useState('');
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
@@ -123,15 +135,22 @@ export default function SiteCmsPage() {
   // Handle Visibility Toggle
   async function handleToggleVisibility(item) {
     const isNews = activeTabKey === 'news';
-    const currentVal = isNews ? item.is_published : item.is_visible;
+    const isContent = activeTabKey === 'content';
+    const currentVal = isNews ? item.is_published : (isContent ? item.is_public : item.is_visible);
     const nextVal = !currentVal;
 
     const tableName = getTableName(activeTabKey);
     if (!tableName) return;
 
     try {
-      const updatePayload = isNews ? { is_published: nextVal } : { is_visible: nextVal };
-      const { error } = await supabase.from(tableName).update(updatePayload).eq('id', item.id);
+      const updatePayload = isNews ? { is_published: nextVal } : (isContent ? { is_public: nextVal } : { is_visible: nextVal });
+      let query = supabase.from(tableName).update(updatePayload);
+      if (isContent) {
+        query = query.eq('key', item.key).eq('locale', item.locale);
+      } else {
+        query = query.eq('id', item.id);
+      }
+      const { error } = await query;
       if (error) throw error;
 
       invalidateCmsCaches(activeTabKey);
@@ -399,7 +418,7 @@ export default function SiteCmsPage() {
                 const previewUrl = getPreviewUrl(activeTabKey, it);
                 const title = it.name_ar || it.title_ar || it.label_ar || it.question_ar || it.key;
                 const titleEn = it.name_en || it.title_en || it.label_en || it.question_en;
-                const isVis = activeTabKey === 'news' ? it.is_published : it.is_visible;
+                const isVis = activeTabKey === 'news' ? it.is_published : (activeTabKey === 'content' ? it.is_public : it.is_visible);
 
                 return (
                   <tr

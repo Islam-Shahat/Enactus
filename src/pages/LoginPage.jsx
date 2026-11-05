@@ -167,11 +167,12 @@ export default function LoginPage() {
           <form onSubmit={handleSubmit(onSubmit)}>
             {/* Email Field */}
             <div style={{ marginBottom: '1.25rem' }}>
-              <label style={{ display: 'block', color: '#ffd54f', fontSize: '0.88rem', fontWeight: 700, marginBottom: '0.4rem' }}>
+              <label htmlFor="login-email" style={{ display: 'block', color: '#ffd54f', fontSize: '0.88rem', fontWeight: 700, marginBottom: '0.4rem' }}>
                 {t('emailLabel')}
               </label>
               <div style={{ position: 'relative' }}>
                 <input
+                  id="login-email"
                   type="email"
                   autoComplete="email"
                   placeholder={t('emailPlaceholder')}
@@ -205,7 +206,7 @@ export default function LoginPage() {
             {/* Password Field */}
             <div style={{ marginBottom: '1.5rem' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.4rem' }}>
-                <label style={{ color: '#ffd54f', fontSize: '0.88rem', fontWeight: 700 }}>
+                <label htmlFor="login-password" style={{ color: '#ffd54f', fontSize: '0.88rem', fontWeight: 700 }}>
                   {t('passwordLabel')}
                 </label>
                 <Link
@@ -217,6 +218,7 @@ export default function LoginPage() {
               </div>
               <div style={{ position: 'relative' }}>
                 <input
+                  id="login-password"
                   type="password"
                   autoComplete="current-password"
                   placeholder={t('passwordPlaceholder')}

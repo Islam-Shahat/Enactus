@@ -31,7 +31,7 @@ export default function PostWorkflowDialog({
 
   const [loading, setLoading] = useState(false);
   const [postUrl, setPostUrl] = useState(post?.post_url || '');
-  const [scheduledAt, setScheduledAt] = useState(
+  const [scheduledAt, setScheduledAt] = useState(() =>
     post?.scheduled_at ? post.scheduled_at.slice(0, 16) : new Date().toISOString().slice(0, 16)
   );
 

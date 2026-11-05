@@ -164,10 +164,11 @@ export default function BecomeSponsorPage() {
 
                 <div className="form-grid-2" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.25rem', marginBottom: '1.25rem' }}>
                   <div>
-                    <label style={{ display: 'block', color: '#ffd54f', fontSize: '0.9rem', fontWeight: 700, marginBottom: '0.4rem' }}>
+                    <label htmlFor="sponsor-companyName" style={{ display: 'block', color: '#ffd54f', fontSize: '0.9rem', fontWeight: 700, marginBottom: '0.4rem' }}>
                       {isAr ? 'اسم الشركة أو المؤسسة *' : 'Company or Organization Name *'}
                     </label>
                     <input
+                      id="sponsor-companyName"
                       type="text"
                       placeholder={isAr ? 'مثال: شركة النيل للتطوير' : 'e.g. Nile Development Co.'}
                       {...register('companyName')}
@@ -190,10 +191,11 @@ export default function BecomeSponsorPage() {
                   </div>
 
                   <div>
-                    <label style={{ display: 'block', color: '#ffd54f', fontSize: '0.9rem', fontWeight: 700, marginBottom: '0.4rem' }}>
+                    <label htmlFor="sponsor-contactPerson" style={{ display: 'block', color: '#ffd54f', fontSize: '0.9rem', fontWeight: 700, marginBottom: '0.4rem' }}>
                       {isAr ? 'اسم المسؤول / الممثل *' : 'Contact Person / Representative *'}
                     </label>
                     <input
+                      id="sponsor-contactPerson"
                       type="text"
                       placeholder={isAr ? 'الاسم والمنصب' : 'Name & Position'}
                       {...register('contactPerson')}
@@ -218,10 +220,11 @@ export default function BecomeSponsorPage() {
 
                 <div className="form-grid-2" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.25rem', marginBottom: '1.25rem' }}>
                   <div>
-                    <label style={{ display: 'block', color: '#ffd54f', fontSize: '0.9rem', fontWeight: 700, marginBottom: '0.4rem' }}>
+                    <label htmlFor="sponsor-email" style={{ display: 'block', color: '#ffd54f', fontSize: '0.9rem', fontWeight: 700, marginBottom: '0.4rem' }}>
                       {isAr ? 'البريد الإلكتروني الرسمي *' : 'Official Business Email *'}
                     </label>
                     <input
+                      id="sponsor-email"
                       type="email"
                       placeholder="partner@company.com"
                       {...register('email')}
@@ -246,10 +249,11 @@ export default function BecomeSponsorPage() {
                   </div>
 
                   <div>
-                    <label style={{ display: 'block', color: '#ffd54f', fontSize: '0.9rem', fontWeight: 700, marginBottom: '0.4rem' }}>
+                    <label htmlFor="sponsor-phone" style={{ display: 'block', color: '#ffd54f', fontSize: '0.9rem', fontWeight: 700, marginBottom: '0.4rem' }}>
                       {isAr ? 'رقم الهاتف / الواتساب *' : 'Phone / WhatsApp *'}
                     </label>
                     <input
+                      id="sponsor-phone"
                       type="tel"
                       placeholder="01XXXXXXXXX"
                       {...register('phone')}
@@ -275,10 +279,11 @@ export default function BecomeSponsorPage() {
                 </div>
 
                 <div style={{ marginBottom: '1.25rem' }}>
-                  <label style={{ display: 'block', color: '#ffd54f', fontSize: '0.9rem', fontWeight: 700, marginBottom: '0.4rem' }}>
+                  <label htmlFor="sponsor-tier" style={{ display: 'block', color: '#ffd54f', fontSize: '0.9rem', fontWeight: 700, marginBottom: '0.4rem' }}>
                     {isAr ? 'الباقة المطلوبة *' : 'Interested Sponsorship Tier *'}
                   </label>
                   <select
+                    id="sponsor-tier"
                     {...register('tier')}
                     style={{
                       width: '100%',
@@ -300,10 +305,11 @@ export default function BecomeSponsorPage() {
                 </div>
 
                 <div style={{ marginBottom: '1.5rem' }}>
-                  <label style={{ display: 'block', color: '#ffd54f', fontSize: '0.9rem', fontWeight: 700, marginBottom: '0.4rem' }}>
+                  <label htmlFor="sponsor-message" style={{ display: 'block', color: '#ffd54f', fontSize: '0.9rem', fontWeight: 700, marginBottom: '0.4rem' }}>
                     {isAr ? 'تفاصيل أو استفسارات إضافية *' : 'Inquiry Details or Objectives *'}
                   </label>
                   <textarea
+                    id="sponsor-message"
                     rows="3"
                     placeholder={isAr ? 'حدثنا عن أهدافكم الترويجية أو رغبتكم في رعاية مشروع محدد...' : 'Tell us about your brand goals or preferred community project sponsorship...'}
                     {...register('message')}

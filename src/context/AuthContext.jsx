@@ -108,6 +108,7 @@ export function AuthProvider({ children }) {
       user: session?.user ?? null,
       profile,
       roles,
+      userRoles: roleNames,
       loading,
       isAuthenticated: Boolean(session),
       isSuperAdmin,

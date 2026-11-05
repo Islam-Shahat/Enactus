@@ -3,6 +3,8 @@ import {
   calculateEventCapacity,
   calculateAverageRating,
   generateEventSlug,
+  normalizeTicketCode,
+  isValidTicketCode,
   EVENT_STATUSES,
   REGISTRATION_STATUSES,
   VOLUNTEER_STATUSES,
@@ -100,6 +102,22 @@ describe('eventHelpers', () => {
         'confirmed',
         'declined',
       ]);
+    });
+  });
+
+  describe('Ticket Code Helpers', () => {
+    it('normalizes ticket codes with whitespace, case, and url prefixes', () => {
+      expect(normalizeTicketCode('   enq-a1b2c3d4e5   ')).toBe('ENQ-A1B2C3D4E5');
+      expect(normalizeTicketCode('/ticket/ENQ-1234567890?test=1')).toBe('ENQ-1234567890');
+      expect(normalizeTicketCode(null)).toBe('');
+      expect(normalizeTicketCode(undefined)).toBe('');
+    });
+
+    it('validates supported ticket code formats', () => {
+      expect(isValidTicketCode('ENQ-A1B2C3D4E5')).toBe(true);
+      expect(isValidTicketCode('ENQ-123456')).toBe(true);
+      expect(isValidTicketCode('invalid-code')).toBe(false);
+      expect(isValidTicketCode('')).toBe(false);
     });
   });
 });

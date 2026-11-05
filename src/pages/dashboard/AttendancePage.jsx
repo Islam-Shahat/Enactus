@@ -45,7 +45,13 @@ export default function AttendancePage() {
   const canManage = isHrOrExec || isHead;
 
   // Active Tab: 'sessions' | 'my_attendance' | 'excuse_queue' | 'report'
-  const [activeTab, setActiveTab] = useState('my_attendance');
+  const [activeTab, setActiveTab] = useState(canManage ? 'sessions' : 'my_attendance');
+
+  React.useEffect(() => {
+    if (canManage) {
+      setActiveTab((prev) => (prev === 'my_attendance' ? 'sessions' : prev));
+    }
+  }, [canManage]);
 
   // Modals state
   const [isScannerOpen, setIsScannerOpen] = useState(false);
@@ -106,10 +112,10 @@ export default function AttendancePage() {
 
   // Set default report committee if empty
   React.useEffect(() => {
-    if (!reportCommitteeId && committees.length > 0) {
-      setReportCommitteeId(headCommitteeId || committees[0].id);
+    if (committees.length > 0) {
+      setReportCommitteeId((prev) => prev || headCommitteeId || committees[0].id);
     }
-  }, [committees, headCommitteeId, reportCommitteeId]);
+  }, [committees, headCommitteeId]);
 
   // 3. Query Sessions (Tab 1)
   const { data: sessionsData, isLoading: loadingSessions, error: sessionsError } = useQuery({
@@ -1419,6 +1425,17 @@ export default function AttendancePage() {
         onClose={() => {
           setIsCreateSessionOpen(false);
           setSessionToEdit(null);
+        }}
+        onSuccess={() => {
+          setIsCreateSessionOpen(false);
+          setSessionToEdit(null);
+          setActiveTab('sessions');
+          setSessionPage(1);
+          setSessionSearch('');
+          setSessionTypeFilter('all');
+          setSessionCommitteeFilter('all');
+          queryClient.invalidateQueries({ queryKey: ['dashboard', 'attendance_sessions'] });
+          queryClient.invalidateQueries({ queryKey: ['dashboard', 'upcoming_sessions'] });
         }}
         sessionToEdit={sessionToEdit}
         activeSeasonId={activeSeason?.id}

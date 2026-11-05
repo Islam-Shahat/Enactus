@@ -117,3 +117,27 @@ export function formatEventDateTime(startsAt, endsAt, lang = 'ar') {
   return `${dateStr} • ${timeStr} - ${endTimeStr}`;
 }
 
+/**
+ * Normalizes user or scanner input to a canonical ticket code.
+ * Handles full URLs (e.g. /ticket/ENQ-1234567890), query strings, and whitespace.
+ */
+export function normalizeTicketCode(input = '') {
+  if (typeof input !== 'string') return '';
+  let clean = input.trim();
+  if (clean.includes('/ticket/')) {
+    const parts = clean.split('/ticket/');
+    clean = parts[parts.length - 1].split('?')[0].split('#')[0];
+  }
+  return clean.toUpperCase().trim();
+}
+
+/**
+ * Validates whether a string matches supported ticket code formats.
+ * Accepts legacy 6-hex (ENQ-A1B2C3), modern 10-hex (ENQ-A1B2C3D4E5), or standard alphanumeric tickets.
+ */
+export function isValidTicketCode(code = '') {
+  const normalized = normalizeTicketCode(code);
+  return /^ENQ-[0-9A-Z]{6,16}$/.test(normalized);
+}
+
+

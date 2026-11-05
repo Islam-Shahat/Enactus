@@ -26,6 +26,7 @@ import FAQPage from './pages/FAQPage';
 import ImpactPage from './pages/ImpactPage';
 import AlumniPage from './pages/AlumniPage';
 import TermsPage from './pages/TermsPage';
+import NotFoundPage from './pages/NotFoundPage';
 
 // Lazy-loaded Auth Pages (isolates zod and react-hook-form from public bundle)
 const LoginPage = React.lazy(() => import('./pages/LoginPage'));
@@ -52,6 +53,10 @@ const MembersPage = React.lazy(() => import('./pages/dashboard/MembersPage'));
 const RolesPage = React.lazy(() => import('./pages/dashboard/RolesPage'));
 const ProfilePage = React.lazy(() => import('./pages/dashboard/ProfilePage'));
 const SettingsPage = React.lazy(() => import('./pages/dashboard/SettingsPage'));
+const NotificationsPage = React.lazy(() => import('./pages/dashboard/NotificationsPage'));
+const AnnouncementsPage = React.lazy(() => import('./pages/dashboard/AnnouncementsPage'));
+const AuditPage = React.lazy(() => import('./pages/dashboard/AuditPage'));
+const SeasonPage = React.lazy(() => import('./pages/dashboard/SeasonPage'));
 const DashboardPlaceholder = React.lazy(() => import('./pages/dashboard/DashboardPlaceholder'));
 const DashboardNotFound = React.lazy(() => import('./pages/dashboard/DashboardNotFound'));
 
@@ -154,11 +159,12 @@ export default function App() {
           <Route path="/reset-password" element={<Suspense fallback={<PageFallback />}><ResetPasswordPage /></Suspense>} />
           <Route path="/gallery" element={<GalleryPage />} />
           <Route path="/news" element={<NewsPage />} />
+          <Route path="/news/:slug" element={<NewsPage />} />
           <Route path="/faq" element={<FAQPage />} />
           <Route path="/impact" element={<ImpactPage />} />
           <Route path="/alumni" element={<AlumniPage />} />
           <Route path="/terms" element={<TermsPage />} />
-          <Route path="*" element={<HomePage onOpenJoinModal={handleOpenJoinModal} />} />
+          <Route path="*" element={<NotFoundPage />} />
         </Route>
 
         {/* Internal Dashboard (Lazy Loaded + Protected) */}
@@ -307,6 +313,30 @@ export default function App() {
               </RoleGuard>
             }
           />
+          <Route
+            path="notifications"
+            element={<NotificationsPage />}
+          />
+          <Route
+            path="announcements"
+            element={<AnnouncementsPage />}
+          />
+          <Route
+            path="audit"
+            element={
+              <RoleGuard allow={DASHBOARD_NAV.find((n) => n.key === 'audit')?.allow}>
+                <AuditPage />
+              </RoleGuard>
+            }
+          />
+          <Route
+            path="season"
+            element={
+              <RoleGuard allow={DASHBOARD_NAV.find((n) => n.key === 'season')?.allow}>
+                <SeasonPage />
+              </RoleGuard>
+            }
+          />
 
           {/* Placeholders for upcoming phases */}
           {DASHBOARD_NAV.filter(
@@ -328,6 +358,10 @@ export default function App() {
                 'members',
                 'roles',
                 'settings',
+                'notifications',
+                'announcements',
+                'audit',
+                'season',
               ].includes(item.key)
           ).map((item) => {
             const subPath = item.path.replace('/dashboard/', '');

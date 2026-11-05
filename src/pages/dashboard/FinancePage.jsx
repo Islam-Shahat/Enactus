@@ -59,11 +59,14 @@ export default function FinancePage() {
 
   // Default active season
   React.useEffect(() => {
-    if (seasons.length > 0 && !seasonFilter) {
-      const active = seasons.find((s) => s.is_active) || seasons[0];
-      setSeasonFilter(active.id);
+    if (seasons.length > 0) {
+      setSeasonFilter((prev) => {
+        if (prev) return prev;
+        const active = seasons.find((s) => s.is_active) || seasons[0];
+        return active ? active.id : '';
+      });
     }
-  }, [seasons, seasonFilter]);
+  }, [seasons]);
 
   // Fetch agreements with company for this season
   const { data: agreements = [], isLoading: loadingAgreements } = useQuery({
@@ -249,19 +252,19 @@ export default function FinancePage() {
       .map((k) => months[k]);
   }, [payments, isAr]);
 
+  const [todayDateStr] = useState(() => new Date().toISOString().split('T')[0]);
+
   // Chart 3: Payment Status Distribution for Pie Chart
   const statusPieData = useMemo(() => {
     let paidAmt = 0;
     let pendingAmt = 0;
     let overdueAmt = 0;
 
-    const todayStr = new Date().toISOString().split('T')[0];
-
     payments.forEach((p) => {
       const amt = Number(p.amount) || 0;
       if (p.status === 'paid') {
         paidAmt += amt;
-      } else if (p.status === 'overdue' || (p.status === 'pending' && p.due_date && p.due_date < todayStr)) {
+      } else if (p.status === 'overdue' || (p.status === 'pending' && p.due_date && p.due_date < todayDateStr)) {
         overdueAmt += amt;
       } else {
         pendingAmt += amt;
@@ -273,7 +276,7 @@ export default function FinancePage() {
       { name: isAr ? 'قيد الانتظار' : 'Pending', value: pendingAmt, color: '#f59e0b' },
       { name: isAr ? 'المتأخرات' : 'Overdue', value: overdueAmt, color: '#ef4444' },
     ].filter((item) => item.value > 0);
-  }, [payments, isAr]);
+  }, [payments, isAr, todayDateStr]);
 
   // CSV Export for Agreements
   const handleExportAgreementsCsv = () => {

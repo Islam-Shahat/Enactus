@@ -115,11 +115,12 @@ export default function ForgotPasswordPage() {
           ) : (
             <form onSubmit={handleSubmit(onSubmit)}>
               <div style={{ marginBottom: '1.75rem' }}>
-                <label style={{ display: 'block', color: '#ffd54f', fontSize: '0.88rem', fontWeight: 700, marginBottom: '0.4rem' }}>
+                <label htmlFor="forgot-email" style={{ display: 'block', color: '#ffd54f', fontSize: '0.88rem', fontWeight: 700, marginBottom: '0.4rem' }}>
                   {t('emailLabel')}
                 </label>
                 <div style={{ position: 'relative' }}>
                   <input
+                    id="forgot-email"
                     type="email"
                     autoComplete="email"
                     placeholder={t('emailPlaceholder')}

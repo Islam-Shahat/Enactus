@@ -26,6 +26,7 @@ import CompanyDrawer from '../../components/dashboard/business/CompanyDrawer';
 import { COMPANY_STAGES } from '../../lib/businessHelpers';
 
 const PAGE_SIZE = 15;
+const EMPTY_LIST = [];
 
 export default function CompaniesPage() {
   const { user, isSuperAdmin, hasRole } = useAuth();
@@ -83,7 +84,7 @@ export default function CompaniesPage() {
     },
   });
 
-  const companies = companiesData?.list || [];
+  const companies = companiesData?.list || EMPTY_LIST;
   const totalCount = companiesData?.total || 0;
 
   // Grouping for Kanban columns

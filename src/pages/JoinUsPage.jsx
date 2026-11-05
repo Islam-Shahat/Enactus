@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
-import { useForm } from 'react-hook-form';
+import { useForm, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Sparkles, User, Mail, Phone, CheckCircle2, Copy, Check, ArrowLeft, ArrowRight, Clock, AlertCircle, Loader2, UploadCloud } from 'lucide-react';
 import { useApplicationsOpen } from '../hooks/usePublicContent';
@@ -35,7 +35,7 @@ export default function JoinUsPage() {
     register,
     handleSubmit,
     setValue,
-    watch,
+    control,
     formState: { errors, isSubmitting },
   } = useForm({
     resolver: zodResolver(recruitmentFormSchema),
@@ -51,8 +51,8 @@ export default function JoinUsPage() {
     },
   });
 
-  const currentFaculty = watch('faculty');
-  const currentCommittee = watch('committee');
+  const currentFaculty = useWatch({ control, name: 'faculty' });
+  const currentCommittee = useWatch({ control, name: 'committee' });
 
   useEffect(() => {
     if (preselectedCommittee) {
@@ -139,8 +139,7 @@ export default function JoinUsPage() {
         );
       }
 
-      const randomCode = Math.floor(1000 + Math.random() * 9000);
-      const passCode = data?.id ? `ENACTUS-SVU-${data.id.substring(0, 4).toUpperCase()}` : `ENACTUS-SVU-${randomCode}`;
+      const passCode = data?.id ? `ENACTUS-SVU-${data.id.substring(0, 4).toUpperCase()}` : 'ENACTUS-SVU-PENDING';
       setMemberId(passCode);
       setIsSubmitted(true);
 
@@ -312,11 +311,12 @@ export default function JoinUsPage() {
 
                 {/* Full Name */}
                 <div style={{ marginBottom: '1.5rem' }}>
-                  <label style={{ display: 'block', color: '#ffd54f', fontSize: '0.92rem', fontWeight: 700, marginBottom: '0.5rem' }}>
+                  <label htmlFor="join-fullName" style={{ display: 'block', color: '#ffd54f', fontSize: '0.92rem', fontWeight: 700, marginBottom: '0.5rem' }}>
                     {isAr ? 'الاسم بالكامل (ثلاثي أو رباعي) *' : 'Full Name (3 or 4 names) *'}
                   </label>
                   <div style={{ position: 'relative' }}>
                     <input
+                      id="join-fullName"
                       type="text"
                       placeholder={isAr ? 'مثال: يوسف محمود عبد الرحيم' : 'e.g. Youssef Mahmoud'}
                       {...register('fullName')}
@@ -343,11 +343,12 @@ export default function JoinUsPage() {
                 {/* Email & Phone */}
                 <div className="form-grid-2" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.25rem', marginBottom: '1.5rem' }}>
                   <div>
-                    <label style={{ display: 'block', color: '#ffd54f', fontSize: '0.92rem', fontWeight: 700, marginBottom: '0.5rem' }}>
+                    <label htmlFor="join-email" style={{ display: 'block', color: '#ffd54f', fontSize: '0.92rem', fontWeight: 700, marginBottom: '0.5rem' }}>
                       {isAr ? 'البريد الإلكتروني الشخصي *' : 'Personal Email Address *'}
                     </label>
                     <div style={{ position: 'relative' }}>
                       <input
+                        id="join-email"
                         type="email"
                         placeholder="student@example.com"
                         {...register('email')}
@@ -374,11 +375,12 @@ export default function JoinUsPage() {
                   </div>
 
                   <div>
-                    <label style={{ display: 'block', color: '#ffd54f', fontSize: '0.92rem', fontWeight: 700, marginBottom: '0.5rem' }}>
+                    <label htmlFor="join-phone" style={{ display: 'block', color: '#ffd54f', fontSize: '0.92rem', fontWeight: 700, marginBottom: '0.5rem' }}>
                       {isAr ? 'رقم الهاتف (الواتساب للمقابلات) *' : 'Phone / WhatsApp *'}
                     </label>
                     <div style={{ position: 'relative' }}>
                       <input
+                        id="join-phone"
                         type="tel"
                         placeholder="010XXXXXXXX"
                         {...register('phone')}
@@ -408,10 +410,11 @@ export default function JoinUsPage() {
                 {/* Faculty & Academic Year */}
                 <div className="form-grid-2" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.25rem', marginBottom: '1.5rem' }}>
                   <div>
-                    <label style={{ display: 'block', color: '#ffd54f', fontSize: '0.92rem', fontWeight: 700, marginBottom: '0.5rem' }}>
+                    <label htmlFor="join-faculty" style={{ display: 'block', color: '#ffd54f', fontSize: '0.92rem', fontWeight: 700, marginBottom: '0.5rem' }}>
                       {isAr ? 'الكلية بجامعة جنوب الوادي *' : 'Faculty at SVU *'}
                     </label>
                     <select
+                      id="join-faculty"
                       {...register('faculty')}
                       style={{
                         width: '100%',
@@ -436,10 +439,11 @@ export default function JoinUsPage() {
                   </div>
 
                   <div>
-                    <label style={{ display: 'block', color: '#ffd54f', fontSize: '0.92rem', fontWeight: 700, marginBottom: '0.5rem' }}>
+                    <label htmlFor="join-studyYear" style={{ display: 'block', color: '#ffd54f', fontSize: '0.92rem', fontWeight: 700, marginBottom: '0.5rem' }}>
                       {isAr ? 'الفرقة الدراسية *' : 'Academic Year *'}
                     </label>
                     <select
+                      id="join-studyYear"
                       {...register('studyYear')}
                       style={{
                         width: '100%',
@@ -467,7 +471,7 @@ export default function JoinUsPage() {
                 {/* Committee selection */}
                 <div style={{ marginBottom: '1.5rem' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
-                    <label style={{ color: '#ffd54f', fontSize: '0.92rem', fontWeight: 700 }}>
+                    <label htmlFor="join-committee" style={{ color: '#ffd54f', fontSize: '0.92rem', fontWeight: 700 }}>
                       {isAr ? 'اللجنة التي ترغب في الانضمام إليها *' : 'Committee You Wish to Join *'}
                     </label>
                     <Link to="/committees" style={{ color: '#ffb800', fontSize: '0.8rem', textDecoration: 'none' }}>
@@ -475,6 +479,7 @@ export default function JoinUsPage() {
                     </Link>
                   </div>
                   <select
+                    id="join-committee"
                     {...register('committee')}
                     style={{
                       width: '100%',
@@ -500,12 +505,13 @@ export default function JoinUsPage() {
 
                 {/* Impact Goal */}
                 <div style={{ marginBottom: '1.5rem' }}>
-                  <label style={{ display: 'block', color: '#ffd54f', fontSize: '0.92rem', fontWeight: 700, marginBottom: '0.5rem' }}>
+                  <label htmlFor="join-impactGoal" style={{ display: 'block', color: '#ffd54f', fontSize: '0.92rem', fontWeight: 700, marginBottom: '0.5rem' }}>
                     {isAr
                       ? 'ما هو الأثر أو المهارة التي تطمح لإضافتها للكتيبة ومجتمع قنا؟'
                       : 'What impact or skills do you aim to bring to the battalion and Qena community?'}
                   </label>
                   <textarea
+                    id="join-impactGoal"
                     rows="3"
                     placeholder={isAr ? 'حدثنا باختصار عن أفكارك وشغفك...' : 'Briefly tell us about your passion, ideas, and motivation...'}
                     {...register('impactGoal')}
@@ -525,7 +531,7 @@ export default function JoinUsPage() {
 
                 {/* Optional CV Upload */}
                 <div style={{ marginBottom: '1.5rem' }}>
-                  <label style={{ display: 'block', color: '#ffd54f', fontSize: '0.88rem', fontWeight: 700, marginBottom: '0.4rem' }}>
+                  <label htmlFor="join-cvFile" style={{ display: 'block', color: '#ffd54f', fontSize: '0.88rem', fontWeight: 700, marginBottom: '0.4rem' }}>
                     {isAr ? 'إرفاق السيرة الذاتية (CV) بصيغة PDF (اختياري)' : 'Attach Resume / CV in PDF (Optional)'}
                   </label>
                   <div
@@ -547,6 +553,7 @@ export default function JoinUsPage() {
                       </span>
                     </div>
                     <label
+                      htmlFor="join-cvFile"
                       className="btn-secondary"
                       style={{
                         cursor: 'pointer',
@@ -557,6 +564,7 @@ export default function JoinUsPage() {
                     >
                       <span>{isAr ? 'استعراض' : 'Browse'}</span>
                       <input
+                        id="join-cvFile"
                         type="file"
                         accept=".pdf,application/pdf"
                         onChange={handleCvChange}

@@ -13,39 +13,83 @@ import {
 } from '../src/lib/cmsHelpers';
 
 describe('CMS Tabs & Permissions', () => {
-  it('returns all tabs for super_admin', () => {
+  it('returns all 10 tabs for super_admin regardless of userRoles array', () => {
     const tabs = getVisibleTabs([], true);
     expect(tabs.length).toBe(10);
+    const keys = tabs.map((t) => t.key);
+    expect(keys).toEqual([
+      'stats',
+      'partners',
+      'team',
+      'committees',
+      'news',
+      'gallery',
+      'faqs',
+      'packages',
+      'content',
+      'settings',
+    ]);
   });
 
-  it('filters tabs strictly for pr_admin', () => {
+  it('returns all 10 tabs for president and vice_president', () => {
+    const presTabs = getVisibleTabs(['president'], false);
+    expect(presTabs.length).toBe(10);
+
+    const vpTabs = getVisibleTabs([{ role: 'vice_president' }], false);
+    expect(vpTabs.length).toBe(10);
+  });
+
+  it('filters tabs strictly for pr_admin (string role array)', () => {
     const tabs = getVisibleTabs(['pr_admin'], false);
     const keys = tabs.map((t) => t.key);
-    expect(keys).toContain('partners');
-    expect(keys).toContain('packages');
-    expect(keys).not.toContain('stats');
-    expect(keys).not.toContain('gallery');
+    expect(keys).toEqual(['partners', 'packages']);
   });
 
-  it('filters tabs for media_admin', () => {
+  it('filters tabs strictly for pr_admin when given AuthContext object shape', () => {
+    const tabs = getVisibleTabs([{ role: 'pr_admin', committee_id: null }], false);
+    const keys = tabs.map((t) => t.key);
+    expect(keys).toEqual(['partners', 'packages']);
+  });
+
+  it('filters tabs strictly for media_admin (string role array)', () => {
     const tabs = getVisibleTabs(['media_admin'], false);
     const keys = tabs.map((t) => t.key);
-    expect(keys).toContain('stats');
-    expect(keys).toContain('news');
-    expect(keys).toContain('gallery');
-    expect(keys).toContain('faqs');
-    expect(keys).toContain('content');
-    expect(keys).not.toContain('partners');
+    expect(keys).toEqual(['stats', 'news', 'gallery', 'faqs', 'content']);
   });
 
-  it('filters tabs for hr_admin', () => {
+  it('filters tabs strictly for media_admin when given AuthContext object shape', () => {
+    const tabs = getVisibleTabs([{ role: 'media_admin', committee_id: 'c-media' }], false);
+    const keys = tabs.map((t) => t.key);
+    expect(keys).toEqual(['stats', 'news', 'gallery', 'faqs', 'content']);
+  });
+
+  it('filters tabs strictly for hr_admin (string role array)', () => {
     const tabs = getVisibleTabs(['hr_admin'], false);
     const keys = tabs.map((t) => t.key);
-    expect(keys).toContain('team');
-    expect(keys).toContain('committees');
-    expect(keys).toContain('faqs');
-    expect(keys).toContain('settings');
-    expect(keys).not.toContain('stats');
+    expect(keys).toEqual(['team', 'committees', 'faqs', 'settings']);
+  });
+
+  it('filters tabs strictly for hr_admin when given AuthContext object shape', () => {
+    const tabs = getVisibleTabs([{ role: 'hr_admin', committee_id: 'c-hr' }], false);
+    const keys = tabs.map((t) => t.key);
+    expect(keys).toEqual(['team', 'committees', 'faqs', 'settings']);
+  });
+
+  it('computes union of tabs for multi-role users (e.g. pr_admin + media_admin)', () => {
+    const tabs = getVisibleTabs([
+      { role: 'pr_admin', committee_id: 'c-pr' },
+      { role: 'media_admin', committee_id: 'c-media' },
+    ], false);
+    const keys = tabs.map((t) => t.key);
+    expect(keys).toEqual(['stats', 'partners', 'news', 'gallery', 'faqs', 'packages', 'content']);
+  });
+
+  it('returns empty tabs array for non-permitted roles (e.g. member, finance_admin)', () => {
+    expect(getVisibleTabs(['member'], false)).toEqual([]);
+    expect(getVisibleTabs([{ role: 'finance_admin', committee_id: null }], false)).toEqual([]);
+    expect(getVisibleTabs([], false)).toEqual([]);
+    expect(getVisibleTabs(null, false)).toEqual([]);
+    expect(getVisibleTabs(undefined, false)).toEqual([]);
   });
 });
 

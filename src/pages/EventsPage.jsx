@@ -15,9 +15,15 @@ export default function EventsPage() {
   const fallback = localizeEventsMock(eventsData, lang);
   const { data: events = fallback, isLoading } = useEvents(fallback);
 
+  const isUpcoming = (e) =>
+    e.status === 'upcoming' ||
+    e.status === 'published' ||
+    e.status === 'ongoing' ||
+    (e.status !== 'past' && e.status !== 'completed' && e.status !== 'cancelled');
+
   const filteredEvents = events.filter((evt) => {
-    if (filter === 'upcoming') return evt.status === 'upcoming';
-    if (filter === 'past') return evt.status === 'past';
+    if (filter === 'upcoming') return isUpcoming(evt);
+    if (filter === 'past') return !isUpcoming(evt);
     return true;
   });
 

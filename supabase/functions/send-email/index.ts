@@ -191,3 +191,4 @@ Deno.serve(async (req: Request) => {
     return errorResponse(req, 'Email delivery communication failure', 500, 'DELIVERY_ERROR');
   }
 });
+

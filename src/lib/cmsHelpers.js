@@ -19,11 +19,15 @@ export const CMS_TABS = [
 
 /**
  * Filter CMS tabs visible for the user according to their role.
+ * Accepts an array of role names (strings) or role objects ([{ role: '...' }]).
  */
 export function getVisibleTabs(userRoles = [], isSuperAdmin = false) {
   if (isSuperAdmin) return CMS_TABS;
+  const roleNames = Array.isArray(userRoles)
+    ? userRoles.map((r) => (typeof r === 'string' ? r : r?.role)).filter(Boolean)
+    : [];
   return CMS_TABS.filter((tab) => {
-    return tab.roles.some((r) => userRoles.includes(r));
+    return tab.roles.some((r) => roleNames.includes(r));
   });
 }
 
@@ -151,6 +155,7 @@ export const SiteContentSchema = z.object({
   locale: z.enum(['ar', 'en']),
   title: z.string().optional().nullable(),
   markdown: z.string().default(''),
+  is_public: z.boolean().default(true),
 });
 
 // =====================================================================

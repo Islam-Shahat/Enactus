@@ -5,8 +5,20 @@ import { localizeEventsMock } from './mockLocalization';
 
 // Upcoming events first (soonest first), then past events (most recent first).
 export function sortEvents(events) {
-  const upcoming = events.filter((e) => e.status === 'upcoming').sort((a, b) => new Date(a.startsAt) - new Date(b.startsAt));
-  const past = events.filter((e) => e.status !== 'upcoming').sort((a, b) => new Date(b.startsAt) - new Date(a.startsAt));
+  const isUpcoming = (e) =>
+    e.status === 'upcoming' ||
+    e.status === 'published' ||
+    e.status === 'ongoing' ||
+    (e.status !== 'past' && e.status !== 'completed' && e.status !== 'cancelled');
+
+  const upcoming = events
+    .filter(isUpcoming)
+    .sort((a, b) => new Date(a.startsAt || a.starts_at || 0) - new Date(b.startsAt || b.starts_at || 0));
+
+  const past = events
+    .filter((e) => !isUpcoming(e))
+    .sort((a, b) => new Date(b.startsAt || b.starts_at || 0) - new Date(a.startsAt || a.starts_at || 0));
+
   return [...upcoming, ...past];
 }
 

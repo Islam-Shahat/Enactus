@@ -28,9 +28,15 @@ export default function EventRegistrationSection({ event }) {
   const [result, setResult] = useState(null);
 
   // Check event registration eligibility
-  const now = new Date();
-  const isConcluded = event?.ends_at ? new Date(event.ends_at) < now : false;
-  const isRegistrationOpen = Boolean(event?.registration_open) && !isConcluded && event?.status !== 'completed' && event?.status !== 'cancelled';
+  const [mountedTime] = useState(() => Date.now());
+  const endsAt = event?.endsAt || event?.ends_at;
+  const isConcluded = endsAt ? new Date(endsAt).getTime() < mountedTime : false;
+  const isRegistrationOpen =
+    Boolean(event?.registrationOpen ?? event?.registration_open) &&
+    !isConcluded &&
+    event?.status !== 'completed' &&
+    event?.status !== 'cancelled' &&
+    event?.status !== 'past';
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -218,10 +224,11 @@ export default function EventRegistrationSection({ event }) {
 
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '1rem' }}>
             <div>
-              <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 700, color: '#ffd54f', marginBottom: '0.4rem' }}>
+              <label htmlFor="event-reg-fullName" style={{ display: 'block', fontSize: '0.85rem', fontWeight: 700, color: '#ffd54f', marginBottom: '0.4rem' }}>
                 {isAr ? 'الاسم بالكامل *' : 'Full Name *'}
               </label>
               <input
+                id="event-reg-fullName"
                 type="text"
                 required
                 value={fullName}
@@ -241,10 +248,11 @@ export default function EventRegistrationSection({ event }) {
             </div>
 
             <div>
-              <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 700, color: '#ffd54f', marginBottom: '0.4rem' }}>
+              <label htmlFor="event-reg-email" style={{ display: 'block', fontSize: '0.85rem', fontWeight: 700, color: '#ffd54f', marginBottom: '0.4rem' }}>
                 {isAr ? 'البريد الإلكتروني *' : 'Email Address *'}
               </label>
               <input
+                id="event-reg-email"
                 type="email"
                 required
                 value={email}
@@ -265,10 +273,11 @@ export default function EventRegistrationSection({ event }) {
           </div>
 
           <div>
-            <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 700, color: '#ffd54f', marginBottom: '0.4rem' }}>
+            <label htmlFor="event-reg-phone" style={{ display: 'block', fontSize: '0.85rem', fontWeight: 700, color: '#ffd54f', marginBottom: '0.4rem' }}>
               {isAr ? 'رقم الهاتف / واتساب (اختياري)' : 'Phone Number (Optional)'}
             </label>
             <input
+              id="event-reg-phone"
               type="tel"
               value={phone}
               onChange={(e) => setPhone(e.target.value)}

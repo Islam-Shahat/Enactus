@@ -25,3 +25,9 @@ verify_jwt = false
 [functions.submit-feedback]
 verify_jwt = false
 
+[functions.send-email]
+verify_jwt = true
+
+[functions.weekly-report]
+verify_jwt = false
+

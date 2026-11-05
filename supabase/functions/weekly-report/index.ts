@@ -7,36 +7,106 @@ import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { handleCors, checkOrigin } from '../_shared/cors.ts';
 import { json, errorResponse } from '../_shared/http.ts';
 import { renderWeeklyReportHtml } from '../_shared/emailTemplates.ts';
+import { timingSafeEqual } from '../_shared/recovery.ts';
 
-Deno.serve(async (req: Request) => {
-  const corsResponse = handleCors(req);
-  if (corsResponse) return corsResponse;
+export interface WeeklyReportEnv {
+  CRON_SECRET?: string;
+  SUPABASE_SERVICE_ROLE_KEY?: string;
+}
 
-  const originError = checkOrigin(req);
-  if (originError) return originError;
+export interface AuthValidationResult {
+  authorized: boolean;
+  status: number;
+  error?: string;
+  code?: string;
+  caller?: 'service_role' | 'cron';
+}
 
-  if (req.method !== 'POST') {
-    return errorResponse(req, 'Method not allowed', 405);
+function safeEqual(a?: string, b?: string): boolean {
+  if (!a || !b) return false;
+  return timingSafeEqual(a, b);
+}
+
+/**
+ * Validates authentication for the weekly report routine.
+ * Allows requests authorized via CRON_SECRET (x-cron-secret header or Bearer token)
+ * or via the Supabase service_role key (Bearer token or apikey header).
+ */
+export function validateWeeklyReportAuth(
+  req: Request,
+  env: WeeklyReportEnv
+): AuthValidationResult {
+  const cronSecret = env.CRON_SECRET?.trim();
+  const serviceKey = env.SUPABASE_SERVICE_ROLE_KEY?.trim();
+
+  const authHeader = req.headers.get('authorization')?.trim() || '';
+  const cronHeader = req.headers.get('x-cron-secret')?.trim() || '';
+  const apiKeyHeader = req.headers.get('apikey')?.trim() || '';
+  const bearerToken = authHeader.replace(/^bearer\s+/i, '').trim();
+
+  // 1. Service Role authorization:
+  // Provided via Authorization: Bearer <service_role_key> or apikey: <service_role_key>
+  if (serviceKey && (safeEqual(bearerToken, serviceKey) || safeEqual(apiKeyHeader, serviceKey))) {
+    return { authorized: true, status: 200, caller: 'service_role' };
   }
 
-  const cronSecret = Deno.env.get('CRON_SECRET');
-  const cronHeader = req.headers.get('x-cron-secret') || '';
-  const authHeader = req.headers.get('authorization') || '';
-  const supabaseUrl = Deno.env.get('SUPABASE_URL') || '';
-  const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '';
-  const resendApiKey = Deno.env.get('RESEND_API_KEY');
-  const fromEmail = Deno.env.get('FROM_EMAIL') || 'notifications@enactus-qena.org';
-
-  const isServiceRole = Boolean(
-    supabaseServiceKey && authHeader.replace(/^bearer\s+/i, '').trim() === supabaseServiceKey
-  );
-  const isCronAuthorized = Boolean(cronSecret && cronHeader === cronSecret);
-
-  if (!isServiceRole && !isCronAuthorized) {
-    return errorResponse(req, 'Unauthorized routine trigger', 403, 'FORBIDDEN');
+  // 2. Scheduled Cron authorization:
+  // Provided via x-cron-secret, Authorization: Bearer <CRON_SECRET>, or apikey: <CRON_SECRET>
+  if (
+    cronSecret &&
+    (safeEqual(cronHeader, cronSecret) ||
+      safeEqual(bearerToken, cronSecret) ||
+      safeEqual(apiKeyHeader, cronSecret))
+  ) {
+    return { authorized: true, status: 200, caller: 'cron' };
   }
 
-  const adminClient = createClient(supabaseUrl, supabaseServiceKey);
+  return {
+    authorized: false,
+    status: 401,
+    error: 'Unauthorized routine trigger',
+    code: 'UNAUTHORIZED',
+  };
+}
+
+if (typeof Deno !== 'undefined' && typeof Deno.serve === 'function') {
+  Deno.serve(async (req: Request) => {
+    const corsResponse = handleCors(req);
+    if (corsResponse) return corsResponse;
+
+    const originError = checkOrigin(req);
+    if (originError) return originError;
+
+    if (req.method !== 'POST') {
+      return errorResponse(req, 'Method not allowed', 405);
+    }
+
+    const cronSecret = Deno.env.get('CRON_SECRET');
+    const supabaseUrl = Deno.env.get('SUPABASE_URL') || '';
+    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '';
+    const resendApiKey = Deno.env.get('RESEND_API_KEY');
+    const fromEmail = Deno.env.get('FROM_EMAIL') || 'notifications@enactus-qena.org';
+
+    const authResult = validateWeeklyReportAuth(req, {
+      CRON_SECRET: cronSecret,
+      SUPABASE_SERVICE_ROLE_KEY: supabaseServiceKey,
+    });
+
+    if (!authResult.authorized) {
+      return errorResponse(
+        req,
+        authResult.error || 'Unauthorized routine trigger',
+        authResult.status,
+        authResult.code
+      );
+    }
+
+    if (!supabaseUrl || !supabaseServiceKey) {
+      console.error('[weekly-report] Missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY');
+      return errorResponse(req, 'Server configuration error', 500, 'CONFIG_ERROR');
+    }
+
+    const adminClient = createClient(supabaseUrl, supabaseServiceKey);
 
   try {
     // 1. Fetch Active Season
@@ -258,4 +328,7 @@ Deno.serve(async (req: Request) => {
 
     return errorResponse(req, 'Weekly report generation failed', 500, 'REPORT_FAILED');
   }
-});
+  });
+}
+
+

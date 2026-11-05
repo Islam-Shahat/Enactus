@@ -92,7 +92,7 @@ export default function CmsItemDrawer({
         setBenefitsListEn([]);
         break;
       case 'content':
-        setFormData({ key: 'terms', locale: 'ar', title: '', markdown: '' });
+        setFormData({ key: 'terms', locale: 'ar', title: '', markdown: '', is_public: true });
         break;
       case 'settings':
         setFormData({ applications_open: true });
@@ -108,6 +108,16 @@ export default function CmsItemDrawer({
 
     if (item) {
       setFormData({ ...item });
+
+      if (tabKey === 'content') {
+        setFormData({
+          key: item.key || 'terms',
+          locale: item.locale || 'ar',
+          title: item.value?.title || item.title || '',
+          markdown: item.value?.markdown || item.markdown || '',
+          is_public: item.is_public !== undefined ? item.is_public : true,
+        });
+      }
 
       if (tabKey === 'committees') {
         const cAr = item.content?.ar || {};
@@ -337,13 +347,15 @@ export default function CmsItemDrawer({
         case 'content': {
           const key = formData.key || 'terms';
           const locale = formData.locale || 'ar';
+          const is_public = formData.is_public !== undefined ? Boolean(formData.is_public) : true;
           const val = {
             title: formData.title || '',
             markdown: formData.markdown || '',
+            is_public,
           };
           const { error: err } = await supabase
             .from('site_content')
-            .upsert({ key, locale, value: val }, { onConflict: 'key, locale' });
+            .upsert({ key, locale, value: val, is_public }, { onConflict: 'key, locale' });
           if (err) throw err;
           break;
         }
@@ -1046,17 +1058,27 @@ export default function CmsItemDrawer({
         )}
 
         {/* Visibility Toggle for supported tabs */}
-        {formData.is_visible !== undefined && (
+        {(formData.is_visible !== undefined || formData.is_public !== undefined) && (
           <div style={{ marginTop: '1.25rem', padding: '0.75rem 1rem', background: 'rgba(255,255,255,0.02)', borderRadius: '10px', border: '1px solid rgba(255,255,255,0.08)' }}>
             <label style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', cursor: 'pointer', color: '#fff' }}>
               <input
                 type="checkbox"
-                checked={Boolean(formData.is_visible)}
-                onChange={(e) => setFormData({ ...formData, is_visible: e.target.checked })}
+                checked={formData.is_public !== undefined ? Boolean(formData.is_public) : Boolean(formData.is_visible)}
+                onChange={(e) => {
+                  if (formData.is_public !== undefined) {
+                    setFormData({ ...formData, is_public: e.target.checked });
+                  } else {
+                    setFormData({ ...formData, is_visible: e.target.checked });
+                  }
+                }}
                 style={{ accentColor: '#ffb800' }}
               />
               <Globe size={16} color="#ffb800" />
-              <span style={{ fontSize: '0.88rem', fontWeight: 700 }}>ظهور في الموقع العام (Visible)</span>
+              <span style={{ fontSize: '0.88rem', fontWeight: 700 }}>
+                {formData.is_public !== undefined
+                  ? 'ظهور عام بالموقع (Public Content)'
+                  : 'ظهور في الموقع العام (Visible)'}
+              </span>
             </label>
           </div>
         )}

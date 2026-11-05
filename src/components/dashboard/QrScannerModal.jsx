@@ -45,11 +45,11 @@ export default function QrScannerModal({
       setCheckinResult(null);
       setIsProcessing(false);
       setManualCode('');
-      if (sessions.length > 0 && !selectedSessionId) {
-        setSelectedSessionId(sessions[0].id);
+      if (sessions.length > 0) {
+        setSelectedSessionId((prev) => prev || sessions[0].id);
       }
     }
-  }, [isOpen, sessions, selectedSessionId]);
+  }, [isOpen, sessions]);
 
   // Execute check-in via Edge Function
   const executeCheckin = async (payload) => {
@@ -102,6 +102,12 @@ export default function QrScannerModal({
     }
   };
 
+  const isProcessingRef = useRef(isProcessing);
+  isProcessingRef.current = isProcessing;
+
+  const executeCheckinRef = useRef(executeCheckin);
+  executeCheckinRef.current = executeCheckin;
+
   // Start / Stop Camera Scanner
   useEffect(() => {
     if (!isOpen || activeMode !== 'camera' || checkinResult) {
@@ -132,10 +138,10 @@ export default function QrScannerModal({
             aspectRatio: 1.0,
           },
           (decodedText) => {
-            if (isProcessing) return;
+            if (isProcessingRef.current) return;
             // Stop scanning and call check-in
             html5QrCode.stop().catch(() => {});
-            executeCheckin({ token: decodedText });
+            executeCheckinRef.current({ token: decodedText });
           },
           () => {
             // Frame scan miss, normal behavior
@@ -175,7 +181,7 @@ export default function QrScannerModal({
         });
       }
     };
-  }, [isOpen, activeMode, checkinResult]);
+  }, [isOpen, activeMode, checkinResult, isAr]);
 
   const handleManualSubmit = (e) => {
     e.preventDefault();

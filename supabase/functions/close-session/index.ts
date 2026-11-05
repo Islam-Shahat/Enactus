@@ -1,7 +1,12 @@
 // supabase/functions/close-session/index.ts
 import { createClient } from 'jsr:@supabase/supabase-js@2';
+import { z } from 'npm:zod@4.6.7';
 import { handleCors, checkOrigin } from '../_shared/cors.ts';
 import { json, errorResponse } from '../_shared/http.ts';
+
+const closeSessionSchema = z.object({
+  session_id: z.string().uuid('Invalid session ID format'),
+});
 
 Deno.serve(async (req: Request) => {
   // 1. CORS Preflight & Origin validation
@@ -46,18 +51,20 @@ Deno.serve(async (req: Request) => {
   const callerId = callerUser.id;
   const adminClient = createClient(supabaseUrl, supabaseServiceKey);
 
-  // 3. Parse input
-  let body: { session_id?: string };
+  // 3. Parse input with Zod
+  let rawBody: unknown;
   try {
-    body = await req.json();
+    rawBody = await req.json();
   } catch {
     return errorResponse(req, 'Invalid JSON body', 400);
   }
 
-  const sessionId = body?.session_id;
-  if (!sessionId || typeof sessionId !== 'string') {
-    return errorResponse(req, 'session_id is required', 400, 'INVALID_INPUT');
+  const parsed = closeSessionSchema.safeParse(rawBody);
+  if (!parsed.success) {
+    return errorResponse(req, parsed.error.issues[0]?.message || 'session_id is required and must be a UUID', 400, 'INVALID_INPUT');
   }
+
+  const sessionId = parsed.data.session_id;
 
   // 4. Fetch Session
   const { data: session, error: sessionErr } = await adminClient

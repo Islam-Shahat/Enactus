@@ -201,11 +201,12 @@ export default function ResetPasswordPage() {
 
               <form onSubmit={handleSubmit(onSubmit)}>
                 <div style={{ marginBottom: '1.25rem' }}>
-                  <label style={{ display: 'block', color: '#ffd54f', fontSize: '0.88rem', fontWeight: 700, marginBottom: '0.4rem' }}>
+                  <label htmlFor="reset-password" style={{ display: 'block', color: '#ffd54f', fontSize: '0.88rem', fontWeight: 700, marginBottom: '0.4rem' }}>
                     {t('newPasswordLabel')}
                   </label>
                   <div style={{ position: 'relative' }}>
                     <input
+                      id="reset-password"
                       type="password"
                       autoComplete="new-password"
                       placeholder="••••••••"
@@ -237,11 +238,12 @@ export default function ResetPasswordPage() {
                 </div>
 
                 <div style={{ marginBottom: '1.75rem' }}>
-                  <label style={{ display: 'block', color: '#ffd54f', fontSize: '0.88rem', fontWeight: 700, marginBottom: '0.4rem' }}>
+                  <label htmlFor="reset-confirmPassword" style={{ display: 'block', color: '#ffd54f', fontSize: '0.88rem', fontWeight: 700, marginBottom: '0.4rem' }}>
                     {t('confirmPasswordLabel')}
                   </label>
                   <div style={{ position: 'relative' }}>
                     <input
+                      id="reset-confirmPassword"
                       type="password"
                       autoComplete="new-password"
                       placeholder="••••••••"

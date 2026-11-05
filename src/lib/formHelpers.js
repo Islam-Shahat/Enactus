@@ -42,7 +42,14 @@ export function validatePdfUpload(file) {
  */
 export function sanitizeText(val) {
   if (typeof val !== 'string') return '';
-  return val.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, '').trim();
+  return val
+    .split('')
+    .filter((ch) => {
+      const code = ch.charCodeAt(0);
+      return !(code < 32 && code !== 9 && code !== 10 && code !== 13) && code !== 127;
+    })
+    .join('')
+    .trim();
 }
 
 /**

@@ -8,7 +8,7 @@ describe('Dashboard Navigation Filter Logic (RBAC)', () => {
     const visible = filterNavItems(DASHBOARD_NAV, memberRoles, false);
     const visibleKeys = visible.map((i) => i.key);
 
-    expect(visibleKeys).toEqual(['home', 'tasks', 'attendance', 'points', 'leaderboard']);
+    expect(visibleKeys).toEqual(['home', 'announcements', 'notifications', 'tasks', 'attendance', 'points', 'leaderboard']);
     expect(visibleKeys).not.toContain('applications');
     expect(visibleKeys).not.toContain('members');
     expect(visibleKeys).not.toContain('settings');
@@ -78,11 +78,11 @@ describe('Dashboard Navigation Filter Logic (RBAC)', () => {
   it('handles empty or unrecognized roles by showing only allow:null', () => {
     const empty = filterNavItems(DASHBOARD_NAV, [], false);
     const emptyKeys = empty.map((i) => i.key);
-    expect(emptyKeys).toEqual(['home', 'tasks', 'attendance', 'points', 'leaderboard']);
+    expect(emptyKeys).toEqual(['home', 'announcements', 'notifications', 'tasks', 'attendance', 'points', 'leaderboard']);
 
     const unknown = filterNavItems(DASHBOARD_NAV, ['unknown_guest'], false);
     const unknownKeys = unknown.map((i) => i.key);
-    expect(unknownKeys).toEqual(['home', 'tasks', 'attendance', 'points', 'leaderboard']);
+    expect(unknownKeys).toEqual(['home', 'announcements', 'notifications', 'tasks', 'attendance', 'points', 'leaderboard']);
   });
 });
 

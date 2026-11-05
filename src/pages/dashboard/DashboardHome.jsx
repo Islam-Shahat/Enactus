@@ -1,7 +1,20 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { CheckSquare, Award, Calendar, Users, Shield, FileText, UserCheck, Layers } from 'lucide-react';
+import {
+  CheckSquare,
+  Award,
+  Calendar,
+  Users,
+  Shield,
+  FileText,
+  UserCheck,
+  Layers,
+  Pin,
+  Megaphone,
+  ArrowRight,
+  ArrowLeft,
+} from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../context/AuthContext';
 import { useLanguage } from '../../context/LanguageContext';
@@ -156,6 +169,29 @@ export default function DashboardHome() {
     enabled: Boolean(user?.id),
   });
 
+  // Pinned Announcements
+  const { data: pinnedAnnouncements = [] } = useQuery({
+    queryKey: ['dashboard', 'pinned_announcements'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('announcements')
+        .select(`
+          id,
+          title,
+          body,
+          published_at,
+          committee_id,
+          committees (name_ar, name_en)
+        `)
+        .eq('pinned', true)
+        .order('published_at', { ascending: false })
+        .limit(2);
+
+      if (error) return [];
+      return data || [];
+    },
+  });
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
       {/* Welcome Card */}
@@ -227,6 +263,107 @@ export default function DashboardHome() {
           }}
         />
       </div>
+
+      {/* Pinned Announcements Card */}
+      {pinnedAnnouncements.length > 0 && (
+        <div
+          className="glass-panel gold-border-glow"
+          style={{
+            borderRadius: '20px',
+            padding: '1.25rem 1.5rem',
+            background: isDark
+              ? 'linear-gradient(135deg, rgba(255, 184, 0, 0.12), rgba(20, 22, 32, 0.98))'
+              : 'rgba(255, 184, 0, 0.12)',
+            border: '1.5px solid rgba(255, 184, 0, 0.45)',
+            boxShadow: '0 8px 25px rgba(255, 184, 0, 0.15)',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '0.85rem',
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.5rem' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <span
+                style={{
+                  background: 'linear-gradient(135deg, #d48800, #ffb800)',
+                  color: '#000000',
+                  padding: '3px 9px',
+                  borderRadius: '8px',
+                  fontWeight: 800,
+                  fontSize: '0.75rem',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '0.35rem',
+                }}
+              >
+                <Pin size={13} />
+                <span>{isAr ? 'إعلان هام ومثبت' : 'PINNED ANNOUNCEMENT'}</span>
+              </span>
+              {pinnedAnnouncements[0].committees && (
+                <span
+                  style={{
+                    background: 'rgba(255, 255, 255, 0.1)',
+                    color: '#ffd54f',
+                    padding: '2px 8px',
+                    borderRadius: '6px',
+                    fontSize: '0.75rem',
+                    fontWeight: 700,
+                  }}
+                >
+                  {isAr ? pinnedAnnouncements[0].committees.name_ar : pinnedAnnouncements[0].committees.name_en}
+                </span>
+              )}
+            </div>
+
+            <button
+              type="button"
+              onClick={() => navigate('/dashboard/announcements')}
+              style={{
+                background: 'transparent',
+                border: 'none',
+                color: isDark ? '#ffd54f' : '#b45309',
+                fontSize: '0.8rem',
+                fontWeight: 700,
+                cursor: 'pointer',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '0.3rem',
+              }}
+            >
+              <span>{isAr ? 'عرض كافة الإعلانات' : 'View All'}</span>
+              {isAr ? <ArrowLeft size={14} /> : <ArrowRight size={14} />}
+            </button>
+          </div>
+
+          <div>
+            <h3
+              style={{
+                margin: '0 0 0.35rem 0',
+                fontSize: '1.1rem',
+                fontWeight: 800,
+                color: isDark ? '#ffffff' : '#111827',
+              }}
+            >
+              {pinnedAnnouncements[0].title}
+            </h3>
+            <p
+              style={{
+                margin: 0,
+                fontSize: '0.88rem',
+                color: isDark ? '#d1d5db' : '#4b5563',
+                lineHeight: 1.5,
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                display: '-webkit-box',
+                WebkitLineClamp: 2,
+                WebkitBoxOrient: 'vertical',
+              }}
+            >
+              {pinnedAnnouncements[0].body}
+            </p>
+          </div>
+        </div>
+      )}
 
       {/* Role-Specific Live Metric Cards */}
       <div

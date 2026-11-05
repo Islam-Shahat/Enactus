@@ -29,6 +29,7 @@ import {
 import { getSignedFileUrl } from '../../lib/businessStorage';
 
 const PAGE_SIZE = 12;
+const EMPTY_LIST = [];
 
 export default function AgreementsPage() {
   const { user, isSuperAdmin, hasRole } = useAuth();
@@ -134,7 +135,7 @@ export default function AgreementsPage() {
     enabled: Boolean(seasonFilter),
   });
 
-  const agreements = agreementsData?.list || [];
+  const agreements = agreementsData?.list || EMPTY_LIST;
   const totalCount = agreementsData?.total || 0;
 
   // Compute aggregate stats across currently loaded agreements

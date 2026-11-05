@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useForm } from 'react-hook-form';
+import { useForm, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { X, Sparkles, CheckCircle2, User, Mail, Phone, Copy, Check, Clock, AlertCircle, Loader2, UploadCloud } from 'lucide-react';
 import { useApplicationsOpen } from '../hooks/usePublicContent';
@@ -31,7 +31,7 @@ export default function RecruitmentModal({ isOpen, onClose, defaultCommittee = '
     register,
     handleSubmit,
     setValue,
-    watch,
+    control,
     formState: { errors, isSubmitting },
   } = useForm({
     resolver: zodResolver(recruitmentFormSchema),
@@ -47,8 +47,8 @@ export default function RecruitmentModal({ isOpen, onClose, defaultCommittee = '
     },
   });
 
-  const currentFaculty = watch('faculty');
-  const currentCommittee = watch('committee');
+  const currentFaculty = useWatch({ control, name: 'faculty' });
+  const currentCommittee = useWatch({ control, name: 'committee' });
 
   // Sync defaults when lang or defaultCommittee changes
   useEffect(() => {
@@ -138,8 +138,7 @@ export default function RecruitmentModal({ isOpen, onClose, defaultCommittee = '
         );
       }
 
-      const randomCode = Math.floor(1000 + Math.random() * 9000);
-      const passCode = data?.id ? `ENACTUS-SVU-${data.id.substring(0, 4).toUpperCase()}` : `ENACTUS-SVU-${randomCode}`;
+      const passCode = data?.id ? `ENACTUS-SVU-${data.id.substring(0, 4).toUpperCase()}` : 'ENACTUS-SVU-PENDING';
       setMemberId(passCode);
       setIsSubmitted(true);
 
@@ -340,11 +339,12 @@ export default function RecruitmentModal({ isOpen, onClose, defaultCommittee = '
 
               {/* Field 1: Name */}
               <div style={{ marginBottom: '1.25rem' }}>
-                <label style={{ display: 'block', color: '#ffd54f', fontSize: '0.88rem', fontWeight: 700, marginBottom: '0.4rem' }}>
+                <label htmlFor="recruitment-fullName" style={{ display: 'block', color: '#ffd54f', fontSize: '0.88rem', fontWeight: 700, marginBottom: '0.4rem' }}>
                   {isAr ? 'الاسم بالكامل (ثلاثي أو رباعي) *' : 'Full Name (3 or 4 names) *'}
                 </label>
                 <div style={{ position: 'relative' }}>
                   <input
+                    id="recruitment-fullName"
                     type="text"
                     placeholder={isAr ? 'مثال: أحمد محمود عبد الرحيم' : 'e.g. Ahmed Mahmoud'}
                     {...register('fullName')}
@@ -371,11 +371,12 @@ export default function RecruitmentModal({ isOpen, onClose, defaultCommittee = '
               {/* Field: Email & Phone */}
               <div className="form-grid-2" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1.25rem' }}>
                 <div>
-                  <label style={{ display: 'block', color: '#ffd54f', fontSize: '0.88rem', fontWeight: 700, marginBottom: '0.4rem' }}>
+                  <label htmlFor="recruitment-email" style={{ display: 'block', color: '#ffd54f', fontSize: '0.88rem', fontWeight: 700, marginBottom: '0.4rem' }}>
                     {isAr ? 'البريد الإلكتروني الشخصي *' : 'Personal Email *'}
                   </label>
                   <div style={{ position: 'relative' }}>
                     <input
+                      id="recruitment-email"
                       type="email"
                       placeholder="student@example.com"
                       {...register('email')}
@@ -402,11 +403,12 @@ export default function RecruitmentModal({ isOpen, onClose, defaultCommittee = '
                 </div>
 
                 <div>
-                  <label style={{ display: 'block', color: '#ffd54f', fontSize: '0.88rem', fontWeight: 700, marginBottom: '0.4rem' }}>
+                  <label htmlFor="recruitment-phone" style={{ display: 'block', color: '#ffd54f', fontSize: '0.88rem', fontWeight: 700, marginBottom: '0.4rem' }}>
                     {isAr ? 'رقم الهاتف (الواتساب للتواصل) *' : 'Phone / WhatsApp *'}
                   </label>
                   <div style={{ position: 'relative' }}>
                     <input
+                      id="recruitment-phone"
                       type="tel"
                       placeholder="010XXXXXXXX"
                       {...register('phone')}
@@ -436,10 +438,11 @@ export default function RecruitmentModal({ isOpen, onClose, defaultCommittee = '
               {/* Field 2 & 3: Faculty & Year */}
               <div className="form-grid-2" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1.25rem' }}>
                 <div>
-                  <label style={{ display: 'block', color: '#ffd54f', fontSize: '0.88rem', fontWeight: 700, marginBottom: '0.4rem' }}>
+                  <label htmlFor="recruitment-faculty" style={{ display: 'block', color: '#ffd54f', fontSize: '0.88rem', fontWeight: 700, marginBottom: '0.4rem' }}>
                     {isAr ? 'الكلية بجامعة جنوب الوادي *' : 'Faculty at SVU *'}
                   </label>
                   <select
+                    id="recruitment-faculty"
                     {...register('faculty')}
                     style={{
                       width: '100%',
@@ -464,10 +467,11 @@ export default function RecruitmentModal({ isOpen, onClose, defaultCommittee = '
                 </div>
 
                 <div>
-                  <label style={{ display: 'block', color: '#ffd54f', fontSize: '0.88rem', fontWeight: 700, marginBottom: '0.4rem' }}>
+                  <label htmlFor="recruitment-studyYear" style={{ display: 'block', color: '#ffd54f', fontSize: '0.88rem', fontWeight: 700, marginBottom: '0.4rem' }}>
                     {isAr ? 'الفرقة الدراسية *' : 'Academic Year *'}
                   </label>
                   <select
+                    id="recruitment-studyYear"
                     {...register('studyYear')}
                     style={{
                       width: '100%',
@@ -494,10 +498,11 @@ export default function RecruitmentModal({ isOpen, onClose, defaultCommittee = '
 
               {/* Field 5: Committee Selection */}
               <div style={{ marginBottom: '1.25rem' }}>
-                <label style={{ display: 'block', color: '#ffd54f', fontSize: '0.88rem', fontWeight: 700, marginBottom: '0.4rem' }}>
+                <label htmlFor="recruitment-committee" style={{ display: 'block', color: '#ffd54f', fontSize: '0.88rem', fontWeight: 700, marginBottom: '0.4rem' }}>
                   {isAr ? 'اللجنة التي ترغب في الانضمام إليها *' : 'Committee You Wish to Join *'}
                 </label>
                 <select
+                  id="recruitment-committee"
                   {...register('committee')}
                   style={{
                     width: '100%',
@@ -523,10 +528,11 @@ export default function RecruitmentModal({ isOpen, onClose, defaultCommittee = '
 
               {/* Field 6: Personal Impact Vision */}
               <div style={{ marginBottom: '1.25rem' }}>
-                <label style={{ display: 'block', color: '#ffd54f', fontSize: '0.88rem', fontWeight: 700, marginBottom: '0.4rem' }}>
+                <label htmlFor="recruitment-impactGoal" style={{ display: 'block', color: '#ffd54f', fontSize: '0.88rem', fontWeight: 700, marginBottom: '0.4rem' }}>
                   {isAr ? 'ما هو الأثر أو المهارة التي تريد إضافتها للفريق؟ (اختياري)' : 'What impact or skills do you hope to bring to the team? (Optional)'}
                 </label>
                 <textarea
+                  id="recruitment-impactGoal"
                   rows="3"
                   placeholder={isAr ? 'حدثنا باختصار عن شغفك وتطلعاتك في إيناكوس قنا...' : 'Briefly tell us about your passion, skills, and goals with Enactus Qena...'}
                   {...register('impactGoal')}
@@ -546,7 +552,7 @@ export default function RecruitmentModal({ isOpen, onClose, defaultCommittee = '
 
               {/* Optional CV Upload (PDF <= 5 MB) */}
               <div style={{ marginBottom: '1.5rem' }}>
-                <label style={{ display: 'block', color: '#ffd54f', fontSize: '0.88rem', fontWeight: 700, marginBottom: '0.4rem' }}>
+                <label htmlFor="recruitment-cvFile" style={{ display: 'block', color: '#ffd54f', fontSize: '0.88rem', fontWeight: 700, marginBottom: '0.4rem' }}>
                   {isAr ? 'إرفاق السيرة الذاتية (CV) بصيغة PDF (اختياري)' : 'Attach Resume / CV in PDF (Optional)'}
                 </label>
                 <div
@@ -568,6 +574,7 @@ export default function RecruitmentModal({ isOpen, onClose, defaultCommittee = '
                     </span>
                   </div>
                   <label
+                    htmlFor="recruitment-cvFile"
                     className="btn-secondary"
                     style={{
                       cursor: 'pointer',
@@ -578,6 +585,7 @@ export default function RecruitmentModal({ isOpen, onClose, defaultCommittee = '
                   >
                     <span>{isAr ? 'استعراض' : 'Browse'}</span>
                     <input
+                      id="recruitment-cvFile"
                       type="file"
                       accept=".pdf,application/pdf"
                       onChange={handleCvChange}

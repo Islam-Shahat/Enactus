@@ -1,18 +1,50 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
 import { newsArticles } from '../data/enactusData';
-import { useNews } from '../hooks/usePublicContent';
+import { useNews, useNewsArticle } from '../hooks/usePublicContent';
 import SEO from '../components/SEO';
 import { Calendar, ArrowLeft, ArrowRight, X } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext';
 import { localizeNewsMock } from '../services/mockLocalization';
 
 export default function NewsPage() {
-  const [selectedArticle, setSelectedArticle] = useState(null);
+  const { slug } = useParams();
+  const navigate = useNavigate();
   const { lang } = useLanguage();
   const isAr = lang === 'ar';
   const ArrowIcon = isAr ? ArrowLeft : ArrowRight;
   const fallback = localizeNewsMock(newsArticles, lang);
   const { data: news = fallback, isLoading } = useNews(fallback);
+  const { data: singleArticle } = useNewsArticle(slug, newsArticles, lang);
+
+  const [selectedArticle, setSelectedArticle] = useState(() => {
+    if (slug) {
+      return fallback.find((a) => a.slug === slug) || null;
+    }
+    return null;
+  });
+
+  useEffect(() => {
+    if (slug) {
+      if (singleArticle) {
+        setSelectedArticle(singleArticle);
+      } else if (news?.length) {
+        const found = news.find((a) => a.slug === slug);
+        if (found) {
+          setSelectedArticle(found);
+        }
+      }
+    } else {
+      setSelectedArticle(null);
+    }
+  }, [slug, singleArticle, news]);
+
+  const handleCloseModal = () => {
+    setSelectedArticle(null);
+    if (slug) {
+      navigate('/news');
+    }
+  };
 
   return (
     <div className="page-container-padding" style={{ paddingTop: '120px', paddingBottom: '100px' }}>
@@ -117,7 +149,12 @@ export default function NewsPage() {
                 }}
               >
                 <button
-                  onClick={() => setSelectedArticle(article)}
+                  onClick={() => {
+                    setSelectedArticle(article);
+                    if (article?.slug) {
+                      navigate(`/news/${article.slug}`);
+                    }
+                  }}
                   style={{
                     background: 'transparent',
                     border: 'none',
@@ -153,7 +190,7 @@ export default function NewsPage() {
               justifyContent: 'center',
               padding: '1.5rem',
             }}
-            onClick={() => setSelectedArticle(null)}
+            onClick={handleCloseModal}
           >
             <div
               className="glass-panel gold-border-glow"
@@ -172,7 +209,8 @@ export default function NewsPage() {
               onClick={(e) => e.stopPropagation()}
             >
               <button
-                onClick={() => setSelectedArticle(null)}
+                onClick={handleCloseModal}
+                aria-label={isAr ? 'إغلاق البيان' : 'Close article'}
                 style={{
                   position: 'absolute',
                   top: '20px',

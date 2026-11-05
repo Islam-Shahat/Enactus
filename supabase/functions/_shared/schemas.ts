@@ -18,6 +18,7 @@ export const submitApplicationSchema = z.object({
     return 1;
   }),
   committeeSlug: z.string().trim().min(1).max(100).optional(),
+  firstChoiceSlug: z.string().trim().min(1).max(100).optional(),
   secondChoiceSlug: z.string().trim().min(1).max(100).optional(),
   universityId: z.string().trim().max(50).optional(),
   motivation: z.string().trim().max(2000).optional(),

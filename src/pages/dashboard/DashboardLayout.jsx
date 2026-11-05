@@ -22,15 +22,19 @@ import {
   Settings,
   ShieldAlert,
   Key,
+  Megaphone,
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useLanguage } from '../../context/LanguageContext';
 import { DASHBOARD_NAV, ROLE_LABELS, filterNavItems } from '../../lib/roles';
 import ThemeToggle from '../../components/ThemeToggle';
 import LanguageToggle from '../../components/LanguageToggle';
+import NotificationsBell from '../../components/dashboard/NotificationsBell';
 
 const NAV_ICONS = {
   home: Home,
+  announcements: Megaphone,
+  notifications: Bell,
   tasks: CheckSquare,
   attendance: CalendarCheck,
   points: Award,
@@ -297,25 +301,8 @@ export default function DashboardLayout() {
             {/* Language Switch */}
             <LanguageToggle className="dashboard-topbar-pill" />
 
-            {/* Notifications Bell Placeholder */}
-            <button
-              disabled
-              title={t('notificationsPlaceholder')}
-              className="dashboard-topbar-pill"
-              style={{
-                background: 'rgba(255, 255, 255, 0.04)',
-                border: '1px solid rgba(255, 184, 0, 0.2)',
-                borderRadius: '8px',
-                padding: '0.45rem',
-                color: '#a3a3b2',
-                cursor: 'default',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-              }}
-            >
-              <Bell size={16} />
-            </button>
+            {/* Live Notifications Bell with Unread Badge & Dropdown */}
+            <NotificationsBell />
 
             {/* Existing Theme Toggle */}
             <ThemeToggle variant="compact" />

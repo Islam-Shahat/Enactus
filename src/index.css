@@ -477,13 +477,29 @@ html, body, .glass-panel, header, footer, .btn-secondary, .badge-gold, input, se
   color: #0f111a !important;
 }
 
-.modal-header-title {
+.modal-header-title,
+.session-modal-title {
   color: #ffd54f !important;
+  font-weight: 800 !important;
 }
 
 [data-theme="light"] .modal-header-title,
+[data-theme="light"] .session-modal-title,
 [data-theme="light"] .gold-heading {
   color: #b45309 !important;
+  font-weight: 800 !important;
+}
+
+.session-modal-input {
+  background-color: #141620 !important;
+  color: #ffffff !important;
+  color-scheme: dark !important;
+}
+
+[data-theme="light"] .session-modal-input {
+  background-color: #ffffff !important;
+  color: #0f111a !important;
+  color-scheme: light !important;
 }
 
 /* High contrast paragraphs & body text (solves faint gray in light mode) */

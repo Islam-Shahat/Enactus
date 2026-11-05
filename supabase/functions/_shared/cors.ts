@@ -1,7 +1,17 @@
 // supabase/functions/_shared/cors.ts
 
+function getEnv(key: string): string {
+  if (typeof Deno !== 'undefined' && Deno.env?.get) {
+    return Deno.env.get(key) || '';
+  }
+  if (typeof process !== 'undefined' && process.env) {
+    return process.env[key] || '';
+  }
+  return '';
+}
+
 export function getCorsHeaders(req: Request): HeadersInit {
-  const siteOriginsEnv = Deno.env.get('SITE_ORIGINS') || '';
+  const siteOriginsEnv = getEnv('SITE_ORIGINS');
   const allowedOrigins = siteOriginsEnv
     .split(',')
     .map((o) => o.trim())
@@ -19,7 +29,7 @@ export function getCorsHeaders(req: Request): HeadersInit {
 
   return {
     'Access-Control-Allow-Origin': originHeader,
-    'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+    'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-cron-secret, x-recovery-token',
     'Access-Control-Allow-Methods': 'POST, GET, OPTIONS',
     'Vary': 'Origin',
   };
@@ -36,7 +46,7 @@ export function handleCors(req: Request): Response | null {
 }
 
 export function checkOrigin(req: Request): Response | null {
-  const siteOriginsEnv = Deno.env.get('SITE_ORIGINS') || '';
+  const siteOriginsEnv = getEnv('SITE_ORIGINS');
   const allowedOrigins = siteOriginsEnv
     .split(',')
     .map((o) => o.trim())

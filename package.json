@@ -3,11 +3,16 @@
   "private": true,
   "version": "1.0.0",
   "type": "module",
+  "engines": {
+    "node": ">=22.12.0",
+    "npm": ">=10.0.0"
+  },
   "scripts": {
     "dev": "vite --port 5173 --host",
     "build": "vite build",
     "lint": "oxlint",
     "i18n:check": "node scripts/i18n-check.mjs",
+    "check:bundle": "node scripts/check-bundle-size.mjs",
     "test": "vitest run",
     "preview": "vite preview"
   },
@@ -15,6 +20,7 @@
     "@dnd-kit/core": "6.3.1",
     "@dnd-kit/utilities": "3.2.2",
     "@hookform/resolvers": "7.0.1",
+    "@sentry/react": "11.10.0",
     "@supabase/supabase-js": "^2.118.0",
     "@tanstack/react-query": "^5.105.0",
     "canvas-confetti": "^1.9.4",

@@ -8,7 +8,77 @@ import { validatePdfUpload } from '../_shared/magic.ts';
 import { resolveCommittee } from '../_shared/committees.ts';
 import { submitApplicationSchema } from '../_shared/schemas.ts';
 
-Deno.serve(async (req: Request) => {
+export function buildApplicationRow({
+  applicationId,
+  seasonId,
+  input,
+  normalizedEmail,
+  firstChoiceId = null,
+  secondChoiceId = null,
+  cvUrl = null,
+  ipHash = null,
+}: {
+  applicationId: string;
+  seasonId: string;
+  input: {
+    fullName: string;
+    phone: string;
+    universityId?: string | null;
+    faculty?: string | null;
+    studyYear?: number | string | null;
+    motivation?: string | null;
+    answers?: Record<string, unknown> | null;
+  };
+  normalizedEmail: string;
+  firstChoiceId?: string | null;
+  secondChoiceId?: string | null;
+  cvUrl?: string | null;
+  ipHash?: string | null;
+}) {
+  let studyYear: number | null = null;
+  if (typeof input.studyYear === 'number' && Number.isFinite(input.studyYear)) {
+    studyYear = Math.max(1, Math.min(8, Math.floor(input.studyYear)));
+  } else if (typeof input.studyYear === 'string') {
+    const match = input.studyYear.match(/\d+/);
+    if (match) {
+      studyYear = Math.max(1, Math.min(8, parseInt(match[0], 10)));
+    } else if (input.studyYear.includes('أولى') || input.studyYear.includes('first') || input.studyYear.includes('1st')) {
+      studyYear = 1;
+    } else if (input.studyYear.includes('ثانية') || input.studyYear.includes('second') || input.studyYear.includes('2nd')) {
+      studyYear = 2;
+    } else if (input.studyYear.includes('ثالثة') || input.studyYear.includes('third') || input.studyYear.includes('3rd')) {
+      studyYear = 3;
+    } else if (input.studyYear.includes('رابعة') || input.studyYear.includes('fourth') || input.studyYear.includes('4th')) {
+      studyYear = 4;
+    } else if (input.studyYear.includes('خامسة') || input.studyYear.includes('fifth') || input.studyYear.includes('5th')) {
+      studyYear = 5;
+    }
+  }
+
+  return {
+    id: applicationId,
+    season_id: seasonId,
+    full_name: sanitizeText(input.fullName),
+    email: normalizedEmail,
+    phone: input.phone ? sanitizeText(input.phone) : null,
+    university_id: input.universityId ? sanitizeText(input.universityId) : null,
+    faculty: input.faculty ? sanitizeText(input.faculty) : null,
+    study_year: studyYear,
+    first_choice_id: firstChoiceId,
+    second_choice_id: secondChoiceId,
+    motivation: input.motivation ? sanitizeText(input.motivation) : null,
+    answers: input.answers || {},
+    cv_url: cvUrl,
+    status: 'new',
+    interview_score: null,
+    notes: null,
+    reviewed_by: null,
+    ip_hash: ipHash,
+  };
+}
+
+if (typeof Deno !== 'undefined' && typeof Deno.serve === 'function') {
+  Deno.serve(async (req: Request) => {
   // 1. CORS Preflight & Origin validation
   const corsResponse = handleCors(req);
   if (corsResponse) return corsResponse;
@@ -96,6 +166,7 @@ Deno.serve(async (req: Request) => {
       appOpenSetting?.value?.toString().toLowerCase() === 'true';
 
     if (!isApplicationsOpen) {
+      rateCheck.release?.();
       return errorResponse(req, 'Applications are currently closed for this season.', 400, 'APPLICATIONS_CLOSED');
     }
 
@@ -107,6 +178,7 @@ Deno.serve(async (req: Request) => {
       .maybeSingle();
 
     if (seasonErr || !activeSeason) {
+      rateCheck.release?.();
       console.error('[submit-application] No active season found:', seasonErr);
       return errorResponse(req, 'No active season found for applications.', 400, 'NO_ACTIVE_SEASON');
     }
@@ -122,6 +194,7 @@ Deno.serve(async (req: Request) => {
       .maybeSingle();
 
     if (existingApp) {
+      rateCheck.release?.();
       return json(req, {
         ok: true,
         alreadyApplied: true,
@@ -133,14 +206,15 @@ Deno.serve(async (req: Request) => {
     let firstChoiceId: string | null = null;
     let secondChoiceId: string | null = null;
 
-    if (input.committeeSlug || input.secondChoiceSlug) {
+    const firstSlug = input.firstChoiceSlug || input.committeeSlug;
+    if (firstSlug || input.secondChoiceSlug) {
       const { data: allCommittees } = await supabase
         .from('committees')
         .select('id, slug, name_ar, name_en');
 
       if (allCommittees?.length) {
-        if (input.committeeSlug) {
-          const matched1 = resolveCommittee(input.committeeSlug, allCommittees);
+        if (firstSlug) {
+          const matched1 = resolveCommittee(firstSlug, allCommittees);
           if (matched1) firstChoiceId = matched1.id;
         }
         if (input.secondChoiceSlug) {
@@ -193,30 +267,22 @@ Deno.serve(async (req: Request) => {
     }
 
     // 12. Insert Application Row using Service Role
-    // Server enforces status='new', resolved season_id, score=null, reviewer=null
-    const applicationRow = {
-      id: applicationId,
-      season_id: seasonId,
-      full_name: sanitizeText(input.fullName),
-      email: normalizedEmail,
-      phone: sanitizeText(input.phone),
-      university_id: input.universityId ? sanitizeText(input.universityId) : null,
-      faculty: input.faculty ? sanitizeText(input.faculty) : null,
-      study_year: input.studyYear ? sanitizeText(input.studyYear) : null,
-      committee_id: firstChoiceId,
-      second_choice_id: secondChoiceId,
-      motivation: input.motivation ? sanitizeText(input.motivation) : null,
-      answers: input.answers || {},
-      cv_url: cvUrl,
-      status: 'new',
-      score: null,
-      reviewed_by: null,
-      ip_hash: ipHash,
-    };
+    // Server enforces status='new', resolved season_id, interview_score=null, reviewed_by=null
+    const applicationRow = buildApplicationRow({
+      applicationId,
+      seasonId,
+      input,
+      normalizedEmail,
+      firstChoiceId,
+      secondChoiceId,
+      cvUrl,
+      ipHash,
+    });
 
     const { error: insertErr } = await supabase.from('applications').insert([applicationRow]);
 
     if (insertErr) {
+      rateCheck.release?.();
       console.error('[submit-application] Database insert error:', insertErr);
       return errorResponse(req, 'Failed to submit application. Please try again later.', 500);
     }
@@ -231,3 +297,4 @@ Deno.serve(async (req: Request) => {
     return errorResponse(req, 'Internal server error', 500);
   }
 });
+}

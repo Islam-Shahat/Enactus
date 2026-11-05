@@ -1,0 +1,46 @@
+name: CI Quality Checks
+
+on:
+  push:
+    branches: [master, main]
+  pull_request:
+    branches: [master, main]
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  quality-gate:
+    name: Lint, Test, Build & Bundle Size Budget
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 22 (LTS)
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - name: Install dependencies (clean install)
+        run: npm ci
+
+      - name: Run code linter (Oxlint)
+        run: npm run lint
+
+      - name: Verify i18n translations parity
+        run: npm run i18n:check
+
+      - name: Run unit test suite (Vitest)
+        run: npm test
+
+      - name: Build production bundle (Vite)
+        run: npm run build
+
+      - name: Enforce intentional bundle size budget
+        run: npm run check:bundle
+

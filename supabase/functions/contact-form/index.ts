@@ -77,6 +77,7 @@ Deno.serve(async (req: Request) => {
       .single();
 
     if (insertErr) {
+      rateCheck.release?.();
       console.error('[contact-form] insert error:', insertErr);
       return errorResponse(req, 'Failed to submit message. Please try again.', 500);
     }

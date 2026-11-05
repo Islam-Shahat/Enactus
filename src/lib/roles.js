@@ -37,6 +37,8 @@ const EXEC = [ROLES.PRESIDENT, ROLES.VICE_PRESIDENT];
  */
 export const DASHBOARD_NAV = [
   { key: 'home', path: '/dashboard', label: { ar: 'الرئيسية', en: 'Home' }, allow: null },
+  { key: 'announcements', path: '/dashboard/announcements', label: { ar: 'الإعلانات', en: 'Announcements' }, allow: null },
+  { key: 'notifications', path: '/dashboard/notifications', label: { ar: 'الإشعارات', en: 'Notifications' }, allow: null },
   { key: 'tasks', path: '/dashboard/tasks', label: { ar: 'المهام', en: 'Tasks' }, allow: null },
   { key: 'attendance', path: '/dashboard/attendance', label: { ar: 'الحضور', en: 'Attendance' }, allow: null },
   { key: 'points', path: '/dashboard/points', label: { ar: 'النقاط', en: 'Points' }, allow: null },
@@ -52,6 +54,7 @@ export const DASHBOARD_NAV = [
   { key: 'site', path: '/dashboard/site', label: { ar: 'محتوى الموقع', en: 'Site content' }, allow: [ROLES.MEDIA, ROLES.PR, ROLES.HR, ...EXEC] },
   { key: 'settings', path: '/dashboard/settings', label: { ar: 'الإعدادات', en: 'Settings' }, allow: [ROLES.HR, ...EXEC] },
   { key: 'audit', path: '/dashboard/audit', label: { ar: 'سجل العمليات', en: 'Audit log' }, allow: [ROLES.PRESIDENT] },
+  { key: 'season', path: '/dashboard/season', label: { ar: 'تدوير المواسم', en: 'Seasons & Rollover' }, allow: [] }, // super_admin only
   { key: 'roles', path: '/dashboard/roles', label: { ar: 'الصلاحيات', en: 'Roles' }, allow: [] }, // super_admin only
 ];
 

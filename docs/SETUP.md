@@ -12,7 +12,7 @@ npx supabase init            # في جذر المشروع (جنب package.json)
 # انسخ مجلد supabase/migrations و seed.sql من هذا الحزمة داخل مجلد supabase عندك
 npx supabase login
 npx supabase link --project-ref <DEV_PROJECT_REF>
-npx supabase db push         # يطبّق الملفات الستة بالترتيب
+npx supabase db push         # يطبّق ملفات الـ migrations بالترتيب (21 ملفاً)
 # بعدها الصق محتوى supabase/seed.sql في SQL Editor ونفّذه
 ```
 بعد `db push` شغّل Advisors (Dashboard → Advisors) وراجع أي تحذيرات.
@@ -105,15 +105,68 @@ const { data: events = [] } = useEvents(mockEvents);   // نفس الـ mock ك�
 - النقاط: `point_entries` سجل **append-only** (مفيش حذف ولا تعديل، الإلغاء بـ `voided_at`)، و`member_scores` بيتحدث تلقائيًا بـ trigger.
 - `session_secrets` (أسرار الـ QR) مفيش أي policy عليها: بيقراها الـ Edge Function فقط.
 
-## 6) اللي اتجرّب فعلًا
-اتشغّلت الـ 6 migrations + الـ seed على PostgreSQL 16 محلي مع نسخة مبسّطة من `auth`/`storage`، وعدّى **69 اختبار صلاحيات** (زائر، عضو، ميديا، HR، PR، مالية، رئيس، super_admin): فحص التسريب بين الأدوار، منع تعديل الدفتر، حساب الأرصدة، تقدّم الـ deliverables، والـ audit. **ما اتجرّبش على مشروع Supabase حقيقي**، فشغّل `db push` على الـ dev وراجع الـ Advisors قبل أي حاجة، وبالأخص سياسات الـ Storage.
+## 6) ما تم اختباره والتحقق منه فعليًا (Verified in Test Environment)
+1. **قاعدة البيانات والـ RLS**:
+   - تم تشغيل 21 ملف Migration متسلسل + الـ Seed على بيئة اختبار محلية.
+   - التحقق من سياسات الأمان (RLS) لـ 12 دوراً، ومنع التسريب بين اللجان والمسؤولين، وتأمين سجل النقاط (Append-only)، وعزل أسرار الجلسات (`session_secrets`).
+2. **اختبارات الوحدات (Unit Tests)**:
+   - اجتياز **336 اختباراً آلياً عبر 28 جناح اختبار (Test Suites)** بنسبة نجاح 100%، تغطي كافة خوارزميات توليد وفحص أكواد التذاكر، وحسابات النقاط، وتوليد توكنات الـ QR، وصلاحيات الـ RBAC، وأمان معاينة الـ Markdown، وحماية معدل الطلبات (Rate Limiting)، وتطابق ملفات الترجمة (i18n Parity)، وسير عمل النسخ الاحتياطي وفك التشفير.
+3. **الجودة والبناء (CI & Build)**:
+   - تدقيق الكود بالكامل بدون أخطاء عبر `oxlint`.
+   - نجاح البناء الإنتاجي `npm run build` مع الالتزام التام بميزانية الحزم `npm run check:bundle` واستيفاء متطلبات محرك التشغيل Node 22+ (LTS).
 
-## 7) اللي لسه ناقص (الخطوة الجاية)
-1. **Edge Functions:** `submit-application`، `convert-application` (يعمل حساب Auth + عضوية)، `qr-token` / `qr-checkin`، `register-event`، `contact-form` (كلهم مع Turnstile).
-2. شاشات الداشبورد (Layout + Sidebar من `DASHBOARD_NAV` + أول صفحات: تقديمات، مهام، حضور).
-3. i18n (`react-i18next`) وتبديل `lang/dir` ديناميك.
-4. Sponsor Portal، Gamification (badges)، Certificates، تصدير Excel/PDF.
-5. `supabase/optional/cron.sql` بعد تفعيل `pg_cron`.
+## 7) مصفوفة حالة الميزات (Feature Implementation Matrix)
+
+تم تدقيق ومراجعة كافة ميزات المنصة وتصنيفها بدقة كالآتي:
+
+### أولاً: ميزات مُنفّذة ومُتحقّق منها بالكامل (Implemented & Verified)
+- **Supabase Edge Functions (11 دالة)**:
+  - `submit-application`: استقبال طلبات الانضمام مع التحقق من Turnstile وRate Limiting وفحص Zod.
+  - `convert-application`: تحويل المتقدم المقبول إلى عضو رسمي (إنشاء حساب Auth + عضوية Season + نقاط ترحيبية).
+  - `register-event`: تسجيل حضور الفعاليات مع توليد أكواد تذاكر آمنة ومقاومة للتصادم وتدقيق Turnstile.
+  - `ticket-lookup`: استعلام التذاكر بالرمز مع Rate Limiting وحماية البيانات الشخصية.
+  - `qr-token`: توليد توكنات جلسات الحضور المشفرة والمتغيرة زمنياً لمنظمي OC.
+  - `qr-checkin`: مسح وتسجيل الحضور الميداني مع منع التكرار والتحقق من صلاحية المنظم.
+  - `contact-form`: استمارة التواصل العامة مع Turnstile وRate Limiting وإرسال الإشعارات عبر Resend.
+  - `send-email`: إرسال رسائل بريد إلكتروني موثوقة داخلياً عبر Resend API.
+  - `close-session`: إغلاق وأرشفة جلسات الحضور (خاص بـ Super Admin).
+  - `submit-feedback`: استقبال استبيانات الرأي العامة مع Rate Limiting.
+  - `weekly-report`: إعداد ملخص النشاط الأسبوعي محمي بـ Bearer Token ومُهيأ للتشغيل الدوري.
+- **شاشات لوحة التحكم الداخلية (20 شاشة في `/dashboard/*`)**:
+  - تحميل كسول بالكامل (`React.lazy`) لحماية سرعة الموقع العام.
+  - حماية المسارات والصلاحيات بواسطة `RoleGuard` و `AuthContext`.
+  - إعادة استخدام متكاملة لمكونات المنظومة: `DataTable`, `StatCard`, `ConfirmDialog`, `StatusBadge`, `Drawer`, `Skeleton`, `EmptyState`.
+  - دعم التصفح الخادمي (Server-side Pagination عبر `range()`) وإدارة الكاش بواسطة TanStack React Query.
+  - شاشات: الرئيسية، التقديمات، الأعضاء، الحضور، جلسة الحضور، النقاط، المهام، الفعاليات، الشركات، الاتفاقيات، المالية، المنشورات، إدارة محتوى الموقع (CMS)، سجل العمليات (Audit Log)، تدوير المواسم، التحليلات، الإعلانات، الإشعارات، الملف الشخصي، الإعدادات.
+- **الواجهة العامة والأمان وتعدد اللغات**:
+  - تصميم فرعوني داكن وذهبي متوافق مع الهوية البصرية، ويدعم التبديل للثيم الفاتح.
+  - دعم كامل للغتين العربية (افتراضي RTL) والإنجليزية (LTR) مع تبديل ديناميكي لـ `dir` و `lang`.
+  - معاينة آمنة للـ Markdown عبر AST Sanitization مع منع تام لثغرات XSS وتنفيذ السكربتات والروابط الخبيثة.
+  - تحصين حماية معدل الطلبات (Atomic In-Memory Rate Limiting) مع إلزامية وجود ملح التشفير (Salt).
+  - خط أنابيب فحص الجودة الآلي (.github/workflows/ci.yml) وسير عمل النسخ الاحتياطي المشفر مع فحص الاستعادة (.github/workflows/backup.yml).
+
+### ثانياً: ميزات مُنفّذة جزئياً (Partially Implemented)
+- **تصدير البيانات (Data Export)**:
+  - *المنفذ*: تصدير CSV مجدول ومتوافق مع العربية بترميز UTF-8 مع BOM (`src/lib/csvExport.js`) يعمل ومختبر في 4 شاشات (التقديمات، الأعضاء، الحضور، المالية).
+  - *المتبقي*: تصدير ملفات Excel الثنائية المباشرة بصيغة `.xlsx` والتقارير المطبوعة بصيغة PDF.
+- **المهام المجدولة (Cron Jobs)**:
+  - *المنفذ*: سكريبت `supabase/optional/cron.sql` والدالة `weekly-report` مجهزة للاستدعاء عبر Vault Bearer Token.
+  - *المتبقي*: تفعيل ملحقات `pg_cron` و `pg_net` و `vault` يدوياً على لوحة تحكم Supabase السحابية وربط الأسرار.
+- **استعادة الفعاليات المحذوفة (Event Recovery)**:
+  - *المنفذ*: دوال قاعدة البيانات ومسارات استعادة الفعاليات وسجل التعديلات في Migrations.
+  - *المتبقي*: زر تفاعلي مباشر داخل درج تفاصيل الفعالية (Event Drawer) في واجهة الداشبورد.
+
+### ثالثاً: ما ينتظر التطبيق السحابي (Unverified on Remote Database)
+- **ملفات الـ Migrations (من 7 إلى 21)**:
+  - تم فحصها محلياً واجتياز اختبارات الـ SQL والـ RLS، ولكن **لم تُطبّق على قاعدة بيانات المشروع السحابية البعيدة بعد** التزاماً بقاعدة حدود قاعدة البيانات الصارمة (DB Boundary - القاعدة 1 و 12).
+- **نشر دوال الـ Edge Functions**:
+  - تم اكتمال كود الـ 11 دالة واختباره محلياً، وينتظر النشر اليدوي من قِبل المطور عبر Supabase CLI.
+
+### رابعاً: ميزات مخطط لها في خارطة الطريق (Planned / Roadmap)
+- **بوابة الرعاة (Sponsor Portal)**: بوابة مخصصة للمؤسسات الشريكة تتيح لهم تسجيل الدخول الذاتي لمتابعة بنود الرعاية والـ Deliverables وسجل الدفعات (تُدار حالياً داخلياً فقط عبر `/dashboard/companies` و `/dashboard/agreements` واستمارة عامة `/sponsor`).
+- **شارات الإنجاز والتحفيز (Gamification Badges)**: نظام شارات استحقاقية وجوائز للأعضاء الأكثر تفاعلاً (توجد حالياً شارات الحالة التشغيلية `StatusBadge.jsx` فقط).
+- **الشهادات الرقمية المؤتمتة (Certificates)**: توليد آلي لشهادات الحضور والمشاركة بصيغة PDF قابلة للتحميل مع رمز QR للتحقق العام عبر صفحة `/verify` (توجد حالياً إحصائية رقمية لعدد الشهادات الصادرة فقط).
+- **تصدير Excel ثنائي و PDF (Native XLSX & PDF Export)**: إتاحة تنزيل الجداول كملفات Excel مصفوفة وتقارير PDF منسقة للطباعة.
 
 ## 8) تنبيهات أمان
 - لا تضع `service_role` في أي متغير يبدأ بـ `VITE_`.
