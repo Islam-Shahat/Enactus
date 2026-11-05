@@ -31,6 +31,7 @@ import {
   Search,
   Check,
   AlertCircle,
+  SwitchCamera,
 } from 'lucide-react';
 
 // Audio feedback chime on scan success
@@ -179,6 +180,7 @@ export default function SessionLiveModal({
   const [isCheckingIn, setIsCheckingIn] = useState(false);
   const [lastScannedMember, setLastScannedMember] = useState(null);
   const [cameraError, setCameraError] = useState(null);
+  const [cameraFacing, setCameraFacing] = useState('environment'); // 'environment' | 'user'
 
   // Rotating Token state (for optional projector view)
   const [qrToken, setQrToken] = useState(null);
@@ -206,6 +208,41 @@ export default function SessionLiveModal({
       isScanningReadyRef.current = true;
     }
   }, [isOpen, initialTab]);
+
+
+  // Query Live Attendees
+  const { data: attendees = [], isLoading: loadingAttendees } = useQuery({
+    queryKey: ['dashboard', 'session_attendees', session?.id],
+    queryFn: async () => {
+      if (!session?.id) return [];
+      const { data, error } = await supabase
+        .from('attendance')
+        .select(`
+          id,
+          user_id,
+          status,
+          method,
+          checked_in_at,
+          notes,
+          profiles!inner(
+            id,
+            full_name_ar,
+            full_name_en,
+            member_code,
+            avatar_url
+          )
+        `)
+        .eq('session_id', session.id)
+        .order('checked_in_at', { ascending: false });
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: Boolean(isOpen && session?.id),
+    refetchInterval: 10000,
+  });
+
+  const attendeesRef = useRef(attendees);
+  attendeesRef.current = attendees;
 
   // Safely stop camera media tracks and html5-qrcode instance
   const stopCamera = useCallback(async () => {
@@ -252,11 +289,62 @@ export default function SessionLiveModal({
     onClose();
   };
 
-  // Check in a member by code/UUID
+  // Check in a member by code/UUID (calls atomic DB RPC with direct client fallback)
   const handleCheckinMember = async (rawInput, method = 'qr') => {
     if (!rawInput || !rawInput.trim() || !session?.id) return;
     try {
       setIsCheckingIn(true);
+
+      // 1. Try atomic Database RPC first
+      try {
+        const { data: rpcRes, error: rpcErr } = await supabase.rpc('record_session_attendance', {
+          p_session_id: session.id,
+          p_identifier: rawInput.trim(),
+          p_status: 'present',
+          p_method: method,
+          p_notes: method === 'qr' ? 'تم المسح عبر الكاميرا' : 'تم الإدخال اليدوي لكود العضو',
+        });
+
+        if (!rpcErr && rpcRes) {
+          if (!rpcRes.ok) {
+            toast.show(rpcRes.message || (isAr ? 'لم يتم العثور على العضو' : 'Member not found'), 'error');
+            return;
+          }
+
+          const memberData = rpcRes.member;
+          if (rpcRes.already_recorded) {
+            playNoticeTone();
+            toast.show(
+              isAr
+                ? `العضو ${memberData.full_name_ar || memberData.full_name_en} مسجل حضوره بالفعل مسبقاً!`
+                : `${memberData.full_name_en || memberData.full_name_ar} is already marked present!`,
+              'info'
+            );
+            setLastScannedMember({ ...memberData, status: 'already_present' });
+            return;
+          }
+
+          playSuccessBeep();
+          setLastScannedMember({ ...memberData, status: 'present' });
+          setManualMemberCode('');
+
+          toast.show(
+            isAr
+              ? `تم تسجيل حضور: ${memberData.full_name_ar || memberData.full_name_en} (${memberData.member_code || ''}) بنجاح`
+              : `Checked in: ${memberData.full_name_en || memberData.full_name_ar} (${memberData.member_code || ''})`,
+            'success'
+          );
+
+          queryClient.invalidateQueries({ queryKey: ['dashboard', 'session_attendees', session.id] });
+          queryClient.invalidateQueries({ queryKey: ['dashboard', 'attendance_stats'] });
+          queryClient.invalidateQueries({ queryKey: ['dashboard', 'attendance_sessions'] });
+          return;
+        }
+      } catch (rpcEx) {
+        // Fall back to direct client operations
+      }
+
+      // 2. Direct client fallback via Supabase RLS
       const member = await resolveMemberFromCode(rawInput.trim());
 
       if (!member) {
@@ -344,7 +432,7 @@ export default function SessionLiveModal({
         cameraScannerRef.current = html5QrCode;
 
         await html5QrCode.start(
-          { facingMode: 'environment' },
+          { facingMode: cameraFacing },
           {
             fps: 10,
             qrbox: { width: 250, height: 250 },
@@ -394,7 +482,7 @@ export default function SessionLiveModal({
       clearTimeout(timer);
       stopCamera();
     };
-  }, [isOpen, activeTab, scannerSubMode, isAr, stopCamera]);
+  }, [isOpen, activeTab, scannerSubMode, cameraFacing, isAr, stopCamera]);
 
   // Fetch token for optional projector view
   const fetchQrToken = useCallback(async () => {
@@ -474,36 +562,6 @@ export default function SessionLiveModal({
     },
   });
 
-  // Query Live Attendees
-  const { data: attendees = [], isLoading: loadingAttendees } = useQuery({
-    queryKey: ['dashboard', 'session_attendees', session?.id],
-    queryFn: async () => {
-      if (!session?.id) return [];
-      const { data, error } = await supabase
-        .from('attendance')
-        .select(`
-          id,
-          user_id,
-          status,
-          method,
-          checked_in_at,
-          notes,
-          profiles!inner(
-            id,
-            full_name_ar,
-            full_name_en,
-            member_code,
-            avatar_url
-          )
-        `)
-        .eq('session_id', session.id)
-        .order('checked_in_at', { ascending: false });
-      if (error) throw error;
-      return data || [];
-    },
-    enabled: Boolean(isOpen && session?.id),
-    refetchInterval: 10000,
-  });
 
   // Realtime subscription on attendance table
   useEffect(() => {
@@ -1178,6 +1236,43 @@ export default function SessionLiveModal({
                       </span>
                     </div>
                   )}
+                </div>
+              )}
+
+              {!cameraError && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      await stopCamera();
+                      setCameraFacing((prev) => (prev === 'environment' ? 'user' : 'environment'));
+                    }}
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '0.4rem',
+                      padding: '0.35rem 0.8rem',
+                      borderRadius: '8px',
+                      border: '1px solid rgba(255, 184, 0, 0.35)',
+                      background: 'rgba(255, 184, 0, 0.1)',
+                      color: '#ffd54f',
+                      fontSize: '0.78rem',
+                      fontWeight: 600,
+                      cursor: 'pointer',
+                      transition: 'all 0.2s',
+                    }}
+                  >
+                    <SwitchCamera size={14} />
+                    <span>
+                      {cameraFacing === 'environment'
+                        ? isAr
+                          ? 'تبديل للكاميرا الأمامية'
+                          : 'Switch to Front Camera'
+                        : isAr
+                        ? 'تبديل للكاميرا الخلفية'
+                        : 'Switch to Back Camera'}
+                    </span>
+                  </button>
                 </div>
               )}
 
