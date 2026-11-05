@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { Html5Qrcode } from 'html5-qrcode';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../context/AuthContext';
@@ -67,6 +68,7 @@ export default function QrScannerModal({
   onCheckinSuccess,
 }) {
   const { user } = useAuth();
+  const queryClient = useQueryClient();
   const { lang, dir } = useLanguage();
   const { isDark } = useTheme();
   const isAr = lang === 'ar';
@@ -305,6 +307,11 @@ export default function QrScannerModal({
             'success'
           );
 
+          queryClient.invalidateQueries({ queryKey: ['dashboard', 'session_attendees'] });
+          queryClient.invalidateQueries({ queryKey: ['dashboard', 'attendance_stats'] });
+          queryClient.invalidateQueries({ queryKey: ['dashboard', 'attendance_sessions'] });
+          queryClient.invalidateQueries({ queryKey: ['dashboard', 'my_attendance'] });
+
           if (onCheckinSuccess) onCheckinSuccess(rpcRes);
           return;
         }
@@ -345,6 +352,11 @@ export default function QrScannerModal({
             : `Checked in: ${member.full_name_en || member.full_name_ar}`,
           'success'
         );
+
+        queryClient.invalidateQueries({ queryKey: ['dashboard', 'session_attendees'] });
+        queryClient.invalidateQueries({ queryKey: ['dashboard', 'attendance_stats'] });
+        queryClient.invalidateQueries({ queryKey: ['dashboard', 'attendance_sessions'] });
+        queryClient.invalidateQueries({ queryKey: ['dashboard', 'my_attendance'] });
 
         if (onCheckinSuccess) onCheckinSuccess({ member });
         return;

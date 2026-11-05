@@ -210,35 +210,56 @@ export default function SessionLiveModal({
   }, [isOpen, initialTab]);
 
 
-  // Query Live Attendees
-  const { data: attendees = [], isLoading: loadingAttendees } = useQuery({
+  // Query Live Attendees with resilient 2-step profile enrichment
+  const {
+    data: attendees = [],
+    isLoading: loadingAttendees,
+    isFetching: isFetchingAttendees,
+    refetch: refetchAttendees,
+  } = useQuery({
     queryKey: ['dashboard', 'session_attendees', session?.id],
     queryFn: async () => {
       if (!session?.id) return [];
-      const { data, error } = await supabase
-        .from('attendance')
-        .select(`
-          id,
-          user_id,
-          status,
-          method,
-          checked_in_at,
-          notes,
-          profiles!inner(
-            id,
-            full_name_ar,
-            full_name_en,
-            member_code,
-            avatar_url
-          )
-        `)
-        .eq('session_id', session.id)
-        .order('checked_in_at', { ascending: false });
-      if (error) throw error;
-      return data || [];
+      try {
+        // 1. Fetch attendance records directly from attendance table (no ambiguous join)
+        const { data: records, error: attErr } = await supabase
+          .from('attendance')
+          .select('id, session_id, user_id, status, method, checked_in_at, notes, created_at')
+          .eq('session_id', session.id)
+          .order('checked_in_at', { ascending: false, nullsFirst: false });
+
+        if (attErr) {
+          console.error('[SessionLiveModal] attendance fetch error:', attErr);
+          throw attErr;
+        }
+
+        if (!records || records.length === 0) return [];
+
+        // 2. Disambiguate profiles: fetch profiles for attendee user_ids
+        const userIds = Array.from(new Set(records.map((r) => r.user_id).filter(Boolean)));
+        if (userIds.length === 0) return records;
+
+        const { data: profs, error: profErr } = await supabase
+          .from('profiles')
+          .select('id, full_name_ar, full_name_en, member_code, avatar_url')
+          .in('id', userIds);
+
+        if (profErr) {
+          console.warn('[SessionLiveModal] profiles fetch warning:', profErr);
+        }
+
+        const profMap = new Map((profs || []).map((p) => [p.id, p]));
+        return records.map((r) => ({
+          ...r,
+          profiles: profMap.get(r.user_id) || null,
+        }));
+      } catch (err) {
+        console.error('[SessionLiveModal] queryFn failed:', err);
+        return [];
+      }
     },
     enabled: Boolean(isOpen && session?.id),
-    refetchInterval: 10000,
+    refetchInterval: 2500, // Rapid live sync every 2.5s for seamless multi-device attendance
   });
 
   const attendeesRef = useRef(attendees);
@@ -335,6 +356,33 @@ export default function SessionLiveModal({
             'success'
           );
 
+          // Optimistically update React Query cache immediately
+          queryClient.setQueryData(['dashboard', 'session_attendees', session.id], (old = []) => {
+            const arr = Array.isArray(old) ? old : [];
+            const exists = arr.some((a) => a.user_id === memberData.id);
+            if (exists) {
+              return arr.map((a) =>
+                a.user_id === memberData.id
+                  ? { ...a, status: 'present', checked_in_at: new Date().toISOString(), profiles: memberData }
+                  : a
+              );
+            }
+            return [
+              {
+                id: rpcRes?.attendance_id || (typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : String(Date.now())),
+                session_id: session.id,
+                user_id: memberData.id,
+                status: 'present',
+                method,
+                checked_in_at: new Date().toISOString(),
+                notes: method === 'qr' ? 'تم المسح عبر الكاميرا' : 'تم الإدخال اليدوي لكود العضو',
+                profiles: memberData,
+              },
+              ...arr,
+            ];
+          });
+
+          refetchAttendees();
           queryClient.invalidateQueries({ queryKey: ['dashboard', 'session_attendees', session.id] });
           queryClient.invalidateQueries({ queryKey: ['dashboard', 'attendance_stats'] });
           queryClient.invalidateQueries({ queryKey: ['dashboard', 'attendance_sessions'] });
@@ -398,6 +446,33 @@ export default function SessionLiveModal({
         'success'
       );
 
+      // Optimistically update React Query cache immediately
+      queryClient.setQueryData(['dashboard', 'session_attendees', session.id], (old = []) => {
+        const arr = Array.isArray(old) ? old : [];
+        const exists = arr.some((a) => a.user_id === member.id);
+        if (exists) {
+          return arr.map((a) =>
+            a.user_id === member.id
+              ? { ...a, status: 'present', checked_in_at: new Date().toISOString(), profiles: member }
+              : a
+          );
+        }
+        return [
+          {
+            id: typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : String(Date.now()),
+            session_id: session.id,
+            user_id: member.id,
+            status: 'present',
+            method,
+            checked_in_at: new Date().toISOString(),
+            notes: method === 'qr' ? 'تم المسح عبر الكاميرا' : 'تم الإدخال اليدوي لكود العضو',
+            profiles: member,
+          },
+          ...arr,
+        ];
+      });
+
+      refetchAttendees();
       queryClient.invalidateQueries({ queryKey: ['dashboard', 'session_attendees', session.id] });
       queryClient.invalidateQueries({ queryKey: ['dashboard', 'attendance_stats'] });
       queryClient.invalidateQueries({ queryKey: ['dashboard', 'attendance_sessions'] });
@@ -578,8 +653,10 @@ export default function SessionLiveModal({
           filter: `session_id=eq.${session.id}`,
         },
         () => {
+          refetchAttendees();
           queryClient.invalidateQueries({ queryKey: ['dashboard', 'session_attendees', session.id] });
           queryClient.invalidateQueries({ queryKey: ['dashboard', 'attendance_stats'] });
+          queryClient.invalidateQueries({ queryKey: ['dashboard', 'attendance_sessions'] });
         }
       )
       .subscribe();
@@ -587,7 +664,7 @@ export default function SessionLiveModal({
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [isOpen, session?.id, queryClient]);
+  }, [isOpen, session?.id, queryClient, refetchAttendees]);
 
   // Query eligible members for manual attendance sheet
   const { data: eligibleMembers = [], isLoading: loadingEligible } = useQuery({
@@ -641,7 +718,10 @@ export default function SessionLiveModal({
     },
     onSuccess: () => {
       toast.show(isAr ? 'تم حفظ الحضور يدوياً' : 'Attendance updated', 'success');
+      refetchAttendees();
       queryClient.invalidateQueries({ queryKey: ['dashboard', 'session_attendees', session.id] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard', 'attendance_stats'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard', 'attendance_sessions'] });
     },
     onError: (err) => {
       toast.show(err.message || (isAr ? 'فشل التحديث' : 'Failed to update'), 'error');
@@ -1502,6 +1582,62 @@ export default function SessionLiveModal({
           {/* ============================================================== */}
           {activeTab === 'live_list' && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+              {/* Header with Live Sync Indicator & Manual Refresh Button */}
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  padding: '0.2rem 0.25rem',
+                  flexWrap: 'wrap',
+                  gap: '0.5rem',
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <span
+                    style={{
+                      width: 9,
+                      height: 9,
+                      borderRadius: '50%',
+                      background: '#4ade80',
+                      boxShadow: '0 0 10px #4ade80',
+                      display: 'inline-block',
+                    }}
+                  />
+                  <span style={{ fontSize: '0.84rem', color: '#4ade80', fontWeight: 700 }}>
+                    {isAr ? 'سجل الحاضرين المباشر (تحديث لحظي)' : 'Live Roster (Realtime Sync)'}
+                  </span>
+                  {isFetchingAttendees && (
+                    <span style={{ fontSize: '0.72rem', color: '#ffd54f' }}>
+                      ({isAr ? 'جاري التحديث...' : 'Syncing...'})
+                    </span>
+                  )}
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => refetchAttendees()}
+                  disabled={isFetchingAttendees}
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '0.35rem',
+                    padding: '0.35rem 0.8rem',
+                    borderRadius: '8px',
+                    border: '1px solid rgba(255, 184, 0, 0.35)',
+                    background: 'rgba(255, 184, 0, 0.1)',
+                    color: '#ffd54f',
+                    fontSize: '0.78rem',
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                    transition: 'all 0.2s',
+                  }}
+                >
+                  <RefreshCw size={13} className={isFetchingAttendees ? 'animate-spin' : ''} />
+                  <span>{isAr ? 'تحديث السجل الآن' : 'Refresh Now'}</span>
+                </button>
+              </div>
+
               {/* Stat Counters Row */}
               <div
                 style={{

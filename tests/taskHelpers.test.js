@@ -33,8 +33,9 @@ describe('Phase 7 Tasks Module Logic & RBAC', () => {
 
     it('filters tasks by due status accurately', () => {
       const past = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
-      // Set to 2 hours in future today so it's due today and NOT overdue
-      const today = new Date(Date.now() + 2 * 60 * 60 * 1000).toISOString();
+      // Set to today (same year, month, date)
+      const now = new Date();
+      const today = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59).toISOString();
       const inThreeDays = new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString();
       const nextMonth = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
 
