@@ -260,26 +260,44 @@ Deno.serve(async (req: Request) => {
     );
     if (memberErr) throw memberErr;
 
-    // 14. Assign User Role
+    // 14. Assign User Role (Select-then-insert of assigned role)
+    // The table unique index is an expression index on (user_id, role, coalesce(committee_id, ...)),
+    // so PostgREST onConflict: 'user_id,role' fails because no raw column constraint matches.
     const assignedRole = position === 'head' ? 'committee_head' : 'member';
-    const { error: roleErr } = await adminClient.from('user_roles').upsert(
-      {
+    const roleCommitteeId = assignedRole === 'committee_head' ? committeeId : null;
+
+    const { data: existingRole } = await adminClient
+      .from('user_roles')
+      .select('id')
+      .eq('user_id', newUserId)
+      .eq('role', assignedRole)
+      .maybeSingle();
+
+    if (!existingRole) {
+      const { error: roleErr } = await adminClient.from('user_roles').insert({
         user_id: newUserId,
         role: assignedRole,
-      },
-      { onConflict: 'user_id,role' }
-    );
-    if (roleErr) throw roleErr;
+        committee_id: roleCommitteeId,
+        season_id: seasonId,
+        granted_by: callerId,
+      });
+      if (roleErr && roleErr.code !== '23505') throw roleErr;
+    }
 
     // 15. Award Welcome Points (+50 points)
-    await adminClient.from('point_entries').insert({
+    const { error: pointErr } = await adminClient.from('point_entries').insert({
       user_id: newUserId,
       season_id: seasonId,
-      amount: 50,
-      reason_ar: 'نقاط ترحيبية بالانضمام إلى مجتمع إيناكوس قنا',
-      reason_en: 'Welcome bonus for joining Enactus Qena',
-      created_by: callerId,
+      committee_id: committeeId,
+      type: 'bonus',
+      value: 50,
+      reason: 'نقاط ترحيبية بالانضمام إلى مجتمع إيناكوس قنا',
+      source: 'manual',
+      given_by: callerId,
     });
+    if (pointErr) {
+      console.warn('[create-member] Welcome points bonus skipped:', pointErr);
+    }
 
     return json(req, {
       ok: true,
@@ -295,7 +313,8 @@ Deno.serve(async (req: Request) => {
     console.error('[create-member] Cleanup rollback after DB error:', err);
     // Cleanup created auth user on failure
     await adminClient.auth.admin.deleteUser(newUserId).catch(() => {});
-    const msg = err instanceof Error ? err.message : 'Database insertion error';
+    const postgrestErr = err as { message?: string; details?: string; hint?: string; code?: string };
+    const msg = postgrestErr?.message || (err instanceof Error ? err.message : '') || (typeof err === 'object' ? JSON.stringify(err) : String(err)) || 'Database insertion error';
     return errorResponse(req, `حدث خطأ أثناء حفظ بيانات العضو: ${msg}`, 500);
   }
 });
