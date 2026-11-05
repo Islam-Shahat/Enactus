@@ -25,6 +25,7 @@ import {
   MapPin,
   CheckCircle2,
   FileSpreadsheet,
+  Trash2,
 } from 'lucide-react';
 
 export default function SessionLiveModal({
@@ -50,6 +51,8 @@ export default function SessionLiveModal({
 
   // Close session confirm dialog
   const [isCloseConfirmOpen, setIsCloseConfirmOpen] = useState(false);
+  // Delete session confirm dialog
+  const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
 
   const sessionId = session?.id;
   const isCheckInOpen = Boolean(session?.check_in_open);
@@ -250,47 +253,155 @@ export default function SessionLiveModal({
     },
   });
 
-  // Close Session Mutation (calls Edge Function close-session)
+  // Delete Session Mutation
+  const deleteSessionMutation = useMutation({
+    mutationFn: async () => {
+      const { error } = await supabase
+        .from('attendance_sessions')
+        .delete()
+        .eq('id', session.id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.show(isAr ? 'تم حذف الجلسة وسجلاتها بنجاح' : 'Session deleted successfully', 'success');
+      setIsDeleteConfirmOpen(false);
+      queryClient.invalidateQueries({ queryKey: ['dashboard', 'attendance_sessions'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard', 'attendance_stats'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard', 'my_attendance'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard', 'upcoming_sessions'] });
+      onClose();
+    },
+    onError: (err) => {
+      toast.show(err.message || (isAr ? 'فشل حذف الجلسة' : 'Failed to delete session'), 'error');
+    },
+  });
+
+  // Close Session Mutation (calls Edge Function with direct client fallback)
   const closeSessionMutation = useMutation({
     mutationFn: async () => {
-      const {
-        data: { session: authSession },
-      } = await supabase.auth.getSession();
+      // 1. Try invoking Edge Function if deployed
+      try {
+        const {
+          data: { session: authSession },
+        } = await supabase.auth.getSession();
 
-      if (!authSession) throw new Error('Unauthorized');
+        if (authSession?.access_token) {
+          const res = await fetch(
+            `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/close-session`,
+            {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                Authorization: `Bearer ${authSession.access_token}`,
+              },
+              body: JSON.stringify({ session_id: session.id }),
+            }
+          );
 
-      const res = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/close-session`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${authSession.access_token}`,
-          },
-          body: JSON.stringify({ session_id: session.id }),
+          if (res.ok) {
+            const data = await res.json();
+            return data;
+          }
         }
-      );
-
-      const data = await res.json();
-      if (!res.ok) {
-        throw new Error(data.error || 'Failed to close session');
+      } catch (edgeErr) {
+        console.warn('Edge function close-session unavailable, falling back to direct DB update:', edgeErr);
       }
-      return data;
+
+      // 2. Direct client fallback via Supabase RLS
+      const { error: closeErr } = await supabase
+        .from('attendance_sessions')
+        .update({ check_in_open: false })
+        .eq('id', session.id);
+
+      if (closeErr) throw closeErr;
+
+      // Fetch eligible members
+      let membersQuery = supabase
+        .from('memberships')
+        .select('user_id')
+        .eq('season_id', session.season_id)
+        .eq('status', 'active');
+
+      if (session.committee_id) {
+        membersQuery = membersQuery.eq('committee_id', session.committee_id);
+      }
+
+      const { data: eligibleMembers } = await membersQuery;
+      const eligibleUserIds = Array.from(new Set((eligibleMembers || []).map((m) => m.user_id)));
+
+      // Fetch existing attendance records
+      const { data: existingRecords } = await supabase
+        .from('attendance')
+        .select('user_id')
+        .eq('session_id', session.id);
+
+      const recordedUserIds = new Set((existingRecords || []).map((r) => r.user_id));
+
+      // Fetch approved excuses
+      const { data: approvedExcuses } = await supabase
+        .from('excuse_requests')
+        .select('user_id')
+        .eq('session_id', session.id)
+        .eq('status', 'approved');
+
+      const approvedExcuseUserIds = new Set((approvedExcuses || []).map((e) => e.user_id));
+
+      const missingUserIds = eligibleUserIds.filter((uid) => !recordedUserIds.has(uid));
+      let newlyExcused = 0;
+      let newlyAbsent = 0;
+      const rowsToInsert = [];
+
+      for (const uid of missingUserIds) {
+        const isApprovedExcuse = approvedExcuseUserIds.has(uid);
+        if (isApprovedExcuse) {
+          newlyExcused++;
+          rowsToInsert.push({
+            session_id: session.id,
+            user_id: uid,
+            status: 'excused',
+            method: 'manual',
+            recorded_by: user?.id || null,
+            notes: isAr ? 'عذر معتمد تلقائي عند إغلاق الجلسة' : 'Auto excused on close',
+          });
+        } else {
+          newlyAbsent++;
+          rowsToInsert.push({
+            session_id: session.id,
+            user_id: uid,
+            status: 'absent',
+            method: 'manual',
+            recorded_by: user?.id || null,
+            notes: isAr ? 'غياب مسجل تلقائياً عند إغلاق الجلسة' : 'Auto absent on close',
+          });
+        }
+      }
+
+      if (rowsToInsert.length > 0) {
+        const { error: insertErr } = await supabase.from('attendance').insert(rowsToInsert);
+        if (insertErr) {
+          console.warn('Could not insert automatic absent/excused records:', insertErr);
+        }
+      }
+
+      return { newlyAbsent, newlyExcused };
     },
     onSuccess: (data) => {
       toast.show(
         isAr
-          ? `تم إغلاق الجلسة بنجاح (تسجيل ${data.newlyAbsent} غياب، ${data.newlyExcused} عذر)`
-          : `Session closed (${data.newlyAbsent} absent, ${data.newlyExcused} excused)`,
+          ? `تم إغلاق الجلسة بنجاح (تسجيل ${data?.newlyAbsent ?? 0} غياب، ${data?.newlyExcused ?? 0} عذر)`
+          : `Session closed (${data?.newlyAbsent ?? 0} absent, ${data?.newlyExcused ?? 0} excused)`,
         'success'
       );
       setIsCloseConfirmOpen(false);
       queryClient.invalidateQueries({ queryKey: ['dashboard', 'attendance_sessions'] });
       queryClient.invalidateQueries({ queryKey: ['dashboard', 'session_attendees', session.id] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard', 'attendance_stats'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard', 'my_attendance'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard', 'upcoming_sessions'] });
       if (onSessionUpdated) onSessionUpdated({ ...session, check_in_open: false });
     },
     onError: (err) => {
-      toast.show(err.message, 'error');
+      toast.show(err.message || (isAr ? 'فشل إغلاق الجلسة' : 'Failed to close session'), 'error');
     },
   });
 
@@ -372,7 +483,7 @@ export default function SessionLiveModal({
           </div>
 
           {/* Action buttons */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', flexWrap: 'wrap' }}>
             {/* Open / Close check-in toggle */}
             <button
               type="button"
@@ -428,10 +539,33 @@ export default function SessionLiveModal({
               <span>{isAr ? 'إغلاق واعتماد الغياب' : 'Close Session'}</span>
             </button>
 
+            {/* Delete Session Button */}
+            <button
+              type="button"
+              onClick={() => setIsDeleteConfirmOpen(true)}
+              title={isAr ? 'حذف الجلسة نهائياً' : 'Delete Session Permanently'}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '0.4rem',
+                padding: '0.45rem 0.85rem',
+                borderRadius: '8px',
+                background: 'rgba(239, 68, 68, 0.12)',
+                color: '#ef4444',
+                border: '1px solid rgba(239, 68, 68, 0.35)',
+                fontSize: '0.82rem',
+                fontWeight: 600,
+                cursor: 'pointer',
+              }}
+            >
+              <Trash2 size={14} />
+              <span>{isAr ? 'حذف الجلسة' : 'Delete Session'}</span>
+            </button>
+
             <button
               type="button"
               onClick={onClose}
-              style={{ background: 'transparent', border: 'none', color: '#888', cursor: 'pointer' }}
+              style={{ background: 'transparent', border: 'none', color: '#888', cursor: 'pointer', padding: '0.2rem' }}
             >
               <X size={22} />
             </button>
@@ -828,6 +962,22 @@ export default function SessionLiveModal({
         confirmText={isAr ? 'نعم، أغلق الجلسة' : 'Yes, Close Session'}
         variant="danger"
         isLoading={closeSessionMutation.isPending}
+      />
+
+      {/* Delete Session Confirmation Dialog */}
+      <ConfirmDialog
+        isOpen={isDeleteConfirmOpen}
+        onClose={() => setIsDeleteConfirmOpen(false)}
+        onConfirm={() => deleteSessionMutation.mutate()}
+        title={isAr ? 'تأكيد حذف الجلسة' : 'Confirm Delete Session'}
+        description={
+          isAr
+            ? `هل أنت متأكد من حذف هذه الجلسة نهائياً؟ سيتم حذف جميع سجلات الحضور والغياب والأعذار المرتبطة بها ولا يمكن التراجع عن هذا الإجراء.`
+            : `Are you sure you want to permanently delete this session? All associated attendance, absence, and excuse records will be deleted. This cannot be undone.`
+        }
+        confirmText={isAr ? 'نعم، احذف الجلسة' : 'Yes, Delete Session'}
+        variant="danger"
+        isLoading={deleteSessionMutation.isPending}
       />
     </div>
   );

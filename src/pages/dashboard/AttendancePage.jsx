@@ -6,6 +6,7 @@ import { useLanguage } from '../../context/LanguageContext';
 import DataTable from '../../components/dashboard/DataTable';
 import StatusBadge from '../../components/dashboard/StatusBadge';
 import StatCard from '../../components/dashboard/StatCard';
+import ConfirmDialog from '../../components/dashboard/ConfirmDialog';
 import QrScannerModal from '../../components/dashboard/QrScannerModal';
 import SessionLiveModal from '../../components/dashboard/SessionLiveModal';
 import AttendanceSessionModal from '../../components/dashboard/AttendanceSessionModal';
@@ -28,6 +29,8 @@ import {
   Percent,
   Check,
   X,
+  Trash2,
+  Eye,
 } from 'lucide-react';
 
 const PAGE_SIZE = 10;
@@ -62,6 +65,7 @@ export default function AttendancePage() {
   const [sessionToEdit, setSessionToEdit] = useState(null);
   const [isExcuseModalOpen, setIsExcuseModalOpen] = useState(false);
   const [excuseDefaultSessionId, setExcuseDefaultSessionId] = useState('');
+  const [sessionToDelete, setSessionToDelete] = useState(null);
 
   // Filters state for sessions tab
   const [sessionPage, setSessionPage] = useState(1);
@@ -487,6 +491,28 @@ export default function AttendancePage() {
     toast.show(isAr ? 'تم تصدير ملف CSV بنجاح' : 'CSV exported successfully', 'success');
   };
 
+  // Delete session mutation
+  const deleteSessionMutation = useMutation({
+    mutationFn: async (sessionId) => {
+      const { error } = await supabase
+        .from('attendance_sessions')
+        .delete()
+        .eq('id', sessionId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast.show(isAr ? 'تم حذف الجلسة وسجلاتها بنجاح' : 'Session deleted successfully', 'success');
+      setSessionToDelete(null);
+      queryClient.invalidateQueries({ queryKey: ['dashboard', 'attendance_sessions'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard', 'attendance_stats'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard', 'my_attendance'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard', 'upcoming_sessions'] });
+    },
+    onError: (err) => {
+      toast.show(err.message || (isAr ? 'فشل حذف الجلسة' : 'Failed to delete session'), 'error');
+    },
+  });
+
   // Stats for member view
   const myTotalRecorded = myAttendanceRecords.length;
   const myPresentCount = myAttendanceRecords.filter((r) => r.status === 'present').length;
@@ -565,6 +591,65 @@ export default function AttendancePage() {
             </>
           )}
         </span>
+      ),
+    },
+    {
+      key: 'actions',
+      label: isAr ? 'الإجراءات' : 'Actions',
+      render: (row) => (
+        <div
+          style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}
+          onClick={(e) => e.stopPropagation()}
+        >
+          <button
+            type="button"
+            onClick={() => {
+              setSelectedLiveSession(row);
+              setIsLiveSessionOpen(true);
+            }}
+            title={isAr ? 'فتح الجلسة وإدارتها' : 'Open session'}
+            style={{
+              padding: '0.35rem 0.6rem',
+              background: 'rgba(255, 184, 0, 0.1)',
+              border: '1px solid rgba(255, 184, 0, 0.3)',
+              borderRadius: '6px',
+              color: '#ffd54f',
+              cursor: 'pointer',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '0.3rem',
+              fontSize: '0.78rem',
+              fontWeight: 600,
+            }}
+          >
+            <Eye size={13} />
+            <span>{isAr ? 'عرض' : 'View'}</span>
+          </button>
+
+          {canManage && (
+            <button
+              type="button"
+              onClick={() => setSessionToDelete(row)}
+              title={isAr ? 'حذف الجلسة' : 'Delete session'}
+              style={{
+                padding: '0.35rem 0.6rem',
+                background: 'rgba(239, 68, 68, 0.1)',
+                border: '1px solid rgba(239, 68, 68, 0.3)',
+                borderRadius: '6px',
+                color: '#ef4444',
+                cursor: 'pointer',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '0.3rem',
+                fontSize: '0.78rem',
+                fontWeight: 600,
+              }}
+            >
+              <Trash2 size={13} />
+              <span>{isAr ? 'حذف' : 'Delete'}</span>
+            </button>
+          )}
+        </div>
       ),
     },
   ];
@@ -1121,6 +1206,55 @@ export default function AttendancePage() {
                           <span>{isAr ? 'تسجيل الحضور' : 'Check In'}</span>
                         </button>
                       )}
+
+                      {canManage && (
+                        <>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setSelectedLiveSession(s);
+                              setIsLiveSessionOpen(true);
+                            }}
+                            title={isAr ? 'فتح الجلسة وإدارتها' : 'Open session'}
+                            style={{
+                              background: 'rgba(255, 184, 0, 0.1)',
+                              border: '1px solid rgba(255, 184, 0, 0.3)',
+                              color: '#ffd54f',
+                              padding: '0.35rem 0.65rem',
+                              borderRadius: '6px',
+                              fontSize: '0.78rem',
+                              cursor: 'pointer',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '0.3rem',
+                            }}
+                          >
+                            <Eye size={13} />
+                            <span>{isAr ? 'إدارة' : 'Manage'}</span>
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() => setSessionToDelete(s)}
+                            title={isAr ? 'حذف الجلسة' : 'Delete session'}
+                            style={{
+                              background: 'rgba(239, 68, 68, 0.1)',
+                              border: '1px solid rgba(239, 68, 68, 0.3)',
+                              color: '#ef4444',
+                              padding: '0.35rem 0.65rem',
+                              borderRadius: '6px',
+                              fontSize: '0.78rem',
+                              cursor: 'pointer',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '0.3rem',
+                            }}
+                          >
+                            <Trash2 size={13} />
+                            <span>{isAr ? 'حذف' : 'Delete'}</span>
+                          </button>
+                        </>
+                      )}
                     </div>
                   </div>
                 ))}
@@ -1575,6 +1709,22 @@ export default function AttendancePage() {
         onClose={() => setIsExcuseModalOpen(false)}
         sessions={upcomingSessions}
         defaultSessionId={excuseDefaultSessionId}
+      />
+
+      {/* Delete Session Confirmation Dialog */}
+      <ConfirmDialog
+        isOpen={Boolean(sessionToDelete)}
+        onClose={() => setSessionToDelete(null)}
+        onConfirm={() => sessionToDelete && deleteSessionMutation.mutate(sessionToDelete.id)}
+        title={isAr ? 'تأكيد حذف الجلسة' : 'Confirm Delete Session'}
+        description={
+          isAr
+            ? `هل أنت متأكد من حذف الجلسة "${sessionToDelete?.title}"؟ سيتم حذف جميع سجلات الحضور والغياب والأعذار المرتبطة بها نهائياً ولا يمكن التراجع.`
+            : `Are you sure you want to delete session "${sessionToDelete?.title}"? All associated attendance and excuse records will be permanently deleted.`
+        }
+        confirmText={isAr ? 'نعم، احذف الجلسة' : 'Yes, Delete Session'}
+        variant="danger"
+        isLoading={deleteSessionMutation.isPending}
       />
     </div>
   );
