@@ -12,6 +12,11 @@ import {
   ExternalLink,
   Sparkles,
   Loader2,
+  Mail,
+  Phone,
+  Building2,
+  User,
+  MessageSquare,
 } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../context/AuthContext';
@@ -21,6 +26,7 @@ import { getNotificationMeta, NOTIFICATION_TYPES } from '../../lib/notificationH
 import { formatDateTime, formatRelativeTime } from '../../lib/formatters';
 import Skeleton from '../../components/dashboard/Skeleton';
 import EmptyState from '../../components/dashboard/EmptyState';
+import Drawer from '../../components/dashboard/Drawer';
 
 const PAGE_SIZE = 20;
 
@@ -35,6 +41,7 @@ export default function NotificationsPage() {
   const [filterTab, setFilterTab] = useState('all'); // all | unread | read
   const [typeFilter, setTypeFilter] = useState('all');
   const [page, setPage] = useState(1);
+  const [selectedNotif, setSelectedNotif] = useState(null);
 
   // Query notifications with server-side pagination & filters
   const { data, isLoading, isFetching } = useQuery({
@@ -117,7 +124,9 @@ export default function NotificationsPage() {
     if (!notif.read_at) {
       markReadMutation.mutate(notif.id);
     }
-    if (notif.link) {
+    if (notif.data?.message || notif.type === 'new_contact_message' || !notif.link || notif.link === '/dashboard/notifications') {
+      setSelectedNotif(notif);
+    } else if (notif.link) {
       navigate(notif.link);
     }
   };
@@ -491,6 +500,149 @@ export default function NotificationsPage() {
           </button>
         </div>
       )}
+
+      {/* Message & Notification Detail Drawer */}
+      <Drawer
+        isOpen={Boolean(selectedNotif)}
+        onClose={() => setSelectedNotif(null)}
+        title={selectedNotif?.title || (isAr ? 'تفاصيل الإشعار' : 'Notification Details')}
+        width="540px"
+      >
+        {selectedNotif && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+            {/* Meta header */}
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                padding: '0.85rem 1rem',
+                borderRadius: '12px',
+                background: isDark ? 'rgba(255, 255, 255, 0.03)' : '#f9fafb',
+                border: isDark ? '1px solid rgba(255, 255, 255, 0.08)' : '1px solid #e5e7eb',
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <Clock size={16} style={{ color: '#ffb800' }} />
+                <span style={{ fontSize: '0.82rem', color: isDark ? '#a0a0b2' : '#6b7280' }}>
+                  {formatDateTime(selectedNotif.created_at, lang)}
+                </span>
+              </div>
+              <span
+                style={{
+                  fontSize: '0.75rem',
+                  fontWeight: 700,
+                  padding: '3px 10px',
+                  borderRadius: '6px',
+                  background: getNotificationMeta(selectedNotif.type).bgColor,
+                  color: getNotificationMeta(selectedNotif.type).color,
+                }}
+              >
+                {getNotificationMeta(selectedNotif.type).label?.[lang] || selectedNotif.type}
+              </span>
+            </div>
+
+            {/* Sender Info (for contact/sponsor messages) */}
+            {selectedNotif.data?.full_name && (
+              <div className="glass-panel" style={{ padding: '1.1rem', borderRadius: '14px' }}>
+                <h4 style={{ fontSize: '0.92rem', fontWeight: 800, color: '#ffd54f', margin: '0 0 0.85rem 0' }}>
+                  {isAr ? 'بيانات الراسل والتواصل' : 'Sender Contact Information'}
+                </h4>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem', fontSize: '0.88rem' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+                    <User size={16} style={{ color: '#a0a0b2' }} />
+                    <span style={{ fontWeight: 700, color: isDark ? '#fff' : '#111827' }}>
+                      {selectedNotif.data.full_name}
+                    </span>
+                  </div>
+
+                  {selectedNotif.data.email && (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+                      <Mail size={16} style={{ color: '#a0a0b2' }} />
+                      <a
+                        href={`mailto:${selectedNotif.data.email}`}
+                        style={{ color: '#60a5fa', textDecoration: 'none', direction: 'ltr' }}
+                      >
+                        {selectedNotif.data.email}
+                      </a>
+                    </div>
+                  )}
+
+                  {selectedNotif.data.phone && (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+                      <Phone size={16} style={{ color: '#a0a0b2' }} />
+                      <a
+                        href={`https://wa.me/${selectedNotif.data.phone.replace(/\D/g, '')}`}
+                        target="_blank"
+                        rel="noreferrer"
+                        style={{ color: '#34d399', textDecoration: 'none', direction: 'ltr' }}
+                      >
+                        {selectedNotif.data.phone} (WhatsApp)
+                      </a>
+                    </div>
+                  )}
+
+                  {selectedNotif.data.organization && (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+                      <Building2 size={16} style={{ color: '#a0a0b2' }} />
+                      <span style={{ color: isDark ? '#e0e0ec' : '#374151' }}>
+                        {selectedNotif.data.organization}
+                      </span>
+                    </div>
+                  )}
+
+                  {selectedNotif.data.package_interest && (
+                    <div style={{ marginTop: '0.25rem' }}>
+                      <span style={{ fontSize: '0.78rem', color: '#a0a0b2', display: 'block' }}>
+                        {isAr ? 'باقة الرعاية المهتم بها:' : 'Package of Interest:'}
+                      </span>
+                      <span style={{ color: '#ffd54f', fontWeight: 700 }}>
+                        {selectedNotif.data.package_interest}
+                      </span>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* Message Subject & Content */}
+            <div className="glass-panel" style={{ padding: '1.1rem', borderRadius: '14px' }}>
+              <h4 style={{ fontSize: '0.92rem', fontWeight: 800, color: '#ffd54f', margin: '0 0 0.85rem 0' }}>
+                {isAr ? 'محتوى الرسالة' : 'Message Content'}
+              </h4>
+              {selectedNotif.data?.subject && (
+                <div style={{ marginBottom: '0.75rem' }}>
+                  <span style={{ fontSize: '0.78rem', color: '#a0a0b2', display: 'block' }}>
+                    {isAr ? 'الموضوع:' : 'Subject:'}
+                  </span>
+                  <span style={{ fontWeight: 700, color: isDark ? '#fff' : '#111827', fontSize: '0.95rem' }}>
+                    {selectedNotif.data.subject}
+                  </span>
+                </div>
+              )}
+              <div>
+                <span style={{ fontSize: '0.78rem', color: '#a0a0b2', display: 'block', marginBottom: '0.35rem' }}>
+                  {isAr ? 'نص الرسالة:' : 'Message Text:'}
+                </span>
+                <p
+                  style={{
+                    margin: 0,
+                    fontSize: '0.9rem',
+                    color: isDark ? '#e0e0ec' : '#1f2937',
+                    lineHeight: 1.6,
+                    whiteSpace: 'pre-wrap',
+                    background: isDark ? 'rgba(0,0,0,0.2)' : 'rgba(0,0,0,0.03)',
+                    padding: '0.85rem',
+                    borderRadius: '10px',
+                  }}
+                >
+                  {selectedNotif.data?.message || selectedNotif.body}
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+      </Drawer>
     </div>
   );
 }

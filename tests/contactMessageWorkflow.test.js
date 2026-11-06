@@ -77,5 +77,33 @@ describe('Contact & Sponsor Message Submission Workflow', () => {
 
     expect(code).toContain('dev-bypass-turnstile-token');
   });
+
+  it('migration 20261106094500 sets up dispatch_contact_message_notifications, trigger and backfill', () => {
+    const notifyMigrationPath = path.join(
+      rootDir,
+      'supabase',
+      'migrations',
+      '20261106094500_notify_dashboard_on_contact_messages.sql'
+    );
+    expect(fs.existsSync(notifyMigrationPath)).toBe(true);
+
+    const sql = fs.readFileSync(notifyMigrationPath, 'utf-8');
+    expect(sql).toContain('function public.dispatch_contact_message_notifications');
+    expect(sql).toContain('trigger trg_contact_messages_notify');
+    expect(sql).toContain("'super_admin', 'president', 'vice_president', 'pr_admin', 'hr_admin'");
+    expect(sql).toContain("'new_contact_message'");
+    expect(sql).toContain('insert into public.notifications');
+  });
+
+  it('NotificationsPage has Drawer component to display sender and full message content', () => {
+    const pagePath = path.join(rootDir, 'src', 'pages', 'dashboard', 'NotificationsPage.jsx');
+    const content = fs.readFileSync(pagePath, 'utf-8');
+
+    expect(content).toContain('Drawer');
+    expect(content).toContain('selectedNotif');
+    expect(content).toContain('setSelectedNotif');
+    expect(content).toContain('selectedNotif.data.email');
+    expect(content).toContain('selectedNotif.data?.message');
+  });
 });
 

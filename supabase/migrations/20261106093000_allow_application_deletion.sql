@@ -59,3 +59,4 @@ end;
 $$;
 
 grant execute on function public.delete_application(uuid) to authenticated, service_role;
+
