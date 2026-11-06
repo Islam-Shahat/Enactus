@@ -25,7 +25,7 @@ import {
 const PAGE_SIZE = 10;
 
 export default function PointsPage() {
-  const { user, isSuperAdmin, hasRole } = useAuth();
+  const { user, isSuperAdmin, hasRole, roles } = useAuth();
   const { lang, dir } = useLanguage();
   const { isDark } = useTheme();
   const isAr = lang === 'ar';
@@ -33,12 +33,14 @@ export default function PointsPage() {
   const isHrOrExec = isSuperAdmin || hasRole(['hr_admin', 'president', 'vice_president']);
   const isHead = hasRole('committee_head');
   const canGive = isHrOrExec || isHead;
+  const headRoleObj = roles?.find((r) => r.role === 'committee_head');
+  const headCommitteeId = headRoleObj?.committee_id;
 
   // Active Tab: 'my_points' | 'management' | 'rules'
   const [activeTab, setActiveTab] = useState('my_points');
 
-  // Score stats scope in 'my_points' tab: 'personal' | 'team' (for leadership/heads)
-  const [scoreScope, setScoreScope] = useState('personal');
+  // Member selection for ledger history & stats: 'all' (team-wide) | 'me' (personal) | specific user_id
+  const [selectedMemberId, setSelectedMemberId] = useState(canGive ? 'all' : 'me');
 
   // Modals state
   const [isGiveModalOpen, setIsGiveModalOpen] = useState(false);
@@ -91,17 +93,76 @@ export default function PointsPage() {
     staleTime: 10 * 60 * 1000,
   });
 
-  // 3. Fetch My Score (robust direct sum from point_entries with member_scores fallback)
-  const { data: myScore, isLoading: loadingScore } = useQuery({
-    queryKey: ['dashboard', 'my_scores', user?.id, activeSeason?.id],
+  // 3. Fetch Members List for Member Filter (when user has admin or committee head privileges)
+  const { data: memberOptions = [] } = useQuery({
+    queryKey: ['dashboard', 'points_members_options', activeSeason?.id, isHrOrExec, headCommitteeId],
     queryFn: async () => {
-      if (!user?.id) return { bonus_total: 0, penalty_total: 0, total: 0 };
+      let q = supabase
+        .from('memberships')
+        .select(`
+          user_id,
+          committee_id,
+          position,
+          profiles!inner (
+            id,
+            full_name_ar,
+            full_name_en,
+            avatar_url,
+            member_code
+          ),
+          committees (
+            name_ar,
+            name_en,
+            color
+          )
+        `)
+        .eq('status', 'active');
+
+      if (activeSeason?.id) {
+        q = q.eq('season_id', activeSeason.id);
+      }
+
+      if (!isHrOrExec && headCommitteeId) {
+        q = q.eq('committee_id', headCommitteeId);
+      }
+
+      const { data, error } = await q;
+      if (error) {
+        console.warn('[PointsPage] members fetch notice:', error);
+        return [];
+      }
+
+      const seen = new Set();
+      const unique = [];
+      (data || []).forEach((m) => {
+        if (!seen.has(m.user_id) && m.profiles) {
+          seen.add(m.user_id);
+          unique.push(m);
+        }
+      });
+      return unique;
+    },
+    enabled: Boolean(canGive && user?.id),
+  });
+
+  // Target User ID for individual score stats
+  const targetScoreUserId = !canGive || selectedMemberId === 'me'
+    ? user?.id
+    : selectedMemberId === 'all'
+      ? null
+      : selectedMemberId;
+
+  // 4. Fetch Member Score (live direct sum from point_entries with member_scores fallback)
+  const { data: displayedScore, isLoading: loadingScore } = useQuery({
+    queryKey: ['dashboard', 'my_scores', targetScoreUserId, activeSeason?.id],
+    queryFn: async () => {
+      if (!targetScoreUserId) return { bonus_total: 0, penalty_total: 0, total: 0 };
 
       // Direct calculation from point_entries to ensure live accuracy
       const { data: entries, error } = await supabase
         .from('point_entries')
         .select('type, value')
-        .eq('user_id', user.id)
+        .eq('user_id', targetScoreUserId)
         .is('voided_at', null);
 
       if (!error && entries && entries.length > 0) {
@@ -124,7 +185,7 @@ export default function PointsPage() {
         const { data: ms } = await supabase
           .from('member_scores')
           .select('bonus_total, penalty_total, total')
-          .eq('user_id', user.id)
+          .eq('user_id', targetScoreUserId)
           .eq('season_id', activeSeason.id)
           .maybeSingle();
 
@@ -133,17 +194,23 @@ export default function PointsPage() {
 
       return { bonus_total: 0, penalty_total: 0, total: 0 };
     },
-    enabled: Boolean(user?.id),
+    enabled: Boolean(targetScoreUserId),
   });
 
-  // 4. Fetch Team Points Stats (live aggregation across active point_entries)
+  // 5. Fetch Team Points Stats (live aggregation across active point_entries)
   const { data: teamStats, isLoading: loadingTeamStats } = useQuery({
-    queryKey: ['dashboard', 'team_point_stats', activeSeason?.id],
+    queryKey: ['dashboard', 'team_point_stats', activeSeason?.id, isHrOrExec, headCommitteeId],
     queryFn: async () => {
-      const { data: entries, error } = await supabase
+      let q = supabase
         .from('point_entries')
         .select('type, value')
         .is('voided_at', null);
+
+      if (!isHrOrExec && isHead && headCommitteeId) {
+        q = q.eq('committee_id', headCommitteeId);
+      }
+
+      const { data: entries, error } = await q;
 
       if (error) {
         console.error('[teamStats error]:', error);
@@ -168,9 +235,25 @@ export default function PointsPage() {
     enabled: Boolean(user?.id),
   });
 
-  // 5. Fetch My Point Entries
+  // Effective user ID filter for the entries table
+  const effectiveUserId = !canGive || selectedMemberId === 'me'
+    ? user?.id
+    : selectedMemberId === 'all'
+      ? null
+      : selectedMemberId;
+
+  // 6. Fetch Point Entries (Filtered by member if selected, or all accessible entries)
   const { data: myEntriesData, isLoading: loadingMyEntries } = useQuery({
-    queryKey: ['dashboard', 'my_point_entries', user?.id, myEntriesPage, myTypeFilter],
+    queryKey: [
+      'dashboard',
+      'my_point_entries',
+      user?.id,
+      effectiveUserId,
+      selectedMemberId,
+      myEntriesPage,
+      myTypeFilter,
+      activeSeason?.id,
+    ],
     queryFn: async () => {
       if (!user?.id) return { data: [], count: 0 };
       const from = (myEntriesPage - 1) * PAGE_SIZE;
@@ -180,6 +263,7 @@ export default function PointsPage() {
         .from('point_entries')
         .select(`
           id,
+          user_id,
           season_id,
           committee_id,
           type,
@@ -189,11 +273,27 @@ export default function PointsPage() {
           source_id,
           created_at,
           voided_at,
-          void_reason
+          void_reason,
+          profiles (
+            full_name_ar,
+            full_name_en,
+            avatar_url,
+            member_code
+          ),
+          committees (
+            name_ar,
+            name_en,
+            color
+          )
         `, { count: 'exact' })
-        .eq('user_id', user.id)
         .order('created_at', { ascending: false })
         .range(from, to);
+
+      if (effectiveUserId) {
+        q = q.eq('user_id', effectiveUserId);
+      } else if (!isHrOrExec && isHead && headCommitteeId) {
+        q = q.eq('committee_id', headCommitteeId);
+      }
 
       if (myTypeFilter !== 'all') {
         q = q.eq('type', myTypeFilter);
@@ -271,6 +371,13 @@ export default function PointsPage() {
     },
     enabled: isHrOrExec,
   });
+
+  const selectedMemberObj = memberOptions.find((m) => m.user_id === selectedMemberId);
+  const selectedMemberName = selectedMemberObj
+    ? (isAr
+        ? selectedMemberObj.profiles?.full_name_ar || selectedMemberObj.profiles?.full_name_en
+        : selectedMemberObj.profiles?.full_name_en || selectedMemberObj.profiles?.full_name_ar)
+    : null;
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
@@ -408,8 +515,8 @@ export default function PointsPage() {
       {/* ========================================================================= */}
       {activeTab === 'my_points' && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
-          {/* Header Controls for Score Scope (Personal vs Team for Leadership) */}
-          {isHrOrExec && (
+          {/* Header Description / Active Scope Indicator */}
+          {canGive && (
             <div
               style={{
                 display: 'flex',
@@ -421,62 +528,22 @@ export default function PointsPage() {
               }}
             >
               <div style={{ fontSize: '0.9rem', fontWeight: 700, color: isDark ? '#ffd54f' : '#b45309' }}>
-                {scoreScope === 'personal'
-                  ? (isAr ? 'المؤشرات الحالية: رصيدي الشخصي' : 'Indicators: My Personal Score')
-                  : (isAr ? 'المؤشرات الحالية: إجمالي نقاط الفريق' : 'Indicators: Organization Team Totals')}
-              </div>
-              <div
-                style={{
-                  display: 'inline-flex',
-                  background: isDark ? 'rgba(255,255,255,0.06)' : '#f3f4f6',
-                  borderRadius: '10px',
-                  padding: '3px',
-                  border: isDark ? '1px solid rgba(255,184,0,0.2)' : '1px solid #e5e7eb',
-                }}
-              >
-                <button
-                  type="button"
-                  onClick={() => setScoreScope('personal')}
-                  style={{
-                    border: 'none',
-                    padding: '0.35rem 0.85rem',
-                    borderRadius: '7px',
-                    fontSize: '0.8rem',
-                    fontWeight: 700,
-                    cursor: 'pointer',
-                    background: scoreScope === 'personal' ? (isDark ? 'rgba(255,184,0,0.25)' : '#ffffff') : 'transparent',
-                    color: scoreScope === 'personal' ? (isDark ? '#ffd54f' : '#b45309') : (isDark ? '#888' : '#666'),
-                  }}
-                >
-                  {isAr ? 'رصيدي الشخصي' : 'My Score'}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setScoreScope('team')}
-                  style={{
-                    border: 'none',
-                    padding: '0.35rem 0.85rem',
-                    borderRadius: '7px',
-                    fontSize: '0.8rem',
-                    fontWeight: 700,
-                    cursor: 'pointer',
-                    background: scoreScope === 'team' ? (isDark ? 'rgba(255,184,0,0.25)' : '#ffffff') : 'transparent',
-                    color: scoreScope === 'team' ? (isDark ? '#ffd54f' : '#b45309') : (isDark ? '#888' : '#666'),
-                  }}
-                >
-                  {isAr ? 'إجمالي نقاط الفريق' : 'Team Totals'}
-                </button>
+                {selectedMemberId === 'all'
+                  ? (isAr ? 'المؤشرات الحالية: إجمالي نقاط وخصومات الفريق بالكامل' : 'Current Indicators: Team Net & Deductions')
+                  : selectedMemberId === 'me'
+                    ? (isAr ? 'المؤشرات الحالية: رصيدي الشخصي' : 'Current Indicators: My Personal Score')
+                    : (isAr ? `المؤشرات الحالية: رصيد العضو (${selectedMemberName || 'المحدد'})` : `Current Indicators: Member (${selectedMemberName || 'Selected'})`)}
               </div>
             </div>
           )}
 
-          {/* Member Score Stats Cards */}
+          {/* Member / Team Score Stats Cards */}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1.25rem' }}>
-            {scoreScope === 'personal' ? (
+            {selectedMemberId === 'all' ? (
               <>
                 <StatCard
-                  title={isAr ? 'إجمالي رصيد النقاط' : 'Total Score'}
-                  value={loadingScore ? '...' : myScore?.total ?? 0}
+                  title={isAr ? 'صافي نقاط الفريق' : 'Team Net Points'}
+                  value={loadingTeamStats ? '...' : teamStats?.total ?? 0}
                   icon={Award}
                   color="gold"
                   description={
@@ -484,30 +551,6 @@ export default function PointsPage() {
                       ? activeSeason ? `الموسم: ${activeSeason.name_ar}` : 'الموسم الحالي'
                       : activeSeason ? `Season: ${activeSeason.name_en}` : 'Current Season'
                   }
-                />
-                <StatCard
-                  title={isAr ? 'مجموع المكافآت (+)' : 'Bonus Points (+)'}
-                  value={loadingScore ? '...' : `+${myScore?.bonus_total ?? 0}`}
-                  icon={PlusCircle}
-                  color="emerald"
-                  description={isAr ? 'نقاط التميز والمهام' : 'Bonuses and task points'}
-                />
-                <StatCard
-                  title={isAr ? 'مجموع الخصومات (-)' : 'Penalty Deductions (-)'}
-                  value={loadingScore ? '...' : `-${myScore?.penalty_total ?? 0}`}
-                  icon={MinusCircle}
-                  color="rose"
-                  description={isAr ? 'الغياب والتأخير' : 'Absences and penalties'}
-                />
-              </>
-            ) : (
-              <>
-                <StatCard
-                  title={isAr ? 'صافي نقاط الفريق' : 'Team Net Points'}
-                  value={loadingTeamStats ? '...' : teamStats?.total ?? 0}
-                  icon={Award}
-                  color="gold"
-                  description={isAr ? 'إجمالي رصيد كافة الأعضاء' : 'All members combined total'}
                 />
                 <StatCard
                   title={isAr ? 'مكافآت الفريق (+)' : 'Team Bonuses (+)'}
@@ -524,11 +567,41 @@ export default function PointsPage() {
                   description={isAr ? 'مجموع الخصومات المطبقة' : 'Total deductions applied'}
                 />
                 <StatCard
-                  title={isAr ? 'إجمالي القيود' : 'Total Entries'}
+                  title={isAr ? 'إجمالي العمليات والقيود' : 'Total Entries'}
                   value={loadingTeamStats ? '...' : teamStats?.count ?? 0}
                   icon={Users}
                   color="blue"
                   description={isAr ? 'عدد العمليات المعتمدة' : 'Approved transactions count'}
+                />
+              </>
+            ) : (
+              <>
+                <StatCard
+                  title={isAr ? 'إجمالي رصيد النقاط' : 'Total Score'}
+                  value={loadingScore ? '...' : displayedScore?.total ?? 0}
+                  icon={Award}
+                  color="gold"
+                  description={
+                    selectedMemberName
+                      ? (isAr ? `العضو: ${selectedMemberName}` : `Member: ${selectedMemberName}`)
+                      : (isAr
+                          ? activeSeason ? `الموسم: ${activeSeason.name_ar}` : 'الموسم الحالي'
+                          : activeSeason ? `Season: ${activeSeason.name_en}` : 'Current Season')
+                  }
+                />
+                <StatCard
+                  title={isAr ? 'مجموع المكافآت (+)' : 'Bonus Points (+)'}
+                  value={loadingScore ? '...' : `+${displayedScore?.bonus_total ?? 0}`}
+                  icon={PlusCircle}
+                  color="emerald"
+                  description={isAr ? 'نقاط التميز والمهام' : 'Bonuses and task points'}
+                />
+                <StatCard
+                  title={isAr ? 'مجموع الخصومات (-)' : 'Penalty Deductions (-)'}
+                  value={loadingScore ? '...' : `-${displayedScore?.penalty_total ?? 0}`}
+                  icon={MinusCircle}
+                  color="rose"
+                  description={isAr ? 'الغياب والتأخير والجزاءات' : 'Absences and penalties'}
                 />
               </>
             )}
@@ -551,13 +624,56 @@ export default function PointsPage() {
                 </h3>
                 <p style={{ margin: '0.2rem 0 0', fontSize: '0.85rem', color: isDark ? '#aaa' : '#666' }}>
                   {isAr
-                    ? 'سجل كافة الحركات والقيود المعتمدة ورصيد النقاط'
+                    ? (selectedMemberId === 'all'
+                        ? 'سجل كافة الحركات والقيود المعتمدة ورصيد النقاط لجميع أعضاء الفريق'
+                        : `سجل حركات وخصومات ومكافآت ${selectedMemberName ? selectedMemberName : 'العضو'}`)
                     : 'Log of all approved point entries and balances'}
                 </p>
               </div>
 
-              {/* Filter */}
-              <div style={{ display: 'flex', gap: '0.5rem' }}>
+              {/* Filters */}
+              <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', alignItems: 'center' }}>
+                {canGive && (
+                  <select
+                    value={selectedMemberId}
+                    onChange={(e) => {
+                      setSelectedMemberId(e.target.value);
+                      setMyEntriesPage(1);
+                    }}
+                    style={{
+                      padding: '0.5rem 0.85rem',
+                      borderRadius: '8px',
+                      background: isDark ? 'rgba(255,255,255,0.06)' : '#ffffff',
+                      border: isDark ? '1px solid rgba(255,184,0,0.3)' : '1px solid #d1d5db',
+                      color: isDark ? '#fff' : '#111',
+                      fontSize: '0.88rem',
+                      fontWeight: 700,
+                      outline: 'none',
+                    }}
+                  >
+                    <option value="all" style={{ background: isDark ? '#181920' : '#fff' }}>
+                      {isAr ? '👥 كافة الأعضاء (سجل الفريق)' : '👥 All Members (Team)'}
+                    </option>
+                    <option value="me" style={{ background: isDark ? '#181920' : '#fff' }}>
+                      {isAr ? '⭐ سجلي الشخصي فقط' : '⭐ My Personal Points'}
+                    </option>
+                    <optgroup label={isAr ? 'الأعضاء' : 'Members'} style={{ background: isDark ? '#181920' : '#fff' }}>
+                      {memberOptions.map((m) => {
+                        const name = isAr
+                          ? m.profiles?.full_name_ar || m.profiles?.full_name_en
+                          : m.profiles?.full_name_en || m.profiles?.full_name_ar;
+                        const comm = isAr ? m.committees?.name_ar : m.committees?.name_en;
+                        const code = m.profiles?.member_code ? ` (#${m.profiles.member_code})` : '';
+                        return (
+                          <option key={m.user_id} value={m.user_id} style={{ background: isDark ? '#181920' : '#fff' }}>
+                            {name}{code} {comm ? `— ${comm}` : ''}
+                          </option>
+                        );
+                      })}
+                    </optgroup>
+                  </select>
+                )}
+
                 <select
                   value={myTypeFilter}
                   onChange={(e) => {
@@ -571,16 +687,17 @@ export default function PointsPage() {
                     border: isDark ? '1px solid rgba(255,184,0,0.3)' : '1px solid #d1d5db',
                     color: isDark ? '#fff' : '#111',
                     fontSize: '0.88rem',
+                    outline: 'none',
                   }}
                 >
                   <option value="all" style={{ background: isDark ? '#181920' : '#fff' }}>
                     {isAr ? 'جميع القيود' : 'All Types'}
                   </option>
                   <option value="bonus" style={{ background: isDark ? '#181920' : '#fff' }}>
-                    {isAr ? 'مكافآت فقط (+)' : 'Bonus Only'}
+                    {isAr ? 'مكافآت فقط (+)' : 'Bonus Only (+)'}
                   </option>
                   <option value="penalty" style={{ background: isDark ? '#181920' : '#fff' }}>
-                    {isAr ? 'خصومات فقط (-)' : 'Penalties Only'}
+                    {isAr ? 'خصومات فقط (-) (المينص)' : 'Penalties Only (-)'}
                   </option>
                 </select>
               </div>
@@ -601,6 +718,34 @@ export default function PointsPage() {
                   ),
                 },
                 {
+                  key: 'member',
+                  header: isAr ? 'العضو' : 'Member',
+                  render: (row) => {
+                    const name = isAr
+                      ? row.profiles?.full_name_ar || row.profiles?.full_name_en
+                      : row.profiles?.full_name_en || row.profiles?.full_name_ar;
+                    const comm = isAr ? row.committees?.name_ar : row.committees?.name_en;
+                    const code = row.profiles?.member_code;
+                    return (
+                      <div>
+                        <div style={{ fontWeight: 700, color: isDark ? '#fff' : '#111', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                          <span>{name || (isAr ? 'عضو' : 'Member')}</span>
+                          {code && (
+                            <span style={{ fontSize: '0.72rem', color: '#ffd54f', background: 'rgba(255, 184, 0, 0.12)', padding: '0.1rem 0.35rem', borderRadius: '4px' }}>
+                              #{code}
+                            </span>
+                          )}
+                        </div>
+                        {comm && (
+                          <div style={{ fontSize: '0.75rem', color: isDark ? '#aaa' : '#666', marginTop: '0.15rem' }}>
+                            {comm}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  },
+                },
+                {
                   key: 'type',
                   header: isAr ? 'النوع' : 'Type',
                   render: (row) => (
@@ -608,8 +753,8 @@ export default function PointsPage() {
                       status={row.type}
                       label={
                         row.type === 'bonus'
-                          ? isAr ? 'مكافأة' : 'Bonus'
-                          : isAr ? 'خصم' : 'Penalty'
+                          ? isAr ? 'مكافأة (+)' : 'Bonus (+)'
+                          : isAr ? 'خصم (-) (مينص)' : 'Penalty (-)'
                       }
                     />
                   ),
@@ -692,6 +837,38 @@ export default function PointsPage() {
                     );
                   },
                 },
+                ...(canGive
+                  ? [
+                      {
+                        key: 'actions',
+                        header: isAr ? 'الإجراءات' : 'Actions',
+                        render: (row) => {
+                          if (row.voided_at) return <span style={{ color: '#888', fontSize: '0.75rem' }}>—</span>;
+                          return (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setEntryToVoid(row);
+                                setIsVoidDialogOpen(true);
+                              }}
+                              className="btn-danger"
+                              style={{
+                                padding: '0.35rem 0.65rem',
+                                fontSize: '0.78rem',
+                                borderRadius: '6px',
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '0.3rem',
+                              }}
+                            >
+                              <RotateCcw size={14} />
+                              <span>{isAr ? 'إبطال' : 'Void'}</span>
+                            </button>
+                          );
+                        },
+                      },
+                    ]
+                  : []),
               ]}
               data={myEntriesData?.data || []}
               isLoading={loadingMyEntries}
@@ -699,7 +876,7 @@ export default function PointsPage() {
               pageSize={PAGE_SIZE}
               total={myEntriesData?.count || 0}
               onPageChange={(p) => setMyEntriesPage(p)}
-              emptyMessage={isAr ? 'لا توجد حركات مسجلة في سجل نقاطك' : 'No point entries recorded yet'}
+              emptyMessage={isAr ? 'لا توجد حركات أو قيود مطابقة في هذا السجل' : 'No matching point entries found'}
             />
           </div>
         </div>

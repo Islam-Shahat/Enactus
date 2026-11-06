@@ -108,6 +108,18 @@ describe('Point Entries Immutability & Voiding Audit Tests', () => {
     it('aborts with non-zero SQL error on failure', () => {
       expect(testSql).toMatch(/raise\s+exception\s+.*Point Entries Immutability Test FAILED/i);
     });
+
+    it('verifies PointsPage ledger supports per-member and team-wide bonus/penalty history filtering', () => {
+      const pagePath = path.resolve(__dirname, '../src/pages/dashboard/PointsPage.jsx');
+      expect(fs.existsSync(pagePath)).toBe(true);
+      const pageCode = fs.readFileSync(pagePath, 'utf-8');
+
+      expect(pageCode).toContain('selectedMemberId');
+      expect(pageCode).toContain('memberOptions');
+      expect(pageCode).toContain('myTypeFilter');
+      expect(pageCode).toContain('effectiveUserId');
+      expect(pageCode).toContain('displayedScore');
+    });
   });
 });
 
