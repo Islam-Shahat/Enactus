@@ -2,8 +2,11 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { Landmark, Compass, Eye, Heart, Trophy, Sparkles, Target, Users, ShieldCheck, ArrowLeft } from 'lucide-react';
 import SEO from '../components/SEO';
+import { useLanguage } from '../context/LanguageContext';
 
 export default function AboutPage() {
+  const { lang } = useLanguage();
+  const isAr = lang === 'ar';
   const values = [
     {
       title: 'الإنسان والأثر (People First)',
@@ -53,8 +56,12 @@ export default function AboutPage() {
   return (
     <div className="page-container-padding" style={{ paddingTop: '120px', paddingBottom: '100px' }}>
       <SEO
-        title="عن الفريق (About Us)"
-        description="قصة ورؤية كتيبة إيناكوس قنا - جامعة جنوب الوادي: من شموخ دندرة ونيل قنا الخالد إلى ريادة الأعمال المجتمعية."
+        title={isAr ? 'عن الكتيبة (من نحن)' : 'About Us'}
+        description={
+          isAr
+            ? 'قصة ورؤية كتيبة إيناكوس قنا - جامعة جنوب الوادي: من شموخ دندرة ونيل قنا الخالد إلى ريادة الأعمال المجتمعية.'
+            : 'The story and vision of Enactus Qena - South Valley University: from the heritage of Dendera to sustainable social entrepreneurship.'
+        }
       />
       <div className="container">
         {/* Page Hero */}

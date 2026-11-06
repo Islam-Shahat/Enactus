@@ -9,6 +9,7 @@ import { useLanguage } from '../context/LanguageContext';
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
 import { t } from '../lib/strings';
 import LanguageToggle from '../components/LanguageToggle';
+import SEO from '../components/SEO';
 
 const loginSchema = z.object({
   identifier: z
@@ -120,6 +121,7 @@ export default function LoginPage() {
             position: 'relative',
           }}
         >
+          <SEO title={t('loginTitle')} noindex={true} />
           <div style={{ position: 'absolute', top: '1.25rem', insetInlineEnd: '1.25rem' }}>
             <LanguageToggle />
           </div>

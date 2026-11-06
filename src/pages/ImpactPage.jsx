@@ -3,8 +3,11 @@ import { Link } from 'react-router-dom';
 import ProjectsImpact from '../components/ProjectsImpact';
 import { Award, Globe, HeartHandshake, TrendingUp, Users, Sprout, ArrowLeft, Sparkles } from 'lucide-react';
 import SEO from '../components/SEO';
+import { useLanguage } from '../context/LanguageContext';
 
 export default function ImpactPage() {
+  const { lang } = useLanguage();
+  const isAr = lang === 'ar';
   const sdgsList = [
     { num: 'SDG 1', title: 'القضاء على الفقر', desc: 'تمكين أسر قرى قنا من خلال مشاريع حرفية وتجارية مدرة للدخل.' },
     { num: 'SDG 8', title: 'العمل اللائق ونمو الاقتصاد', desc: 'خلق فرص عمل خضراء وتدريب الشباب على ريادة الأعمال.' },
@@ -15,8 +18,12 @@ export default function ImpactPage() {
   return (
     <div className="page-container-padding" style={{ paddingTop: '120px', paddingBottom: '100px' }}>
       <SEO
-        title="أثرنا واستدامة مشاريعنا"
-        description="مشاريع وأثر إيناكوس قنا المستدام: تمكين مجتمعي، تدوير زراعي، وطاقة نظيفة في صعيد مصر."
+        title={isAr ? 'أثرنا واستدامة مشاريعنا' : 'Sustainability & Social Impact'}
+        description={
+          isAr
+            ? 'مشاريع وأثر إيناكوس قنا المستدام: تمكين مجتمعي، تدوير زراعي، وطاقة نظيفة في صعيد مصر.'
+            : 'Enactus Qena projects and sustainable impact: community empowerment, agricultural recycling, and green innovation in Upper Egypt.'
+        }
       />
       <div className="container">
         {/* Header */}

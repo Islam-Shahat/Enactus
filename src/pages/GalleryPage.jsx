@@ -1,13 +1,21 @@
 import React from 'react';
 import VisualGallery from '../components/VisualGallery';
 import SEO from '../components/SEO';
+import { useLanguage } from '../context/LanguageContext';
 
 export default function GalleryPage() {
+  const { lang } = useLanguage();
+  const isAr = lang === 'ar';
+
   return (
     <div className="page-container-padding" style={{ paddingTop: '120px', paddingBottom: '100px' }}>
       <SEO
-        title="معرض الصور والوسائط"
-        description="معرض الوسائط والهوية البصرية لكتيبة إيناكوس قنا: كواليس الحملات وتوثيق لحظات المجد."
+        title={isAr ? 'معرض الصور والوسائط' : 'Media & Visual Vault'}
+        description={
+          isAr
+            ? 'معرض الوسائط والهوية البصرية لكتيبة إيناكوس قنا: كواليس الحملات وتوثيق لحظات المجد والنزول الميداني.'
+            : 'Enactus Qena media vault: visual identity, field documentation, workshops, and milestones in Upper Egypt.'
+        }
       />
       <div className="container">
         {/* Header */}

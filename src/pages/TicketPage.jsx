@@ -82,6 +82,7 @@ export default function TicketPage() {
       <SEO
         title={isAr ? 'تذكرة الدخول الرسمية • إيناكوس قنا' : 'Event Entry Ticket • Enactus Qena'}
         description={isAr ? 'تذكرة الحضور الرسمية لفعاليات إيناكوس قنا' : 'Official attendee ticket'}
+        noindex={true}
       />
 
       {loading ? (

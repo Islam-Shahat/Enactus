@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { useLanguage } from '../context/LanguageContext';
 import { useTheme } from '../context/ThemeContext';
 import { Compass, Home, ArrowRight, ArrowLeft } from 'lucide-react';
+import SEO from '../components/SEO';
 
 export default function NotFoundPage() {
   const { lang, dir } = useLanguage();
@@ -22,6 +23,11 @@ export default function NotFoundPage() {
         textAlign: 'center',
       }}
     >
+      <SEO
+        title={isAr ? 'الصفحة غير موجودة (404)' : 'Page Not Found (404)'}
+        description={isAr ? 'عذراً، الصفحة التي تبحث عنها غير موجودة أو تم نقلها.' : 'Sorry, the page you are looking for does not exist or has been moved.'}
+        noindex={true}
+      />
       <div
         className="glass-panel gold-border-glow"
         style={{

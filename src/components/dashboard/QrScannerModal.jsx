@@ -7,6 +7,7 @@ import { useLanguage } from '../../context/LanguageContext';
 import { useTheme } from '../../context/ThemeContext';
 import { useToast } from './Toast';
 import FormField from './FormField';
+import { getScannerConfig } from '../../lib/qrScannerHelpers';
 import {
   Camera,
   CameraOff,
@@ -436,11 +437,7 @@ export default function QrScannerModal({
 
         await html5QrCode.start(
           { facingMode: cameraFacing },
-          {
-            fps: 10,
-            qrbox: { width: 250, height: 250 },
-            aspectRatio: 1.0,
-          },
+          getScannerConfig(),
           async (decodedText) => {
             if (isProcessingRef.current) return;
             await stopCamera();
@@ -821,15 +818,16 @@ export default function QrScannerModal({
                 <div
                   style={{
                     width: '100%',
+                    maxWidth: '480px',
                     background: '#000',
-                    borderRadius: '12px',
+                    borderRadius: '16px',
                     overflow: 'hidden',
                     position: 'relative',
-                    minHeight: '260px',
+                    minHeight: '300px',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    border: '1.5px solid rgba(255, 184, 0, 0.35)',
+                    border: '2px solid rgba(255, 184, 0, 0.4)',
                   }}
                 >
                   <div id="qr-reader-region" style={{ width: '100%' }} />

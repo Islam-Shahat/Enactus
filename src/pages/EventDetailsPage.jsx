@@ -30,12 +30,37 @@ export default function EventDetailsPage() {
     );
   }
 
+  const eventSchema = {
+    '@context': 'https://schema.org',
+    '@type': 'Event',
+    name: event.title,
+    description: event.brief || event.description,
+    startDate: event.date || undefined,
+    image: event.image || undefined,
+    location: {
+      '@type': 'Place',
+      name: event.location || 'South Valley University, Qena',
+      address: {
+        '@type': 'PostalAddress',
+        addressLocality: 'Qena',
+        addressCountry: 'EG',
+      },
+    },
+    organizer: {
+      '@type': 'Organization',
+      name: 'Enactus Qena',
+      url: 'https://enactus-qena.org',
+    },
+  };
+
   return (
     <div className="page-container-padding" style={{ paddingTop: '120px', paddingBottom: '100px' }}>
       <SEO
         title={event.title}
         description={event.brief || event.description}
         image={event.image}
+        type="article"
+        schema={eventSchema}
       />
       <div className="container">
         {/* Breadcrumb Navigation */}

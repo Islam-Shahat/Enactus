@@ -241,6 +241,11 @@ export default function JoinUsPage() {
         description={isAr
           ? 'انضم لكتيبة إيناكوس قنا - جامعة جنوب الوادي للموسم الجديد 2026. قدّم الآن لإحدى اللجان السبع.'
           : 'Join the Enactus Qena battalion - South Valley University for the 2026 season. Apply now to one of the seven committees.'}
+        keywords={
+          isAr
+            ? ['تقديم إيناكوس', 'تسجيل إيناكوس قنا', 'تطوع جامعة جنوب الوادي', 'ريكروتمنت إيناكوس', 'لجان إيناكوس', 'انضم إلينا', 'Enactus Qena Recruitment']
+            : ['Enactus Qena Join Us', 'Recruitment', 'South Valley University volunteering', 'Student activity application']
+        }
       />
       <div className="container">
         {/* Header */}

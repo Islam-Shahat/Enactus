@@ -17,6 +17,19 @@ export default function FAQPage() {
     setOpenIdx(openIdx === idx ? null : idx);
   };
 
+  const faqSchema = faqs.length > 0 ? {
+    '@context': 'https://schema.org',
+    '@type': 'FAQPage',
+    mainEntity: faqs.map((item) => ({
+      '@type': 'Question',
+      name: item.q,
+      acceptedAnswer: {
+        '@type': 'Answer',
+        text: item.a,
+      },
+    })),
+  } : undefined;
+
   return (
     <div className="page-container-padding" style={{ paddingTop: '120px', paddingBottom: '100px' }}>
       <SEO
@@ -26,6 +39,7 @@ export default function FAQPage() {
             ? "إجابات الأسئلة الشائعة حول الانضمام إلى إيناكوس قنا، اللجان، الرعايات، والمنافسات الوطنية."
             : "Frequently asked questions regarding recruitment, committees, sponsorship, and national competitions."
         }
+        schema={faqSchema}
       />
       <div className="container" style={{ maxWidth: '880px' }}>
         {/* Header */}

@@ -1,0 +1,155 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
+        xmlns:xhtml="http://www.w3.org/1999/xhtml">
+  <!-- Home Page -->
+  <url>
+    <loc>https://enactus-qena.org/</loc>
+    <lastmod>2026-11-06</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>1.0</priority>
+    <xhtml:link rel="alternate" hreflang="ar" href="https://enactus-qena.org/" />
+    <xhtml:link rel="alternate" hreflang="en" href="https://enactus-qena.org/" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://enactus-qena.org/" />
+  </url>
+
+  <!-- About Page -->
+  <url>
+    <loc>https://enactus-qena.org/about</loc>
+    <lastmod>2026-11-06</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+    <xhtml:link rel="alternate" hreflang="ar" href="https://enactus-qena.org/about" />
+    <xhtml:link rel="alternate" hreflang="en" href="https://enactus-qena.org/about" />
+  </url>
+
+  <!-- Committees Page -->
+  <url>
+    <loc>https://enactus-qena.org/committees</loc>
+    <lastmod>2026-11-06</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+    <xhtml:link rel="alternate" hreflang="ar" href="https://enactus-qena.org/committees" />
+    <xhtml:link rel="alternate" hreflang="en" href="https://enactus-qena.org/committees" />
+  </url>
+
+  <!-- Team & Board Page -->
+  <url>
+    <loc>https://enactus-qena.org/team</loc>
+    <lastmod>2026-11-06</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+    <xhtml:link rel="alternate" hreflang="ar" href="https://enactus-qena.org/team" />
+    <xhtml:link rel="alternate" hreflang="en" href="https://enactus-qena.org/team" />
+  </url>
+
+  <!-- Events Page -->
+  <url>
+    <loc>https://enactus-qena.org/events</loc>
+    <lastmod>2026-11-06</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+    <xhtml:link rel="alternate" hreflang="ar" href="https://enactus-qena.org/events" />
+    <xhtml:link rel="alternate" hreflang="en" href="https://enactus-qena.org/events" />
+  </url>
+
+  <!-- News & Press Page -->
+  <url>
+    <loc>https://enactus-qena.org/news</loc>
+    <lastmod>2026-11-06</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+    <xhtml:link rel="alternate" hreflang="ar" href="https://enactus-qena.org/news" />
+    <xhtml:link rel="alternate" hreflang="en" href="https://enactus-qena.org/news" />
+  </url>
+
+  <!-- Impact Page -->
+  <url>
+    <loc>https://enactus-qena.org/impact</loc>
+    <lastmod>2026-11-06</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+    <xhtml:link rel="alternate" hreflang="ar" href="https://enactus-qena.org/impact" />
+    <xhtml:link rel="alternate" hreflang="en" href="https://enactus-qena.org/impact" />
+  </url>
+
+  <!-- Recruitment / Join Us Page -->
+  <url>
+    <loc>https://enactus-qena.org/join</loc>
+    <lastmod>2026-11-06</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.9</priority>
+    <xhtml:link rel="alternate" hreflang="ar" href="https://enactus-qena.org/join" />
+    <xhtml:link rel="alternate" hreflang="en" href="https://enactus-qena.org/join" />
+  </url>
+
+  <!-- Partners Page -->
+  <url>
+    <loc>https://enactus-qena.org/partners</loc>
+    <lastmod>2026-11-06</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+    <xhtml:link rel="alternate" hreflang="ar" href="https://enactus-qena.org/partners" />
+    <xhtml:link rel="alternate" hreflang="en" href="https://enactus-qena.org/partners" />
+  </url>
+
+  <!-- Become a Sponsor Page -->
+  <url>
+    <loc>https://enactus-qena.org/sponsor</loc>
+    <lastmod>2026-11-06</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+    <xhtml:link rel="alternate" hreflang="ar" href="https://enactus-qena.org/sponsor" />
+    <xhtml:link rel="alternate" hreflang="en" href="https://enactus-qena.org/sponsor" />
+  </url>
+
+  <!-- Gallery Page -->
+  <url>
+    <loc>https://enactus-qena.org/gallery</loc>
+    <lastmod>2026-11-06</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+    <xhtml:link rel="alternate" hreflang="ar" href="https://enactus-qena.org/gallery" />
+    <xhtml:link rel="alternate" hreflang="en" href="https://enactus-qena.org/gallery" />
+  </url>
+
+  <!-- FAQ Page -->
+  <url>
+    <loc>https://enactus-qena.org/faq</loc>
+    <lastmod>2026-11-06</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+    <xhtml:link rel="alternate" hreflang="ar" href="https://enactus-qena.org/faq" />
+    <xhtml:link rel="alternate" hreflang="en" href="https://enactus-qena.org/faq" />
+  </url>
+
+  <!-- Alumni Page -->
+  <url>
+    <loc>https://enactus-qena.org/alumni</loc>
+    <lastmod>2026-11-06</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+    <xhtml:link rel="alternate" hreflang="ar" href="https://enactus-qena.org/alumni" />
+    <xhtml:link rel="alternate" hreflang="en" href="https://enactus-qena.org/alumni" />
+  </url>
+
+  <!-- Contact Page -->
+  <url>
+    <loc>https://enactus-qena.org/contact</loc>
+    <lastmod>2026-11-06</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+    <xhtml:link rel="alternate" hreflang="ar" href="https://enactus-qena.org/contact" />
+    <xhtml:link rel="alternate" hreflang="en" href="https://enactus-qena.org/contact" />
+  </url>
+
+  <!-- Terms & Privacy Page -->
+  <url>
+    <loc>https://enactus-qena.org/terms</loc>
+    <lastmod>2026-11-06</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.5</priority>
+    <xhtml:link rel="alternate" hreflang="ar" href="https://enactus-qena.org/terms" />
+    <xhtml:link rel="alternate" hreflang="en" href="https://enactus-qena.org/terms" />
+  </url>
+</urlset>
+

@@ -1,0 +1,11 @@
+User-agent: *
+Allow: /
+Disallow: /dashboard/
+Disallow: /dashboard
+Disallow: /reset-password
+Disallow: /login
+Disallow: /forgot-password
+
+# Sitemaps
+Sitemap: https://enactus-qena.org/sitemap.xml
+

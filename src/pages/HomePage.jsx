@@ -34,6 +34,11 @@ export default function HomePage({ onOpenJoinModal }) {
             ? "الموقع الرسمي لكتيبة إيناكوس قنا - جامعة جنوب الوادي. مشاريع ريادة أعمال مجتمعية، لجان فرعونية، وأثر حقيقي في صعيد مصر."
             : "Official website of Enactus Qena - South Valley University. Social entrepreneurship ventures, Pharaonic committees, and sustainable impact in Upper Egypt."
         }
+        keywords={
+          isAr
+            ? ['إيناكوس', 'إيناكوس قنا', 'جامعة جنوب الوادي', 'ريادة أعمال', 'صعيد مصر', 'قنا', 'Enactus', 'Enactus Qena', 'أنشطة طلابية', 'تنمية مجتمعية']
+            : ['Enactus', 'Enactus Qena', 'South Valley University', 'SVU', 'Social Entrepreneurship', 'Upper Egypt', 'Qena', 'SDGs', 'Youth Empowerment']
+        }
       />
       {/* Cinematic Hero */}
       <Hero onOpenJoinModal={onOpenJoinModal} />

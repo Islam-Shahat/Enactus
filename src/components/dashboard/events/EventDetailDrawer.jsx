@@ -12,6 +12,7 @@ import { supabase } from '../../../lib/supabase';
 import { exportToCsv } from '../../../lib/csvExport';
 import { calculateAverageRating, calculateEventCapacity, normalizeTicketCode } from '../../../lib/eventHelpers';
 import { Html5Qrcode } from 'html5-qrcode';
+import { getScannerConfig } from '../../../lib/qrScannerHelpers';
 
 export default function EventDetailDrawer({
   isOpen,
@@ -175,9 +176,9 @@ export default function EventDetailDrawer({
         scannerRef.current = scanner;
         await scanner.start(
           { facingMode: 'environment' },
-          { fps: 10, qrbox: { width: 250, height: 250 } },
+          getScannerConfig({ aspectRatio: undefined }),
           (decodedText) => handleQrScanned(decodedText),
-          (errorMessage) => {}
+          () => {}
         );
       } catch (err) {
         console.error('Scanner init error:', err);

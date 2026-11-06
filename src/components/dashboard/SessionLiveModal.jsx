@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Html5Qrcode } from 'html5-qrcode';
-import { QRCodeSVG } from 'qrcode.react';
+import { getScannerConfig } from '../../lib/qrScannerHelpers';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../context/AuthContext';
 import { useLanguage } from '../../context/LanguageContext';
@@ -13,7 +13,6 @@ import {
   Camera,
   CameraOff,
   Keyboard,
-  QrCode,
   ToggleLeft,
   ToggleRight,
   Users,
@@ -161,7 +160,7 @@ export default function SessionLiveModal({
   isOpen,
   onClose,
   session,
-  initialTab = 'scanner', // 'scanner' | 'live_list' | 'manual_sheet' | 'projector'
+  initialTab = 'scanner', // 'scanner' | 'live_list' | 'manual_sheet'
   onSessionUpdated,
 }) {
   const { user } = useAuth();
@@ -171,7 +170,7 @@ export default function SessionLiveModal({
   const toast = useToast();
   const queryClient = useQueryClient();
 
-  // Active view: 'scanner' | 'live_list' | 'manual_sheet' | 'projector'
+  // Active view: 'scanner' | 'live_list' | 'manual_sheet'
   const [activeTab, setActiveTab] = useState(initialTab || 'scanner');
 
   // Scanner sub-mode: 'camera' | 'manual'
@@ -181,11 +180,6 @@ export default function SessionLiveModal({
   const [lastScannedMember, setLastScannedMember] = useState(null);
   const [cameraError, setCameraError] = useState(null);
   const [cameraFacing, setCameraFacing] = useState('environment'); // 'environment' | 'user'
-
-  // Rotating Token state (for optional projector view)
-  const [qrToken, setQrToken] = useState(null);
-  const [projectorCode, setProjectorCode] = useState(null);
-  const [secondsRemaining, setSecondsRemaining] = useState(20);
 
   // Confirm dialogs
   const [isCloseConfirmOpen, setIsCloseConfirmOpen] = useState(false);
@@ -508,11 +502,7 @@ export default function SessionLiveModal({
 
         await html5QrCode.start(
           { facingMode: cameraFacing },
-          {
-            fps: 10,
-            qrbox: { width: 250, height: 250 },
-            aspectRatio: 1.0,
-          },
+          getScannerConfig(),
           async (decodedText) => {
             if (!isScanningReadyRef.current) return;
             // Prevent duplicate triggers in rapid succession
@@ -558,53 +548,6 @@ export default function SessionLiveModal({
       stopCamera();
     };
   }, [isOpen, activeTab, scannerSubMode, cameraFacing, isAr, stopCamera]);
-
-  // Fetch token for optional projector view
-  const fetchQrToken = useCallback(async () => {
-    if (!sessionId || !isCheckInOpen || activeTab !== 'projector') return;
-    try {
-      const {
-        data: { session: authSession },
-      } = await supabase.auth.getSession();
-
-      if (!authSession) return;
-
-      const res = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/qr-token`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${authSession.access_token}`,
-          },
-          body: JSON.stringify({ session_id: sessionId }),
-        }
-      );
-
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error);
-
-      setQrToken(data.token);
-      setProjectorCode(data.code);
-      setSecondsRemaining(20);
-    } catch (err) {
-      // Quiet fallback
-    }
-  }, [sessionId, isCheckInOpen, activeTab]);
-
-  useEffect(() => {
-    if (!isOpen || !sessionId || !isCheckInOpen || activeTab !== 'projector') return;
-    fetchQrToken();
-    const interval = setInterval(fetchQrToken, 20000);
-    const countdown = setInterval(() => {
-      setSecondsRemaining((prev) => (prev > 0 ? prev - 1 : 20));
-    }, 1000);
-
-    return () => {
-      clearInterval(interval);
-      clearInterval(countdown);
-    };
-  }, [isOpen, sessionId, isCheckInOpen, activeTab, fetchQrToken]);
 
   // Toggle check_in_open mutation
   const toggleCheckinMutation = useMutation({
@@ -1280,12 +1223,12 @@ export default function SessionLiveModal({
                 <div
                   style={{
                     width: '100%',
-                    maxWidth: '420px',
+                    maxWidth: '480px',
                     background: '#000',
                     borderRadius: '16px',
                     overflow: 'hidden',
                     position: 'relative',
-                    minHeight: '260px',
+                    minHeight: '300px',
                     boxShadow: '0 10px 30px rgba(0,0,0,0.5)',
                     border: '2px solid rgba(255, 184, 0, 0.4)',
                     display: 'flex',

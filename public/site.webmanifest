@@ -1,0 +1,29 @@
+{
+  "name": "Enactus Qena | إيناكوس قنا",
+  "short_name": "Enactus Qena",
+  "description": "الموقع الرسمي لنشاط Enactus Qena University بجامعة جنوب الوادي بقنا. Empowering Change, Inspiring Innovation. من قلب الصعيد نحو العالمية.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#0a0a0c",
+  "theme_color": "#ffb800",
+  "dir": "rtl",
+  "lang": "ar",
+  "categories": ["education", "business", "social"],
+  "icons": [
+    {
+      "src": "/assets/E2.jpg",
+      "sizes": "192x192",
+      "type": "image/jpeg",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/assets/E2.jpg",
+      "sizes": "512x512",
+      "type": "image/jpeg",
+      "purpose": "any maskable"
+    }
+  ]
+}
+

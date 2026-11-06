@@ -30,6 +30,7 @@ import { DASHBOARD_NAV, ROLE_LABELS, filterNavItems } from '../../lib/roles';
 import ThemeToggle from '../../components/ThemeToggle';
 import LanguageToggle from '../../components/LanguageToggle';
 import NotificationsBell from '../../components/dashboard/NotificationsBell';
+import SEO from '../../components/SEO';
 
 const NAV_ICONS = {
   home: Home,
@@ -80,6 +81,7 @@ export default function DashboardLayout() {
 
   return (
     <ToastProvider>
+      <SEO title={lang === 'ar' ? 'لوحة التحكم' : 'Dashboard'} noindex={true} />
       <div
         style={{
           display: 'flex',

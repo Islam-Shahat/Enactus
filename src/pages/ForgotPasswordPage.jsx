@@ -8,6 +8,7 @@ import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
 import { t } from '../lib/strings';
 import LanguageToggle from '../components/LanguageToggle';
+import SEO from '../components/SEO';
 
 const forgotSchema = z.object({
   email: z.email({ message: 'يرجى إدخال بريد إلكتروني صحيح' }),
@@ -63,6 +64,7 @@ export default function ForgotPasswordPage() {
             position: 'relative',
           }}
         >
+          <SEO title={isAr ? 'استعادة كلمة المرور' : 'Reset Password'} noindex={true} />
           <div style={{ position: 'absolute', top: '1.25rem', insetInlineEnd: '1.25rem' }}>
             <LanguageToggle />
           </div>

@@ -46,12 +46,36 @@ export default function NewsPage() {
     }
   };
 
+  const articleSchema = selectedArticle ? {
+    '@context': 'https://schema.org',
+    '@type': 'NewsArticle',
+    headline: selectedArticle.title,
+    description: selectedArticle.excerpt,
+    image: selectedArticle.image ? [selectedArticle.image] : undefined,
+    datePublished: selectedArticle.date || undefined,
+    author: {
+      '@type': 'Organization',
+      name: 'Enactus Qena Media & Press',
+      url: 'https://enactus-qena.org',
+    },
+    publisher: {
+      '@type': 'Organization',
+      name: 'Enactus South Valley University',
+      logo: {
+        '@type': 'ImageObject',
+        url: 'https://enactus-qena.org/assets/E2.jpg',
+      },
+    },
+  } : undefined;
+
   return (
     <div className="page-container-padding" style={{ paddingTop: '120px', paddingBottom: '100px' }}>
       <SEO
         title={selectedArticle ? selectedArticle.title : (isAr ? 'الأخبار والبيانات الصحفية' : 'News & Press Releases')}
         description={selectedArticle ? selectedArticle.excerpt : (isAr ? 'أحدث أخبار وبيانات إيناكوس قنا الرسمية، الشراكات، وتغطيات الفعاليات.' : 'Official news, press releases, strategic partnerships, and coverage of Enactus Qena.')}
         image={selectedArticle?.image}
+        type={selectedArticle ? 'article' : 'website'}
+        schema={articleSchema}
       />
       <div className="container">
         {/* Header */}

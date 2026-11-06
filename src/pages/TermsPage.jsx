@@ -2,13 +2,21 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { ShieldCheck, Lock, FileText, ArrowLeft } from 'lucide-react';
 import SEO from '../components/SEO';
+import { useLanguage } from '../context/LanguageContext';
 
 export default function TermsPage() {
+  const { lang } = useLanguage();
+  const isAr = lang === 'ar';
+
   return (
     <div className="page-container-padding" style={{ paddingTop: '120px', paddingBottom: '100px' }}>
       <SEO
-        title="سياسة الخصوصية والشروط"
-        description="سياسة الخصوصية وشروط الاستخدام لنشاط إيناكوس قنا - جامعة جنوب الوادي."
+        title={isAr ? 'سياسة الخصوصية والشروط' : 'Privacy Policy & Terms'}
+        description={
+          isAr
+            ? 'سياسة الخصوصية وشروط الاستخدام لنشاط إيناكوس قنا - جامعة جنوب الوادي.'
+            : 'Privacy policy, data protection, and terms of service for Enactus Qena - South Valley University.'
+        }
       />
       <div className="container" style={{ maxWidth: '850px' }}>
         {/* Header */}

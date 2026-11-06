@@ -4,15 +4,22 @@ import { alumniData } from '../data/enactusData';
 import { useAlumni } from '../hooks/usePublicContent';
 import SEO from '../components/SEO';
 import { ArrowLeft, GraduationCap } from 'lucide-react';
+import { useLanguage } from '../context/LanguageContext';
 
 export default function AlumniPage() {
+  const { lang } = useLanguage();
+  const isAr = lang === 'ar';
   const { data: alumni = alumniData, isLoading } = useAlumni(alumniData);
 
   return (
     <div className="page-container-padding" style={{ paddingTop: '120px', paddingBottom: '100px' }}>
       <SEO
-        title="خريجو الفريق وسفراء الأثر"
-        description="شبكة خريجي إيناكوس قنا: سفراء الأثر في كبرى الشركات والمؤسسات الدولية ومراكز ريادة الأعمال."
+        title={isAr ? 'خريجو الفريق وسفراء الأثر' : 'Alumni Network & Legacy'}
+        description={
+          isAr
+            ? 'شبكة خريجي إيناكوس قنا: سفراء الأثر في كبرى الشركات والمؤسسات الدولية ومراكز ريادة الأعمال.'
+            : 'Enactus Qena Alumni Network: impact ambassadors leading corporations, startups, and international organizations.'
+        }
       />
       <div className="container">
         {/* Header */}

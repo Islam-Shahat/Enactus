@@ -9,6 +9,7 @@ import { useLanguage } from '../context/LanguageContext';
 import { supabase } from '../lib/supabase';
 import { t } from '../lib/strings';
 import LanguageToggle from '../components/LanguageToggle';
+import SEO from '../components/SEO';
 
 const resetSchema = z
   .object({
@@ -121,6 +122,7 @@ export default function ResetPasswordPage() {
             position: 'relative',
           }}
         >
+          <SEO title={isAr ? 'تعيين كلمة مرور جديدة' : 'Reset Password'} noindex={true} />
           <div style={{ position: 'absolute', top: '1.25rem', insetInlineEnd: '1.25rem' }}>
             <LanguageToggle />
           </div>

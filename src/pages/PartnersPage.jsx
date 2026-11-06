@@ -3,8 +3,11 @@ import { Link } from 'react-router-dom';
 import Partnerships from '../components/Partnerships';
 import { Handshake, Award, Building2, CheckCircle2, ArrowLeft, Sparkles } from 'lucide-react';
 import SEO from '../components/SEO';
+import { useLanguage } from '../context/LanguageContext';
 
 export default function PartnersPage() {
+  const { lang } = useLanguage();
+  const isAr = lang === 'ar';
   const pastPartnerships = [
     {
       name: 'وزارة التضامن الاجتماعي - قنا',
@@ -26,8 +29,12 @@ export default function PartnersPage() {
   return (
     <div className="page-container-padding" style={{ paddingTop: '120px', paddingBottom: '100px' }}>
       <SEO
-        title="شركاء المسيرة ورعاة الأثر"
-        description="شركاء ورعاة إيناكوس قنا - شبكة التعاون الاستراتيجي مع المؤسسات التدريبية والشركات."
+        title={isAr ? 'شركاء المسيرة ورعاة الأثر' : 'Strategic Partners & Alliances'}
+        description={
+          isAr
+            ? 'شركاء ورعاة إيناكوس قنا - شبكة التعاون الاستراتيجي مع المؤسسات التدريبية، الشركات، والجهات الحكومية.'
+            : 'Strategic partners and corporate alliances of Enactus Qena empowering social ventures in Upper Egypt.'
+        }
       />
       <div className="container">
         {/* Page Header */}
