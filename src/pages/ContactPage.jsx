@@ -211,7 +211,12 @@ export default function ContactPage() {
                   <h3 style={{ fontSize: '1.2rem', fontWeight: 800, color: '#fff', margin: 0 }}>
                     {isAr ? 'البريد الرسمي' : 'Official Email'}
                   </h3>
-                  <span style={{ fontSize: '0.85rem', color: '#ffd54f' }}>enactus.svu@gmail.com</span>
+                  <a
+                    href="mailto:islam@gmail.com"
+                    style={{ fontSize: '0.85rem', color: '#ffd54f', textDecoration: 'none', display: 'inline-block' }}
+                  >
+                    islam@gmail.com
+                  </a>
                 </div>
               </div>
 
@@ -223,7 +228,14 @@ export default function ContactPage() {
                   <h3 style={{ fontSize: '1.2rem', fontWeight: 800, color: '#fff', margin: 0 }}>
                     {isAr ? 'هاتف وواتساب الـ PR' : 'PR Phone & WhatsApp'}
                   </h3>
-                  <span style={{ fontSize: '0.9rem', color: '#ffd54f', direction: 'ltr', display: 'inline-block' }}>+20 109 238 4119</span>
+                  <a
+                    href="https://wa.me/201557523934"
+                    target="_blank"
+                    rel="noreferrer"
+                    style={{ fontSize: '0.9rem', color: '#ffd54f', direction: 'ltr', display: 'inline-block', textDecoration: 'none' }}
+                  >
+                    +20 155 752 3934
+                  </a>
                 </div>
               </div>
             </div>
