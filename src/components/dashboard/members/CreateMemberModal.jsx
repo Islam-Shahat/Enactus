@@ -82,6 +82,39 @@ export default function CreateMemberModal({ isOpen, onClose, committees = [], se
         throw new Error(isAr ? 'جلسة غير مصرح بها. يرجى إعادة تسجيل الدخول.' : 'Unauthorized session.');
       }
 
+      // 1. Try secure database RPC first (independent of un-deployed Edge Functions)
+      try {
+        const { data: rpcData, error: rpcErr } = await supabase.rpc('create_member_admin', {
+          p_full_name_ar: payload.fullNameAr,
+          p_full_name_en: payload.fullNameEn || payload.fullNameAr,
+          p_national_id: payload.nationalId,
+          p_phone: payload.phone || null,
+          p_email: payload.email || null,
+          p_committee_id: payload.committeeId,
+          p_position: payload.position || 'member',
+          p_faculty: payload.faculty || null,
+          p_study_year: payload.studyYear ? parseInt(payload.studyYear, 10) : null,
+          p_birth_date: payload.birthDate || null,
+          p_gender: payload.gender || null,
+          p_governorate: payload.governorate || null,
+        });
+
+        if (!rpcErr && rpcData) {
+          if (rpcData.ok === false) {
+            throw new Error(rpcData.error || (isAr ? 'فشل إضافة العضو' : 'Failed to add member'));
+          }
+          return rpcData;
+        }
+        if (rpcErr && !rpcErr.message?.includes('function') && !rpcErr.message?.includes('does not exist')) {
+          throw new Error(rpcErr.message);
+        }
+      } catch (rpcEx) {
+        if (!rpcEx.message?.includes('does not exist') && !rpcEx.message?.includes('function')) {
+          throw rpcEx;
+        }
+      }
+
+      // 2. Fallback to Edge Function
       const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/create-member`, {
         method: 'POST',
         headers: {

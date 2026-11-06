@@ -105,6 +105,40 @@ describe('Create Member & 7-Digit Code Workflow', () => {
       expect(edgeFuncSource).toContain('member_code: memberCode');
       expect(edgeFuncSource).toContain('generate_next_member_code');
     });
+
+    it('verifies migration 20261106090000 defines convert_application_to_member and create_member_admin RPCs', () => {
+      const migPath = path.join(
+        process.cwd(),
+        'supabase',
+        'migrations',
+        '20261106090000_secure_member_conversion_and_creation.sql'
+      );
+      expect(fs.existsSync(migPath)).toBe(true);
+
+      const migSql = fs.readFileSync(migPath, 'utf-8');
+      expect(migSql).toContain('function public.convert_application_to_member');
+      expect(migSql).toContain('function public.create_member_admin');
+      expect(migSql).toContain("'hr_admin', 'president', 'vice_president', 'super_admin'");
+      expect(migSql).toContain('generate_next_member_code');
+      expect(migSql).toContain('grant execute on function public.convert_application_to_member');
+      expect(migSql).toContain('grant execute on function public.create_member_admin');
+    });
+
+    it('verifies ApplicationsPage and CreateMemberModal use resilient RPC with Edge Function fallback', () => {
+      const appPage = fs.readFileSync(
+        path.join(process.cwd(), 'src', 'pages', 'dashboard', 'ApplicationsPage.jsx'),
+        'utf-8'
+      );
+      expect(appPage).toContain("supabase.rpc('convert_application_to_member'");
+      expect(appPage).toContain("supabase.functions.invoke('convert-application'");
+
+      const modal = fs.readFileSync(
+        path.join(process.cwd(), 'src', 'components', 'dashboard', 'members', 'CreateMemberModal.jsx'),
+        'utf-8'
+      );
+      expect(modal).toContain("supabase.rpc('create_member_admin'");
+      expect(modal).toContain('functions/v1/create-member');
+    });
   });
 });
 

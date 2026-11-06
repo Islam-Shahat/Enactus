@@ -117,9 +117,33 @@ export default function ApplicationsPage() {
     },
   });
 
-  // Mutation: Convert application to member via Edge Function
+  // Mutation: Convert application to member (RPC with Edge Function fallback)
   const convertMutation = useMutation({
     mutationFn: async ({ applicationId, committeeSlug, position }) => {
+      // 1. Try secure database RPC first (independent of un-deployed Edge Functions)
+      try {
+        const { data: rpcData, error: rpcErr } = await supabase.rpc('convert_application_to_member', {
+          p_application_id: applicationId,
+          p_committee_slug: committeeSlug,
+          p_position: position || 'member',
+        });
+
+        if (!rpcErr && rpcData) {
+          if (rpcData.ok === false) {
+            throw new Error(rpcData.error || (isAr ? 'فشل تحويل المتقدم إلى عضو' : 'Failed to convert application'));
+          }
+          return rpcData;
+        }
+        if (rpcErr && !rpcErr.message?.includes('function') && !rpcErr.message?.includes('does not exist')) {
+          throw new Error(rpcErr.message);
+        }
+      } catch (rpcEx) {
+        if (!rpcEx.message?.includes('does not exist') && !rpcEx.message?.includes('function')) {
+          throw rpcEx;
+        }
+      }
+
+      // 2. Secondary fallback: invoke Edge Function
       const { data, error: fnErr } = await supabase.functions.invoke('convert-application', {
         body: {
           applicationId,
@@ -128,8 +152,9 @@ export default function ApplicationsPage() {
         },
       });
 
-      if (fnErr || data?.error) {
-        throw new Error(data?.error || fnErr?.message || 'Conversion failed');
+      if (fnErr || data?.error || data?.ok === false) {
+        const message = data?.error || fnErr?.message || (isAr ? 'فشل تحويل المتقدم إلى عضو' : 'Failed to convert application');
+        throw new Error(message);
       }
       return data;
     },
