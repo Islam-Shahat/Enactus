@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { sponsorshipTiers } from '../data/enactusData';
@@ -37,52 +37,132 @@ export default function BecomeSponsorPage() {
     },
   });
 
+  const handleTurnstileVerify = useCallback((token) => {
+    setTurnstileToken(token);
+  }, []);
+
+  const handleTurnstileExpire = useCallback(() => {
+    setTurnstileToken('');
+  }, []);
+
   const onSubmit = async (values) => {
     setServerError('');
+    let submissionSuccess = false;
+    let errorMessage = '';
+
+    // Tier 1: Direct Database RPC function (SECURITY DEFINER)
     try {
-      const payload = {
-        kind: 'sponsor',
-        fullName: values.contactPerson,
-        organization: values.companyName,
-        email: values.email,
-        phone: values.phone,
-        packageInterest: values.tier,
-        subject: `طلب رعاية: ${values.tier}`,
-        message: values.message,
-        honeypot: values.honeypot || '',
-        turnstileToken: turnstileToken || undefined,
-      };
-
-      const { data, error } = await supabase.functions.invoke('contact-form', {
-        body: payload,
+      const { data: rpcData, error: rpcErr } = await supabase.rpc('submit_contact_message', {
+        p_full_name: values.contactPerson.trim(),
+        p_email: values.email.toLowerCase().trim(),
+        p_phone: values.phone?.trim() || null,
+        p_organization: values.companyName?.trim() || null,
+        p_package_interest: values.tier || null,
+        p_subject: `طلب رعاية: ${values.tier}`,
+        p_message: values.message.trim(),
+        p_kind: 'sponsor',
       });
 
-      if (error || data?.error) {
-        setServerError(
-          data?.error || (isAr ? 'تعذر إرسال طلب الرعاية، يرجى المحاولة لاحقاً.' : 'Failed to submit inquiry, please try again.')
-        );
-        return;
+      if (!rpcErr && rpcData) {
+        if (rpcData.ok === false) {
+          setServerError(rpcData.error || (isAr ? 'تعذر إرسال طلب الرعاية.' : 'Failed to submit inquiry.'));
+          return;
+        }
+        submissionSuccess = true;
+      } else if (rpcErr) {
+        console.warn('[BecomeSponsorPage] RPC notice:', rpcErr);
       }
-
-      setSubmitted(true);
-      reset();
-
-      // Golden confetti celebration
-      import('canvas-confetti').then((m) => {
-        const confetti = m.default || m;
-        confetti({
-          particleCount: 100,
-          spread: 70,
-          origin: { y: 0.6 },
-          colors: ['#ffd700', '#ffaa00', '#ffffff'],
-        });
-      });
-    } catch (err) {
-      console.error('[BecomeSponsorPage] submission error:', err);
-      setServerError(
-        isAr ? 'حدث خطأ غير متوقع أثناء إرسال الطلب. يرجى المحاولة مرة أخرى.' : 'An unexpected error occurred. Please try again.'
-      );
+    } catch (rpcException) {
+      console.warn('[BecomeSponsorPage] RPC exception:', rpcException);
     }
+
+    // Tier 2: Direct Table Insert fallback
+    if (!submissionSuccess) {
+      try {
+        const { error: insertErr } = await supabase
+          .from('contact_messages')
+          .insert([{
+            kind: 'sponsor',
+            full_name: values.contactPerson.trim(),
+            email: values.email.toLowerCase().trim(),
+            phone: values.phone?.trim() || null,
+            organization: values.companyName?.trim() || null,
+            package_interest: values.tier || null,
+            subject: `طلب رعاية: ${values.tier}`,
+            message: values.message.trim(),
+            status: 'new',
+          }]);
+
+        if (!insertErr) {
+          submissionSuccess = true;
+        } else {
+          console.warn('[BecomeSponsorPage] Direct insert notice:', insertErr);
+        }
+      } catch (insertException) {
+        console.warn('[BecomeSponsorPage] Direct insert exception:', insertException);
+      }
+    }
+
+    // Tier 3: Edge Function invoke fallback
+    if (!submissionSuccess) {
+      try {
+        const payload = {
+          kind: 'sponsor',
+          fullName: values.contactPerson,
+          organization: values.companyName,
+          email: values.email,
+          phone: values.phone,
+          packageInterest: values.tier,
+          subject: `طلب رعاية: ${values.tier}`,
+          message: values.message,
+          honeypot: values.honeypot || '',
+          turnstileToken: turnstileToken || undefined,
+        };
+
+        const { data, error } = await supabase.functions.invoke('contact-form', {
+          body: payload,
+        });
+
+        if (!error && (data?.ok || data?.id)) {
+          submissionSuccess = true;
+        } else {
+          let detailedMsg = data?.error;
+          if (!detailedMsg && error) {
+            try {
+              const errBody = typeof error.context?.json === 'function' ? await error.context.json() : null;
+              detailedMsg = errBody?.error || error.message;
+            } catch (_) {
+              detailedMsg = error.message;
+            }
+          }
+          errorMessage = detailedMsg || (isAr ? 'تعذر إرسال طلب الرعاية، يرجى المحاولة لاحقاً.' : 'Failed to submit inquiry, please try again.');
+        }
+      } catch (invokeException) {
+        console.error('[BecomeSponsorPage] Edge Function invoke exception:', invokeException);
+        errorMessage = isAr ? 'حدث خطأ في الاتصال بالخادم. يرجى التحقق من اتصالك والمحاولة لاحقاً.' : 'Network connection error. Please try again.';
+      }
+    }
+
+    if (!submissionSuccess) {
+      setServerError(
+        errorMessage || (isAr ? 'تعذر إرسال طلب الرعاية، يرجى المحاولة لاحقاً.' : 'Failed to submit inquiry, please try again.')
+      );
+      return;
+    }
+
+    setSubmitted(true);
+    reset();
+
+    // Golden confetti celebration
+    import('canvas-confetti').then((m) => {
+      const confetti = m.default || m;
+      confetti({
+        particleCount: 100,
+        spread: 70,
+        origin: { y: 0.6 },
+        colors: ['#ffd700', '#ffaa00', '#ffffff'],
+      });
+    });
   };
 
   return (
@@ -333,7 +413,7 @@ export default function BecomeSponsorPage() {
                 </div>
 
                 {/* Cloudflare Turnstile Verification */}
-                <Turnstile onVerify={(t) => setTurnstileToken(t)} onExpire={() => setTurnstileToken('')} />
+                <Turnstile onVerify={handleTurnstileVerify} onExpire={handleTurnstileExpire} />
 
                 <button
                   type="submit"

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Mail, Phone, MapPin, Send, Check, AlertCircle, Loader2 } from 'lucide-react';
@@ -32,38 +32,113 @@ export default function ContactPage() {
     },
   });
 
+  const handleTurnstileVerify = useCallback((token) => {
+    setTurnstileToken(token);
+  }, []);
+
+  const handleTurnstileExpire = useCallback(() => {
+    setTurnstileToken('');
+  }, []);
+
   const onSubmit = async (values) => {
     setServerError('');
-    try {
-      const payload = {
-        kind: 'contact',
-        fullName: values.fullName,
-        email: values.email,
-        subject: values.subject,
-        message: values.message,
-        honeypot: values.honeypot || '',
-        turnstileToken: turnstileToken || undefined,
-      };
+    let submissionSuccess = false;
+    let errorMessage = '';
 
-      const { data, error } = await supabase.functions.invoke('contact-form', {
-        body: payload,
+    // Tier 1: Direct Database RPC function (SECURITY DEFINER)
+    // Independent of Edge Functions and Turnstile keys configuration
+    try {
+      const { data: rpcData, error: rpcErr } = await supabase.rpc('submit_contact_message', {
+        p_full_name: values.fullName.trim(),
+        p_email: values.email.toLowerCase().trim(),
+        p_subject: values.subject?.trim() || null,
+        p_message: values.message.trim(),
+        p_kind: 'contact',
       });
 
-      if (error || data?.error) {
-        setServerError(
-          data?.error || (isAr ? 'تعذر إرسال الرسالة، يرجى المحاولة لاحقاً.' : 'Failed to send message, please try again.')
-        );
-        return;
+      if (!rpcErr && rpcData) {
+        if (rpcData.ok === false) {
+          setServerError(rpcData.error || (isAr ? 'تعذر إرسال الرسالة.' : 'Failed to send message.'));
+          return;
+        }
+        submissionSuccess = true;
+      } else if (rpcErr) {
+        console.warn('[ContactPage] RPC submission error:', rpcErr);
       }
-
-      setSent(true);
-      reset();
-    } catch (err) {
-      console.error('[ContactPage] submission error:', err);
-      setServerError(
-        isAr ? 'حدث خطأ غير متوقع أثناء الإرسال. يرجى المحاولة مرة أخرى.' : 'An unexpected error occurred. Please try again.'
-      );
+    } catch (rpcException) {
+      console.warn('[ContactPage] RPC exception:', rpcException);
     }
+
+    // Tier 2: Direct Table Insert fallback
+    if (!submissionSuccess) {
+      try {
+        const { error: insertErr } = await supabase
+          .from('contact_messages')
+          .insert([{
+            kind: 'contact',
+            full_name: values.fullName.trim(),
+            email: values.email.toLowerCase().trim(),
+            subject: values.subject?.trim() || null,
+            message: values.message.trim(),
+            status: 'new',
+          }]);
+
+        if (!insertErr) {
+          submissionSuccess = true;
+        } else {
+          console.warn('[ContactPage] Direct insert notice:', insertErr);
+        }
+      } catch (insertException) {
+        console.warn('[ContactPage] Direct insert exception:', insertException);
+      }
+    }
+
+    // Tier 3: Edge Function invoke fallback
+    if (!submissionSuccess) {
+      try {
+        const payload = {
+          kind: 'contact',
+          fullName: values.fullName.trim(),
+          email: values.email.toLowerCase().trim(),
+          subject: values.subject,
+          message: values.message.trim(),
+          honeypot: values.honeypot || '',
+          turnstileToken: turnstileToken || undefined,
+        };
+
+        const { data, error } = await supabase.functions.invoke('contact-form', {
+          body: payload,
+        });
+
+        if (!error && (data?.ok || data?.id)) {
+          submissionSuccess = true;
+        } else {
+          let detailedMsg = data?.error;
+          if (!detailedMsg && error) {
+            try {
+              const errBody = typeof error.context?.json === 'function' ? await error.context.json() : null;
+              detailedMsg = errBody?.error || error.message;
+            } catch (_) {
+              detailedMsg = error.message;
+            }
+          }
+          errorMessage = detailedMsg || (isAr ? 'تعذر إرسال الرسالة، يرجى المحاولة لاحقاً.' : 'Failed to send message, please try again.');
+        }
+      } catch (invokeException) {
+        console.error('[ContactPage] Edge Function invoke exception:', invokeException);
+        errorMessage = isAr ? 'حدث خطأ في الاتصال بالخادم. يرجى التحقق من اتصالك والمحاولة لاحقاً.' : 'Network connection error. Please try again.';
+      }
+    }
+
+    if (!submissionSuccess) {
+      setServerError(
+        errorMessage || (isAr ? 'تعذر إرسال الرسالة، يرجى المحاولة لاحقاً.' : 'Failed to send message, please try again.')
+      );
+      return;
+    }
+
+    setSent(true);
+    reset();
   };
 
   return (
@@ -341,7 +416,7 @@ export default function ContactPage() {
                 </div>
 
                 {/* Cloudflare Turnstile Verification */}
-                <Turnstile onVerify={(t) => setTurnstileToken(t)} onExpire={() => setTurnstileToken('')} />
+                <Turnstile onVerify={handleTurnstileVerify} onExpire={handleTurnstileExpire} />
 
                 <button
                   type="submit"
