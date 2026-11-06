@@ -26,6 +26,7 @@ export default function ContactPage() {
     defaultValues: {
       fullName: '',
       email: '',
+      phone: '',
       subject: 'استفسار عام',
       message: '',
       honeypot: '',
@@ -51,6 +52,7 @@ export default function ContactPage() {
       const { data: rpcData, error: rpcErr } = await supabase.rpc('submit_contact_message', {
         p_full_name: values.fullName.trim(),
         p_email: values.email.toLowerCase().trim(),
+        p_phone: values.phone?.trim() || null,
         p_subject: values.subject?.trim() || null,
         p_message: values.message.trim(),
         p_kind: 'contact',
@@ -78,6 +80,7 @@ export default function ContactPage() {
             kind: 'contact',
             full_name: values.fullName.trim(),
             email: values.email.toLowerCase().trim(),
+            phone: values.phone?.trim() || null,
             subject: values.subject?.trim() || null,
             message: values.message.trim(),
             status: 'new',
@@ -100,6 +103,7 @@ export default function ContactPage() {
           kind: 'contact',
           fullName: values.fullName.trim(),
           email: values.email.toLowerCase().trim(),
+          phone: values.phone?.trim() || undefined,
           subject: values.subject,
           message: values.message.trim(),
           honeypot: values.honeypot || '',
@@ -362,6 +366,35 @@ export default function ContactPage() {
                   {errors.email && (
                     <span style={{ color: '#ef4444', fontSize: '0.8rem', marginTop: '0.3rem', display: 'block' }}>
                       {errors.email.message}
+                    </span>
+                  )}
+                </div>
+
+                <div style={{ marginBottom: '1.25rem' }}>
+                  <label htmlFor="contact-phone" style={{ display: 'block', color: '#ffd54f', fontSize: '0.9rem', fontWeight: 700, marginBottom: '0.4rem' }}>
+                    {isAr ? 'رقم الهاتف / الواتساب *' : 'Phone / WhatsApp *'}
+                  </label>
+                  <input
+                    id="contact-phone"
+                    type="tel"
+                    placeholder="01557523934"
+                    {...register('phone')}
+                    style={{
+                      width: '100%',
+                      background: 'rgba(10, 11, 16, 0.85)',
+                      border: errors.phone ? '1px solid #ef4444' : '1px solid rgba(255, 184, 0, 0.3)',
+                      borderRadius: '12px',
+                      padding: '0.85rem 1rem',
+                      color: '#fff',
+                      fontSize: '0.95rem',
+                      outline: 'none',
+                      direction: 'ltr',
+                      textAlign: isAr ? 'right' : 'left',
+                    }}
+                  />
+                  {errors.phone && (
+                    <span style={{ color: '#ef4444', fontSize: '0.8rem', marginTop: '0.3rem', display: 'block' }}>
+                      {errors.phone.message}
                     </span>
                   )}
                 </div>

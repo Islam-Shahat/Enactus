@@ -138,6 +138,7 @@ describe('Phase 5 Form Helpers & Security Logic', () => {
       const validContact = {
         fullName: 'سارة علي',
         email: 'sara@example.com',
+        phone: '01557523934',
         subject: 'استفسار عن الشراكات',
         message: 'نود بحث إمكانية التعاون مع إيناكوس قنا.',
       };

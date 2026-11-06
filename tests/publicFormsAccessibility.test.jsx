@@ -107,11 +107,11 @@ describe('Public Forms Accessibility (WCAG Label-Input Associations)', () => {
       expect(passLabel).toBeDefined();
     });
 
-    it('ContactPage.jsx pairs all 4 contact fields with labels', () => {
+    it('ContactPage.jsx pairs all 5 contact fields with labels', () => {
       const content = fs.readFileSync(path.join(ROOT_DIR, 'src/pages/ContactPage.jsx'), 'utf-8');
       const { labels, controls } = extractFormAccessibilityData(content);
 
-      const expectedIds = ['contact-full-name', 'contact-email', 'contact-subject', 'contact-message'];
+      const expectedIds = ['contact-full-name', 'contact-email', 'contact-phone', 'contact-subject', 'contact-message'];
       expectedIds.forEach((id) => {
         expect(controls.find((c) => c.id === id)).toBeDefined();
         const label = labels.find((l) => l.htmlFor === id);

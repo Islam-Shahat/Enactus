@@ -31,12 +31,19 @@ describe('Contact & Sponsor Message Submission Workflow', () => {
     const validContact = {
       fullName: 'أحمد محمود',
       email: 'ahmed@example.com',
+      phone: '01557523934',
       subject: 'استفسار عن التقديم',
       message: 'أريد معرفة موعد المقابلات القادمة.',
     };
 
     const res = contactFormSchema.safeParse(validContact);
     expect(res.success).toBe(true);
+
+    const invalidPhone = {
+      ...validContact,
+      phone: '123',
+    };
+    expect(contactFormSchema.safeParse(invalidPhone).success).toBe(false);
 
     const invalidEmail = {
       ...validContact,
