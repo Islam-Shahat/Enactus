@@ -82,3 +82,4 @@ $$;
 
 revoke all on function public.get_member_login_email(text) from public;
 grant execute on function public.get_member_login_email(text) to anon, authenticated, service_role;
+
