@@ -408,7 +408,7 @@ export default function CompanyDrawer({ isOpen, onClose, companyId }) {
                   <input
                     type="text"
                     required
-                    placeholder={isAr ? 'اسم الشخص المسؤول *' : 'Contact Name *'}
+                    placeholder={isAr ? 'مثال: إسلام شحات رسلي' : 'e.g. Islam Shahat Rosly'}
                     value={contactForm.name}
                     onChange={(e) => setContactForm({ ...contactForm, name: e.target.value })}
                     className="dashboard-input"
@@ -424,7 +424,7 @@ export default function CompanyDrawer({ isOpen, onClose, companyId }) {
                   />
                   <input
                     type="tel"
-                    placeholder={isAr ? 'رقم الهاتف / واتساب' : 'Phone'}
+                    placeholder="01557523934"
                     value={contactForm.phone}
                     onChange={(e) => setContactForm({ ...contactForm, phone: e.target.value })}
                     className="dashboard-input"
@@ -432,7 +432,7 @@ export default function CompanyDrawer({ isOpen, onClose, companyId }) {
                   />
                   <input
                     type="email"
-                    placeholder={isAr ? 'البريد الإلكتروني' : 'Email'}
+                    placeholder="islam@gmail.com"
                     value={contactForm.email}
                     onChange={(e) => setContactForm({ ...contactForm, email: e.target.value })}
                     className="dashboard-input"

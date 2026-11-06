@@ -277,7 +277,7 @@ export default function BecomeSponsorPage() {
                     <input
                       id="sponsor-contactPerson"
                       type="text"
-                      placeholder={isAr ? 'الاسم والمنصب' : 'Name & Position'}
+                      placeholder={isAr ? 'مثال: إسلام شحات رسلي' : 'e.g. Islam Shahat Rosly'}
                       {...register('contactPerson')}
                       style={{
                         width: '100%',
@@ -306,7 +306,7 @@ export default function BecomeSponsorPage() {
                     <input
                       id="sponsor-email"
                       type="email"
-                      placeholder="partner@company.com"
+                      placeholder="islam@gmail.com"
                       {...register('email')}
                       style={{
                         width: '100%',
@@ -335,7 +335,7 @@ export default function BecomeSponsorPage() {
                     <input
                       id="sponsor-phone"
                       type="tel"
-                      placeholder="01XXXXXXXXX"
+                      placeholder="01557523934"
                       {...register('phone')}
                       style={{
                         width: '100%',

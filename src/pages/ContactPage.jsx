@@ -305,7 +305,7 @@ export default function ContactPage() {
                   <input
                     id="contact-full-name"
                     type="text"
-                    placeholder={isAr ? 'اسمك الكريم' : 'Your Name'}
+                    placeholder={isAr ? 'مثال: إسلام شحات رسلي' : 'e.g. Islam Shahat Rosly'}
                     {...register('fullName')}
                     style={{
                       width: '100%',
@@ -332,7 +332,7 @@ export default function ContactPage() {
                   <input
                     id="contact-email"
                     type="email"
-                    placeholder="name@example.com"
+                    placeholder="islam@gmail.com"
                     {...register('email')}
                     style={{
                       width: '100%',

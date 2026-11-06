@@ -412,7 +412,7 @@ export default function RecruitmentModal({ isOpen, onClose, defaultCommittee = '
                   <input
                     id="recruitment-fullName"
                     type="text"
-                    placeholder={isAr ? 'مثال: أحمد محمود عبد الرحيم' : 'e.g. Ahmed Mahmoud'}
+                    placeholder={isAr ? 'مثال: إسلام شحات رسلي' : 'e.g. Islam Shahat Rosly'}
                     {...register('fullName')}
                     style={{
                       width: '100%',
@@ -444,7 +444,7 @@ export default function RecruitmentModal({ isOpen, onClose, defaultCommittee = '
                     <input
                       id="recruitment-email"
                       type="email"
-                      placeholder="student@example.com"
+                      placeholder="islam@gmail.com"
                       {...register('email')}
                       style={{
                         width: '100%',
@@ -476,7 +476,7 @@ export default function RecruitmentModal({ isOpen, onClose, defaultCommittee = '
                     <input
                       id="recruitment-phone"
                       type="tel"
-                      placeholder="010XXXXXXXX"
+                      placeholder="01557523934"
                       {...register('phone')}
                       style={{
                         width: '100%',

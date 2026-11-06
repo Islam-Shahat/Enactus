@@ -389,7 +389,7 @@ export default function JoinUsPage() {
                     <input
                       id="join-fullName"
                       type="text"
-                      placeholder={isAr ? 'مثال: يوسف محمود عبد الرحيم' : 'e.g. Youssef Mahmoud'}
+                      placeholder={isAr ? 'مثال: إسلام شحات رسلي' : 'e.g. Islam Shahat Rosly'}
                       {...register('fullName')}
                       style={{
                         width: '100%',
@@ -421,7 +421,7 @@ export default function JoinUsPage() {
                       <input
                         id="join-email"
                         type="email"
-                        placeholder="student@example.com"
+                        placeholder="islam@gmail.com"
                         {...register('email')}
                         style={{
                           width: '100%',
@@ -453,7 +453,7 @@ export default function JoinUsPage() {
                       <input
                         id="join-phone"
                         type="tel"
-                        placeholder="010XXXXXXXX"
+                        placeholder="01557523934"
                         {...register('phone')}
                         style={{
                           width: '100%',

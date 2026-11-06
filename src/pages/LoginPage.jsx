@@ -218,7 +218,7 @@ export default function LoginPage() {
                   type="text"
                   autoComplete="username"
                   placeholder={
-                    isAr ? '2026001 أو example@email.com' : '2026001 or email@domain.com'
+                    isAr ? '2026001 أو islam@gmail.com' : '2026001 or islam@gmail.com'
                   }
                   {...register('identifier')}
                   style={{

@@ -135,3 +135,4 @@ create policy contact_messages_insert on public.contact_messages
   );
 
 grant insert on public.contact_messages to anon, authenticated;
+

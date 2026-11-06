@@ -394,7 +394,7 @@ export default function CreateMemberModal({ isOpen, onClose, committees = [], se
                 <input
                   type="text"
                   required
-                  placeholder={isAr ? 'مثال: أحمد محمود علي' : 'Ahmed Mahmoud Ali'}
+                  placeholder={isAr ? 'مثال: إسلام شحات رسلي' : 'Islam Shahat Rosly'}
                   value={formData.fullNameAr}
                   onChange={(e) => setFormData({ ...formData, fullNameAr: e.target.value })}
                   style={{
@@ -416,7 +416,7 @@ export default function CreateMemberModal({ isOpen, onClose, committees = [], se
                 </label>
                 <input
                   type="text"
-                  placeholder="e.g. Ahmed Mahmoud Ali"
+                  placeholder="e.g. Islam Shahat Rosly"
                   value={formData.fullNameEn}
                   onChange={(e) => setFormData({ ...formData, fullNameEn: e.target.value })}
                   style={{
@@ -568,7 +568,7 @@ export default function CreateMemberModal({ isOpen, onClose, committees = [], se
                 </label>
                 <input
                   type="tel"
-                  placeholder="01012345678"
+                  placeholder="01557523934"
                   value={formData.phone}
                   onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
                   style={{
@@ -591,7 +591,7 @@ export default function CreateMemberModal({ isOpen, onClose, committees = [], se
                 </label>
                 <input
                   type="email"
-                  placeholder={isAr ? `تلقائي: ${previewMemberCode}@portal.enactusqena.org` : 'e.g. member@email.com'}
+                  placeholder={isAr ? 'مثال: islam@gmail.com' : 'e.g. islam@gmail.com'}
                   value={formData.email}
                   onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                   style={{
