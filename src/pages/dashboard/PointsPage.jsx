@@ -8,24 +8,18 @@ import { useTheme } from '../../context/ThemeContext';
 import DataTable from '../../components/dashboard/DataTable';
 import StatCard from '../../components/dashboard/StatCard';
 import StatusBadge from '../../components/dashboard/StatusBadge';
-import EmptyState from '../../components/dashboard/EmptyState';
-import DisputeModal from '../../components/dashboard/DisputeModal';
 import GivePointsModal from '../../components/dashboard/GivePointsModal';
 import VoidPointDialog from '../../components/dashboard/VoidPointDialog';
-import ResolveDisputeDialog from '../../components/dashboard/ResolveDisputeDialog';
 import PointRuleModal from '../../components/dashboard/PointRuleModal';
-import { isDisputeEligible, getRemainingDisputeTime } from '../../lib/pointHelpers';
 import {
   Award,
   PlusCircle,
   MinusCircle,
   Plus,
   RotateCcw,
-  CheckCircle2,
-  XCircle,
   Settings,
-  Scale,
   Layers,
+  Users,
 } from 'lucide-react';
 
 const PAGE_SIZE = 10;
@@ -40,18 +34,16 @@ export default function PointsPage() {
   const isHead = hasRole('committee_head');
   const canGive = isHrOrExec || isHead;
 
-  // Active Tab: 'my_points' | 'management' | 'disputes_queue' | 'rules'
+  // Active Tab: 'my_points' | 'management' | 'rules'
   const [activeTab, setActiveTab] = useState('my_points');
+
+  // Score stats scope in 'my_points' tab: 'personal' | 'team' (for leadership/heads)
+  const [scoreScope, setScoreScope] = useState('personal');
 
   // Modals state
   const [isGiveModalOpen, setIsGiveModalOpen] = useState(false);
-  const [isDisputeModalOpen, setIsDisputeModalOpen] = useState(false);
-  const [entryToDispute, setEntryToDispute] = useState(null);
   const [isVoidDialogOpen, setIsVoidDialogOpen] = useState(false);
   const [entryToVoid, setEntryToVoid] = useState(null);
-  const [isResolveDialogOpen, setIsResolveDialogOpen] = useState(false);
-  const [disputeToResolve, setDisputeToResolve] = useState(null);
-  const [resolveActionType, setResolveActionType] = useState('accept');
   const [isRuleModalOpen, setIsRuleModalOpen] = useState(false);
   const [ruleToEdit, setRuleToEdit] = useState(null);
 
@@ -99,24 +91,84 @@ export default function PointsPage() {
     staleTime: 10 * 60 * 1000,
   });
 
-  // 3. Fetch My Score (from member_scores)
+  // 3. Fetch My Score (robust direct sum from point_entries with member_scores fallback)
   const { data: myScore, isLoading: loadingScore } = useQuery({
     queryKey: ['dashboard', 'my_scores', user?.id, activeSeason?.id],
     queryFn: async () => {
-      if (!user?.id || !activeSeason?.id) return { bonus_total: 0, penalty_total: 0, total: 0 };
-      const { data, error } = await supabase
-        .from('member_scores')
-        .select('*')
+      if (!user?.id) return { bonus_total: 0, penalty_total: 0, total: 0 };
+
+      // Direct calculation from point_entries to ensure live accuracy
+      const { data: entries, error } = await supabase
+        .from('point_entries')
+        .select('type, value')
         .eq('user_id', user.id)
-        .eq('season_id', activeSeason.id)
-        .maybeSingle();
-      if (error) return { bonus_total: 0, penalty_total: 0, total: 0 };
-      return data || { bonus_total: 0, penalty_total: 0, total: 0 };
+        .is('voided_at', null);
+
+      if (!error && entries && entries.length > 0) {
+        let bonus = 0;
+        let penalty = 0;
+        entries.forEach((e) => {
+          const val = Number(e.value) || 0;
+          if (e.type === 'bonus') bonus += val;
+          else if (e.type === 'penalty') penalty += val;
+        });
+        return {
+          bonus_total: bonus,
+          penalty_total: penalty,
+          total: bonus - penalty,
+        };
+      }
+
+      // Fallback check against member_scores
+      if (activeSeason?.id) {
+        const { data: ms } = await supabase
+          .from('member_scores')
+          .select('bonus_total, penalty_total, total')
+          .eq('user_id', user.id)
+          .eq('season_id', activeSeason.id)
+          .maybeSingle();
+
+        if (ms) return ms;
+      }
+
+      return { bonus_total: 0, penalty_total: 0, total: 0 };
     },
-    enabled: Boolean(user?.id && activeSeason?.id),
+    enabled: Boolean(user?.id),
   });
 
-  // 4. Fetch My Point Entries (with disputes)
+  // 4. Fetch Team Points Stats (live aggregation across active point_entries)
+  const { data: teamStats, isLoading: loadingTeamStats } = useQuery({
+    queryKey: ['dashboard', 'team_point_stats', activeSeason?.id],
+    queryFn: async () => {
+      const { data: entries, error } = await supabase
+        .from('point_entries')
+        .select('type, value')
+        .is('voided_at', null);
+
+      if (error) {
+        console.error('[teamStats error]:', error);
+        return { bonus_total: 0, penalty_total: 0, total: 0, count: 0 };
+      }
+
+      let bonus = 0;
+      let penalty = 0;
+      (entries || []).forEach((e) => {
+        const val = Number(e.value) || 0;
+        if (e.type === 'bonus') bonus += val;
+        else if (e.type === 'penalty') penalty += val;
+      });
+
+      return {
+        bonus_total: bonus,
+        penalty_total: penalty,
+        total: bonus - penalty,
+        count: (entries || []).length,
+      };
+    },
+    enabled: Boolean(user?.id),
+  });
+
+  // 5. Fetch My Point Entries
   const { data: myEntriesData, isLoading: loadingMyEntries } = useQuery({
     queryKey: ['dashboard', 'my_point_entries', user?.id, myEntriesPage, myTypeFilter],
     queryFn: async () => {
@@ -137,14 +189,7 @@ export default function PointsPage() {
           source_id,
           created_at,
           voided_at,
-          void_reason,
-          point_disputes (
-            id,
-            status,
-            reason,
-            response,
-            created_at
-          )
+          void_reason
         `, { count: 'exact' })
         .eq('user_id', user.id)
         .order('created_at', { ascending: false })
@@ -159,41 +204,6 @@ export default function PointsPage() {
       return { data: data || [], count: count || 0 };
     },
     enabled: Boolean(user?.id),
-  });
-
-  // 5. Fetch Disputes Queue (for leadership)
-  const { data: disputesQueue = [], isLoading: loadingDisputes } = useQuery({
-    queryKey: ['dashboard', 'disputes_queue'],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('point_disputes')
-        .select(`
-          id,
-          point_entry_id,
-          user_id,
-          reason,
-          status,
-          created_at,
-          profiles (
-            full_name_ar,
-            full_name_en,
-            avatar_url
-          ),
-          point_entries (
-            id,
-            type,
-            value,
-            reason,
-            source,
-            created_at
-          )
-        `)
-        .eq('status', 'pending')
-        .order('created_at', { ascending: true });
-      if (error) throw error;
-      return data || [];
-    },
-    enabled: isHrOrExec,
   });
 
   // 6. Fetch Point Rules List (for admin)
@@ -372,44 +382,6 @@ export default function PointsPage() {
         {isHrOrExec && (
           <button
             type="button"
-            onClick={() => setActiveTab('disputes_queue')}
-            className={`tab-btn ${activeTab === 'disputes_queue' ? 'active font-bold' : ''}`}
-            style={{
-              padding: '0.6rem 1.25rem',
-              borderRadius: '10px',
-              border: 'none',
-              background: activeTab === 'disputes_queue' ? (isDark ? 'rgba(255, 184, 0, 0.15)' : '#fef3c7') : 'transparent',
-              color: activeTab === 'disputes_queue' ? (isDark ? '#ffd54f' : '#b45309') : isDark ? '#aaa' : '#666',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.4rem',
-              fontWeight: 600,
-              position: 'relative',
-            }}
-          >
-            <Scale size={18} />
-            <span>{isAr ? 'طابور التظلمات' : 'Disputes Queue'}</span>
-            {disputesQueue.length > 0 && (
-              <span
-                style={{
-                  background: '#ef4444',
-                  color: '#fff',
-                  fontSize: '0.72rem',
-                  padding: '0.1rem 0.45rem',
-                  borderRadius: '10px',
-                  fontWeight: 800,
-                }}
-              >
-                {disputesQueue.length}
-              </span>
-            )}
-          </button>
-        )}
-
-        {isHrOrExec && (
-          <button
-            type="button"
             onClick={() => setActiveTab('rules')}
             className={`tab-btn ${activeTab === 'rules' ? 'active font-bold' : ''}`}
             style={{
@@ -436,33 +408,130 @@ export default function PointsPage() {
       {/* ========================================================================= */}
       {activeTab === 'my_points' && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
+          {/* Header Controls for Score Scope (Personal vs Team for Leadership) */}
+          {isHrOrExec && (
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                flexWrap: 'wrap',
+                gap: '0.75rem',
+                marginBottom: '-0.75rem',
+              }}
+            >
+              <div style={{ fontSize: '0.9rem', fontWeight: 700, color: isDark ? '#ffd54f' : '#b45309' }}>
+                {scoreScope === 'personal'
+                  ? (isAr ? 'المؤشرات الحالية: رصيدي الشخصي' : 'Indicators: My Personal Score')
+                  : (isAr ? 'المؤشرات الحالية: إجمالي نقاط الفريق' : 'Indicators: Organization Team Totals')}
+              </div>
+              <div
+                style={{
+                  display: 'inline-flex',
+                  background: isDark ? 'rgba(255,255,255,0.06)' : '#f3f4f6',
+                  borderRadius: '10px',
+                  padding: '3px',
+                  border: isDark ? '1px solid rgba(255,184,0,0.2)' : '1px solid #e5e7eb',
+                }}
+              >
+                <button
+                  type="button"
+                  onClick={() => setScoreScope('personal')}
+                  style={{
+                    border: 'none',
+                    padding: '0.35rem 0.85rem',
+                    borderRadius: '7px',
+                    fontSize: '0.8rem',
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                    background: scoreScope === 'personal' ? (isDark ? 'rgba(255,184,0,0.25)' : '#ffffff') : 'transparent',
+                    color: scoreScope === 'personal' ? (isDark ? '#ffd54f' : '#b45309') : (isDark ? '#888' : '#666'),
+                  }}
+                >
+                  {isAr ? 'رصيدي الشخصي' : 'My Score'}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setScoreScope('team')}
+                  style={{
+                    border: 'none',
+                    padding: '0.35rem 0.85rem',
+                    borderRadius: '7px',
+                    fontSize: '0.8rem',
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                    background: scoreScope === 'team' ? (isDark ? 'rgba(255,184,0,0.25)' : '#ffffff') : 'transparent',
+                    color: scoreScope === 'team' ? (isDark ? '#ffd54f' : '#b45309') : (isDark ? '#888' : '#666'),
+                  }}
+                >
+                  {isAr ? 'إجمالي نقاط الفريق' : 'Team Totals'}
+                </button>
+              </div>
+            </div>
+          )}
+
           {/* Member Score Stats Cards */}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1.25rem' }}>
-            <StatCard
-              title={isAr ? 'إجمالي رصيد النقاط' : 'Total Score'}
-              value={loadingScore ? '...' : myScore?.total ?? 0}
-              icon={Award}
-              color="gold"
-              description={
-                isAr
-                  ? activeSeason ? `الموسم: ${activeSeason.name_ar}` : 'الموسم الحالي'
-                  : activeSeason ? `Season: ${activeSeason.name_en}` : 'Current Season'
-              }
-            />
-            <StatCard
-              title={isAr ? 'مجموع المكافآت (+)' : 'Bonus Points (+)'}
-              value={loadingScore ? '...' : `+${myScore?.bonus_total ?? 0}`}
-              icon={PlusCircle}
-              color="emerald"
-              description={isAr ? 'نقاط التميز والمهام' : 'Bonuses and task points'}
-            />
-            <StatCard
-              title={isAr ? 'مجموع الخصومات (-)' : 'Penalty Deductions (-)'}
-              value={loadingScore ? '...' : `-${myScore?.penalty_total ?? 0}`}
-              icon={MinusCircle}
-              color="rose"
-              description={isAr ? 'الغياب والتأخير' : 'Absences and penalties'}
-            />
+            {scoreScope === 'personal' ? (
+              <>
+                <StatCard
+                  title={isAr ? 'إجمالي رصيد النقاط' : 'Total Score'}
+                  value={loadingScore ? '...' : myScore?.total ?? 0}
+                  icon={Award}
+                  color="gold"
+                  description={
+                    isAr
+                      ? activeSeason ? `الموسم: ${activeSeason.name_ar}` : 'الموسم الحالي'
+                      : activeSeason ? `Season: ${activeSeason.name_en}` : 'Current Season'
+                  }
+                />
+                <StatCard
+                  title={isAr ? 'مجموع المكافآت (+)' : 'Bonus Points (+)'}
+                  value={loadingScore ? '...' : `+${myScore?.bonus_total ?? 0}`}
+                  icon={PlusCircle}
+                  color="emerald"
+                  description={isAr ? 'نقاط التميز والمهام' : 'Bonuses and task points'}
+                />
+                <StatCard
+                  title={isAr ? 'مجموع الخصومات (-)' : 'Penalty Deductions (-)'}
+                  value={loadingScore ? '...' : `-${myScore?.penalty_total ?? 0}`}
+                  icon={MinusCircle}
+                  color="rose"
+                  description={isAr ? 'الغياب والتأخير' : 'Absences and penalties'}
+                />
+              </>
+            ) : (
+              <>
+                <StatCard
+                  title={isAr ? 'صافي نقاط الفريق' : 'Team Net Points'}
+                  value={loadingTeamStats ? '...' : teamStats?.total ?? 0}
+                  icon={Award}
+                  color="gold"
+                  description={isAr ? 'إجمالي رصيد كافة الأعضاء' : 'All members combined total'}
+                />
+                <StatCard
+                  title={isAr ? 'مكافآت الفريق (+)' : 'Team Bonuses (+)'}
+                  value={loadingTeamStats ? '...' : `+${teamStats?.bonus_total ?? 0}`}
+                  icon={PlusCircle}
+                  color="emerald"
+                  description={isAr ? 'مجموع المكافآت الممنوحة' : 'Total bonuses awarded'}
+                />
+                <StatCard
+                  title={isAr ? 'خصومات الفريق (-)' : 'Team Penalties (-)'}
+                  value={loadingTeamStats ? '...' : `-${teamStats?.penalty_total ?? 0}`}
+                  icon={MinusCircle}
+                  color="rose"
+                  description={isAr ? 'مجموع الخصومات المطبقة' : 'Total deductions applied'}
+                />
+                <StatCard
+                  title={isAr ? 'إجمالي القيود' : 'Total Entries'}
+                  value={loadingTeamStats ? '...' : teamStats?.count ?? 0}
+                  icon={Users}
+                  color="blue"
+                  description={isAr ? 'عدد العمليات المعتمدة' : 'Approved transactions count'}
+                />
+              </>
+            )}
           </div>
 
           {/* Points Ledger Table */}
@@ -482,8 +551,8 @@ export default function PointsPage() {
                 </h3>
                 <p style={{ margin: '0.2rem 0 0', fontSize: '0.85rem', color: isDark ? '#aaa' : '#666' }}>
                   {isAr
-                    ? 'يمكنك تقديم تظلم على أي خصم خلال 48 ساعة فقط من تسجيله'
-                    : 'Disputes can be submitted within 48 hours of penalty deduction'}
+                    ? 'سجل كافة الحركات والقيود المعتمدة ورصيد النقاط'
+                    : 'Log of all approved point entries and balances'}
                 </p>
               </div>
 
@@ -581,22 +650,22 @@ export default function PointsPage() {
                 },
                 {
                   key: 'status',
-                  header: isAr ? 'الحالة / التظلم' : 'Status / Dispute',
+                  header: isAr ? 'الحالة' : 'Status',
                   render: (row) => {
                     if (row.voided_at) {
                       return (
                         <div style={{ display: 'inline-flex', flexDirection: 'column', gap: '0.2rem' }}>
                           <span
                             style={{
-                              background: 'rgba(107, 114, 128, 0.15)',
-                              color: isDark ? '#9ca3af' : '#4b5563',
+                              background: 'rgba(239, 68, 68, 0.12)',
+                              color: '#ef4444',
                               padding: '0.2rem 0.5rem',
                               borderRadius: '6px',
                               fontSize: '0.78rem',
                               fontWeight: 700,
                             }}
                           >
-                            {isAr ? 'ملغاة (Voided)' : 'Voided'}
+                            {isAr ? 'ملغاة' : 'Voided'}
                           </span>
                           {row.void_reason && (
                             <span style={{ fontSize: '0.72rem', color: isDark ? '#aaa' : '#777' }}>
@@ -607,73 +676,17 @@ export default function PointsPage() {
                       );
                     }
 
-                    // Check if dispute exists
-                    const dispute = row.point_disputes?.[0];
-                    if (dispute) {
-                      return (
-                        <div style={{ display: 'inline-flex', flexDirection: 'column', gap: '0.2rem' }}>
-                          <StatusBadge
-                            status={
-                              dispute.status === 'pending'
-                                ? 'in_progress'
-                                : dispute.status === 'accepted'
-                                ? 'done'
-                                : 'cancelled'
-                            }
-                            label={
-                              dispute.status === 'pending'
-                                ? isAr ? 'قيد المراجعة' : 'Under Review'
-                                : dispute.status === 'accepted'
-                                ? isAr ? 'تظلم مقبول' : 'Accepted'
-                                : isAr ? 'تظلم مرفوض' : 'Rejected'
-                            }
-                          />
-                          {dispute.response && (
-                            <span style={{ fontSize: '0.72rem', color: isDark ? '#bbb' : '#666' }}>
-                              {dispute.response}
-                            </span>
-                          )}
-                        </div>
-                      );
-                    }
-
-                    // If penalty and eligible for dispute within 48h
-                    if (isDisputeEligible(row)) {
-                      const remaining = getRemainingDisputeTime(row.created_at);
-                      return (
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setEntryToDispute(row);
-                              setIsDisputeModalOpen(true);
-                            }}
-                            style={{
-                              background: isDark ? 'rgba(255, 184, 0, 0.15)' : '#fef3c7',
-                              border: isDark ? '1px solid rgba(255, 184, 0, 0.4)' : '1px solid #f59e0b',
-                              color: isDark ? '#ffd54f' : '#b45309',
-                              padding: '0.3rem 0.65rem',
-                              borderRadius: '8px',
-                              fontSize: '0.8rem',
-                              fontWeight: 700,
-                              cursor: 'pointer',
-                              display: 'inline-flex',
-                              alignItems: 'center',
-                              gap: '0.3rem',
-                            }}
-                          >
-                            <Scale size={13} />
-                            <span>{isAr ? 'تقديم تظلم' : 'Dispute'}</span>
-                          </button>
-                          <span style={{ fontSize: '0.72rem', color: '#ffb800' }}>
-                            {remaining.hours}h {remaining.minutes}m
-                          </span>
-                        </div>
-                      );
-                    }
-
                     return (
-                      <span style={{ fontSize: '0.8rem', color: isDark ? '#666' : '#999' }}>
+                      <span
+                        style={{
+                          background: 'rgba(34, 197, 94, 0.12)',
+                          color: '#22c55e',
+                          padding: '0.2rem 0.5rem',
+                          borderRadius: '6px',
+                          fontSize: '0.78rem',
+                          fontWeight: 700,
+                        }}
+                      >
                         {isAr ? 'سارية' : 'Active'}
                       </span>
                     );
@@ -696,15 +709,52 @@ export default function PointsPage() {
       {/* TAB 2: GENERAL LEDGER MANAGEMENT (LEADERSHIP)                             */}
       {/* ========================================================================= */}
       {activeTab === 'management' && isHrOrExec && (
-        <div
-          className="glass-panel gold-border-glow"
-          dir={dir}
-          style={{
-            borderRadius: '20px',
-            padding: '1.5rem',
-            background: isDark ? 'rgba(22, 24, 34, 0.85)' : '#ffffff',
-          }}
-        >
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
+          {/* Team Score Stats Cards for Leadership Overview */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1.25rem' }}>
+            <StatCard
+              title={isAr ? 'إجمالي صافي نقاط الفريق' : 'Team Net Points'}
+              value={loadingTeamStats ? '...' : teamStats?.total ?? 0}
+              icon={Award}
+              color="gold"
+              description={
+                isAr
+                  ? activeSeason ? `الموسم: ${activeSeason.name_ar}` : 'الموسم الحالي'
+                  : activeSeason ? `Season: ${activeSeason.name_en}` : 'Current Season'
+              }
+            />
+            <StatCard
+              title={isAr ? 'مجموع المكافآت الممنوحة (+)' : 'Total Bonuses (+)'}
+              value={loadingTeamStats ? '...' : `+${teamStats?.bonus_total ?? 0}`}
+              icon={PlusCircle}
+              color="emerald"
+              description={isAr ? 'مجموع نقاط التميز المعتمدة' : 'All approved bonuses'}
+            />
+            <StatCard
+              title={isAr ? 'مجموع الخصومات المطبقة (-)' : 'Total Penalties (-)'}
+              value={loadingTeamStats ? '...' : `-${teamStats?.penalty_total ?? 0}`}
+              icon={MinusCircle}
+              color="rose"
+              description={isAr ? 'مجموع الخصومات والجزاءات' : 'All applied penalties'}
+            />
+            <StatCard
+              title={isAr ? 'إجمالي العمليات المعتمدة' : 'Approved Transactions'}
+              value={loadingTeamStats ? '...' : teamStats?.count ?? 0}
+              icon={Users}
+              color="blue"
+              description={isAr ? 'عدد القيود غير الملغاة' : 'Active ledger records'}
+            />
+          </div>
+
+          <div
+            className="glass-panel gold-border-glow"
+            dir={dir}
+            style={{
+              borderRadius: '20px',
+              padding: '1.5rem',
+              background: isDark ? 'rgba(22, 24, 34, 0.85)' : '#ffffff',
+            }}
+          >
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem', marginBottom: '1.25rem' }}>
             <div>
               <h3 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 800 }}>
@@ -867,154 +917,11 @@ export default function PointsPage() {
             emptyMessage={isAr ? 'لا توجد حركات مسجلة' : 'No records found'}
           />
         </div>
+      </div>
       )}
 
       {/* ========================================================================= */}
-      {/* TAB 3: DISPUTES QUEUE (HR & EXECS)                                        */}
-      {/* ========================================================================= */}
-      {activeTab === 'disputes_queue' && isHrOrExec && (
-        <div
-          className="glass-panel gold-border-glow"
-          dir={dir}
-          style={{
-            borderRadius: '20px',
-            padding: '1.5rem',
-            background: isDark ? 'rgba(22, 24, 34, 0.85)' : '#ffffff',
-          }}
-        >
-          <div style={{ marginBottom: '1.25rem' }}>
-            <h3 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 800 }}>
-              {isAr ? 'طابور مراجعة التظلمات الواردة' : 'Disputes Resolution Queue'}
-            </h3>
-            <p style={{ margin: '0.2rem 0 0', fontSize: '0.85rem', color: isDark ? '#aaa' : '#666' }}>
-              {isAr
-                ? 'مراجعة طلبات تظلم الأعضاء حول الخصومات، وقبولها أو رفضها بخطوة ذرية موحدة'
-                : 'Review member dispute requests, accept to void penalties or reject with response'}
-            </p>
-          </div>
-
-          {loadingDisputes ? (
-            <p style={{ color: isDark ? '#aaa' : '#666' }}>{isAr ? 'جاري التحميل...' : 'Loading...'}</p>
-          ) : disputesQueue.length === 0 ? (
-            <EmptyState
-              icon={CheckCircle2}
-              title={isAr ? 'لا توجد تظلمات معلقة' : 'No Pending Disputes'}
-              description={isAr ? 'تمت معالجة والرد على كافة تظلمات الأعضاء بنجاح' : 'All submitted disputes have been resolved'}
-            />
-          ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-              {disputesQueue.map((dispute) => {
-                const memberName = isAr
-                  ? dispute.profiles?.full_name_ar || dispute.profiles?.full_name_en
-                  : dispute.profiles?.full_name_en || dispute.profiles?.full_name_ar;
-
-                return (
-                  <div
-                    key={dispute.id}
-                    style={{
-                      background: isDark ? 'rgba(255,255,255,0.03)' : '#f9fafb',
-                      border: isDark ? '1px solid rgba(255, 184, 0, 0.2)' : '1px solid #e5e7eb',
-                      borderRadius: '14px',
-                      padding: '1.25rem',
-                      display: 'flex',
-                      justifyContent: 'space-between',
-                      alignItems: 'flex-start',
-                      flexWrap: 'wrap',
-                      gap: '1rem',
-                    }}
-                  >
-                    <div style={{ flex: 1, minWidth: '280px' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', marginBottom: '0.35rem' }}>
-                        <span style={{ fontWeight: 800, fontSize: '1rem', color: isDark ? '#ffd54f' : '#b45309' }}>
-                          {memberName}
-                        </span>
-                        <span style={{ color: '#ef4444', fontWeight: 800, fontSize: '0.95rem' }}>
-                          (-{dispute.point_entries?.value} pts)
-                        </span>
-                      </div>
-                      <div style={{ fontSize: '0.85rem', color: isDark ? '#aaa' : '#666', marginBottom: '0.5rem' }}>
-                        {isAr ? 'سبب الخصم:' : 'Deduction Reason:'} {dispute.point_entries?.reason}
-                      </div>
-                      <div
-                        style={{
-                          background: isDark ? 'rgba(0,0,0,0.3)' : '#ffffff',
-                          border: isDark ? '1px solid rgba(255,255,255,0.08)' : '1px solid #e5e7eb',
-                          borderRadius: '8px',
-                          padding: '0.65rem 0.85rem',
-                          fontSize: '0.88rem',
-                          color: isDark ? '#eee' : '#111',
-                          lineHeight: 1.5,
-                        }}
-                      >
-                        <strong style={{ color: isDark ? '#ffd54f' : '#b45309' }}>
-                          {isAr ? 'بيان التظلم:' : 'Member Statement:'}{' '}
-                        </strong>
-                        {dispute.reason}
-                      </div>
-                    </div>
-
-                    {/* Actions */}
-                    <div style={{ display: 'flex', gap: '0.5rem', alignSelf: 'center' }}>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setDisputeToResolve(dispute);
-                          setResolveActionType('accept');
-                          setIsResolveDialogOpen(true);
-                        }}
-                        style={{
-                          background: 'rgba(34, 197, 94, 0.15)',
-                          border: '1px solid rgba(34, 197, 94, 0.4)',
-                          color: '#22c55e',
-                          padding: '0.55rem 0.95rem',
-                          borderRadius: '8px',
-                          fontWeight: 700,
-                          fontSize: '0.85rem',
-                          cursor: 'pointer',
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          gap: '0.3rem',
-                        }}
-                      >
-                        <CheckCircle2 size={16} />
-                        <span>{isAr ? 'قبول التظلم' : 'Accept'}</span>
-                      </button>
-
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setDisputeToResolve(dispute);
-                          setResolveActionType('reject');
-                          setIsResolveDialogOpen(true);
-                        }}
-                        style={{
-                          background: 'rgba(239, 68, 68, 0.15)',
-                          border: '1px solid rgba(239, 68, 68, 0.4)',
-                          color: '#ef4444',
-                          padding: '0.55rem 0.95rem',
-                          borderRadius: '8px',
-                          fontWeight: 700,
-                          fontSize: '0.85rem',
-                          cursor: 'pointer',
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          gap: '0.3rem',
-                        }}
-                      >
-                        <XCircle size={16} />
-                        <span>{isAr ? 'رفض' : 'Reject'}</span>
-                      </button>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* ========================================================================= */}
-      {/* TAB 4: POINT RULES ADMIN (LEADERSHIP)                                     */}
+      {/* TAB 3: POINT RULES ADMIN (LEADERSHIP)                                     */}
       {/* ========================================================================= */}
       {activeTab === 'rules' && isHrOrExec && (
         <div
@@ -1169,15 +1076,6 @@ export default function PointsPage() {
         committees={committees}
       />
 
-      <DisputeModal
-        isOpen={isDisputeModalOpen}
-        onClose={() => {
-          setIsDisputeModalOpen(false);
-          setEntryToDispute(null);
-        }}
-        entry={entryToDispute}
-      />
-
       <VoidPointDialog
         isOpen={isVoidDialogOpen}
         onClose={() => {
@@ -1185,16 +1083,6 @@ export default function PointsPage() {
           setEntryToVoid(null);
         }}
         entry={entryToVoid}
-      />
-
-      <ResolveDisputeDialog
-        isOpen={isResolveDialogOpen}
-        onClose={() => {
-          setIsResolveDialogOpen(false);
-          setDisputeToResolve(null);
-        }}
-        dispute={disputeToResolve}
-        actionType={resolveActionType}
       />
 
       <PointRuleModal

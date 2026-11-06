@@ -163,6 +163,7 @@ export default function GivePointsModal({
       queryClient.invalidateQueries({ queryKey: ['dashboard', 'all_point_entries'] });
       queryClient.invalidateQueries({ queryKey: ['dashboard', 'leaderboard'] });
       queryClient.invalidateQueries({ queryKey: ['dashboard', 'my_scores'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard', 'team_point_stats'] });
       setIsConfirmOpen(false);
       onClose();
     },

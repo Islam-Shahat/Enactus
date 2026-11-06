@@ -18,7 +18,7 @@ export default function SEO({
   const { lang, dir } = useLanguage();
   const isAr = lang === 'ar';
 
-  const siteTitle = isAr ? 'إيناكوس قنا | Enactus Qena' : 'Enactus Qena | South Valley University';
+  const siteTitle = isAr ? 'إيناكتوس قنا | Enactus Qena' : 'Enactus Qena | South Valley University';
   const fullTitle = title ? `${title} | ${siteTitle}` : (isAr ? 'إيناكوس قنا | Enactus Qena - ريادة الأعمال المجتمعية' : 'Enactus Qena - Empowering Change & Innovation');
 
   const defaultDesc = isAr

@@ -51,6 +51,7 @@ export default function VoidPointDialog({
       queryClient.invalidateQueries({ queryKey: ['dashboard', 'all_point_entries'] });
       queryClient.invalidateQueries({ queryKey: ['dashboard', 'leaderboard'] });
       queryClient.invalidateQueries({ queryKey: ['dashboard', 'my_scores'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard', 'team_point_stats'] });
       setVoidReason('');
       onClose();
     },
