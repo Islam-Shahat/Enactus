@@ -95,7 +95,7 @@ describe('Contact & Sponsor Message Submission Workflow', () => {
     expect(sql).toContain('insert into public.notifications');
   });
 
-  it('NotificationsPage has Drawer component to display sender and full message content', () => {
+  it('NotificationsPage has Drawer component and options to delete single and clear all notifications', () => {
     const pagePath = path.join(rootDir, 'src', 'pages', 'dashboard', 'NotificationsPage.jsx');
     const content = fs.readFileSync(pagePath, 'utf-8');
 
@@ -104,6 +104,11 @@ describe('Contact & Sponsor Message Submission Workflow', () => {
     expect(content).toContain('setSelectedNotif');
     expect(content).toContain('selectedNotif.data.email');
     expect(content).toContain('selectedNotif.data?.message');
+    expect(content).toContain('deleteNotificationMutation');
+    expect(content).toContain('clearAllNotificationsMutation');
+    expect(content).toContain('isClearAllOpen');
+    expect(content).toContain('ConfirmDialog');
+    expect(content).toContain('Trash2');
   });
 });
 

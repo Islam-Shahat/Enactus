@@ -17,6 +17,7 @@ import {
   Building2,
   User,
   MessageSquare,
+  Trash2,
 } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../context/AuthContext';
@@ -27,6 +28,7 @@ import { formatDateTime, formatRelativeTime } from '../../lib/formatters';
 import Skeleton from '../../components/dashboard/Skeleton';
 import EmptyState from '../../components/dashboard/EmptyState';
 import Drawer from '../../components/dashboard/Drawer';
+import ConfirmDialog from '../../components/dashboard/ConfirmDialog';
 
 const PAGE_SIZE = 20;
 
@@ -42,6 +44,7 @@ export default function NotificationsPage() {
   const [typeFilter, setTypeFilter] = useState('all');
   const [page, setPage] = useState(1);
   const [selectedNotif, setSelectedNotif] = useState(null);
+  const [isClearAllOpen, setIsClearAllOpen] = useState(false);
 
   // Query notifications with server-side pagination & filters
   const { data, isLoading, isFetching } = useQuery({
@@ -120,6 +123,47 @@ export default function NotificationsPage() {
     },
   });
 
+  // Delete single notification mutation
+  const deleteNotificationMutation = useMutation({
+    mutationFn: async (id) => {
+      const { error } = await supabase
+        .from('notifications')
+        .delete()
+        .eq('id', id)
+        .eq('user_id', user?.id);
+      if (error) throw error;
+      return id;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['dashboard', 'notifications_page'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard', 'notifications_unread_count'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard', 'notifications'] });
+      if (selectedNotif) {
+        setSelectedNotif(null);
+      }
+    },
+  });
+
+  // Clear all notifications mutation
+  const clearAllNotificationsMutation = useMutation({
+    mutationFn: async () => {
+      const { error } = await supabase
+        .from('notifications')
+        .delete()
+        .eq('user_id', user?.id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['dashboard', 'notifications_page'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard', 'notifications_unread_count'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard', 'notifications'] });
+      setIsClearAllOpen(false);
+      if (selectedNotif) {
+        setSelectedNotif(null);
+      }
+    },
+  });
+
   const handleNotificationClick = (notif) => {
     if (!notif.read_at) {
       markReadMutation.mutate(notif.id);
@@ -173,29 +217,57 @@ export default function NotificationsPage() {
           </p>
         </div>
 
-        <button
-          type="button"
-          onClick={() => markAllReadMutation.mutate()}
-          disabled={markAllReadMutation.isPending || totalCount === 0}
-          className="btn-secondary"
-          style={{
-            padding: '0.65rem 1.15rem',
-            borderRadius: '12px',
-            fontSize: '0.88rem',
-            fontWeight: 700,
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: '0.5rem',
-            cursor: 'pointer',
-          }}
-        >
-          {markAllReadMutation.isPending ? (
-            <Loader2 size={16} className="animate-spin" />
-          ) : (
-            <CheckCheck size={16} />
-          )}
-          <span>{isAr ? 'تحديد الكل كمقروء' : 'Mark All Read'}</span>
-        </button>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', flexWrap: 'wrap' }}>
+          <button
+            type="button"
+            onClick={() => markAllReadMutation.mutate()}
+            disabled={markAllReadMutation.isPending || totalCount === 0}
+            className="btn-secondary"
+            style={{
+              padding: '0.65rem 1.15rem',
+              borderRadius: '12px',
+              fontSize: '0.88rem',
+              fontWeight: 700,
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '0.5rem',
+              cursor: 'pointer',
+            }}
+          >
+            {markAllReadMutation.isPending ? (
+              <Loader2 size={16} className="animate-spin" />
+            ) : (
+              <CheckCheck size={16} />
+            )}
+            <span>{isAr ? 'تحديد الكل كمقروء' : 'Mark All Read'}</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setIsClearAllOpen(true)}
+            disabled={clearAllNotificationsMutation.isPending || totalCount === 0}
+            className="btn-secondary"
+            style={{
+              padding: '0.65rem 1.15rem',
+              borderRadius: '12px',
+              fontSize: '0.88rem',
+              fontWeight: 700,
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '0.5rem',
+              cursor: 'pointer',
+              color: '#ef4444',
+              borderColor: 'rgba(239, 68, 68, 0.35)',
+            }}
+          >
+            {clearAllNotificationsMutation.isPending ? (
+              <Loader2 size={16} className="animate-spin" />
+            ) : (
+              <Trash2 size={16} />
+            )}
+            <span>{isAr ? 'مسح الكل' : 'Clear All'}</span>
+          </button>
+        </div>
       </div>
 
       {/* Filter Tabs & Type Selector */}
@@ -425,7 +497,7 @@ export default function NotificationsPage() {
                   </div>
                 </div>
 
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexShrink: 0 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', flexShrink: 0 }}>
                   {isUnread && (
                     <button
                       type="button"
@@ -446,7 +518,37 @@ export default function NotificationsPage() {
                       <Check size={16} />
                     </button>
                   )}
-                  {notif.link && (
+                  <button
+                    type="button"
+                    title={isAr ? 'حذف الإشعار' : 'Delete notification'}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      deleteNotificationMutation.mutate(notif.id);
+                    }}
+                    disabled={deleteNotificationMutation.isPending}
+                    style={{
+                      background: 'transparent',
+                      border: 'none',
+                      color: '#ef4444',
+                      cursor: 'pointer',
+                      padding: '0.35rem',
+                      borderRadius: '6px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      opacity: 0.75,
+                      transition: 'opacity 0.15s ease',
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.opacity = '1';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.opacity = '0.75';
+                    }}
+                  >
+                    <Trash2 size={16} />
+                  </button>
+                  {notif.link && notif.link !== '/dashboard/notifications' && (
                     <ExternalLink size={16} className="rtl-flip" style={{ color: '#a3a3b2' }} />
                   )}
                 </div>
@@ -640,9 +742,47 @@ export default function NotificationsPage() {
                 </p>
               </div>
             </div>
+
+            {/* Action Bar */}
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem', marginTop: '0.5rem' }}>
+              <button
+                type="button"
+                onClick={() => deleteNotificationMutation.mutate(selectedNotif.id)}
+                disabled={deleteNotificationMutation.isPending}
+                className="btn-secondary"
+                style={{
+                  color: '#ef4444',
+                  borderColor: 'rgba(239, 68, 68, 0.4)',
+                  padding: '0.55rem 1.15rem',
+                  fontSize: '0.85rem',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.45rem',
+                }}
+              >
+                <Trash2 size={15} />
+                <span>{isAr ? 'حذف هذا الإشعار' : 'Delete Notification'}</span>
+              </button>
+            </div>
           </div>
         )}
       </Drawer>
+
+      {/* Confirm Clear All Notifications Dialog */}
+      <ConfirmDialog
+        isOpen={isClearAllOpen}
+        onClose={() => setIsClearAllOpen(false)}
+        onConfirm={() => clearAllNotificationsMutation.mutate()}
+        isLoading={clearAllNotificationsMutation.isPending}
+        title={isAr ? 'تأكيد مسح كافة الإشعارات' : 'Confirm Clear All Notifications'}
+        message={
+          isAr
+            ? 'هل أنت متأكد من رغبتك في حذف ومسح كافة الإشعارات والتنبيهات الخاصة بك نهائياً؟ لا يمكن التراجع عن هذا الإجراء.'
+            : 'Are you sure you want to permanently delete all your notifications? This action cannot be undone.'
+        }
+        confirmText={isAr ? 'نعم، مسح الكل' : 'Yes, Clear All'}
+        variant="danger"
+      />
     </div>
   );
 }
