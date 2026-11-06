@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -10,6 +10,45 @@ import { supabase, isSupabaseConfigured } from '../lib/supabase';
 import { t } from '../lib/strings';
 import LanguageToggle from '../components/LanguageToggle';
 import SEO from '../components/SEO';
+
+// In-memory cache for ultra-fast instantaneous email resolution
+const identifierCache = new Map();
+const inFlightResolutions = new Map();
+
+const getCachedEmail = (identifier) => {
+  if (!identifier) return null;
+  const clean = identifier.trim().toLowerCase();
+  if (clean.includes('@')) return clean;
+  if (identifierCache.has(clean)) return identifierCache.get(clean);
+  try {
+    const stored = localStorage.getItem(`enactus_login_id_${clean}`);
+    if (stored) {
+      identifierCache.set(clean, stored);
+      return stored;
+    }
+  } catch (_) {}
+  return null;
+};
+
+const setCachedEmail = (identifier, email) => {
+  if (!identifier || !email) return;
+  const clean = identifier.trim().toLowerCase();
+  identifierCache.set(clean, email);
+  try {
+    localStorage.setItem(`enactus_login_id_${clean}`, email);
+  } catch (_) {}
+};
+
+// Preload dashboard code in the background during idle time
+let dashboardPreloaded = false;
+const preloadDashboardChunks = () => {
+  if (dashboardPreloaded) return;
+  dashboardPreloaded = true;
+  try {
+    import('./dashboard/DashboardLayout');
+    import('./dashboard/DashboardHome');
+  } catch (_) {}
+};
 
 const loginSchema = z.object({
   identifier: z
@@ -39,6 +78,51 @@ export default function LoginPage() {
     },
   });
 
+  // Pre-resolve member code or national ID in the background as the user types
+  const preResolveIdentifier = useCallback(async (rawInput) => {
+    if (!rawInput) return;
+    const clean = rawInput.trim().toLowerCase();
+    if (clean.includes('@') || clean.length < 4) return;
+    if (getCachedEmail(clean)) return;
+
+    if (inFlightResolutions.has(clean)) {
+      return inFlightResolutions.get(clean);
+    }
+
+    const promise = (async () => {
+      try {
+        const { data: resolvedEmail } = await supabase.rpc('get_member_login_email', {
+          p_identifier: clean,
+        });
+        if (resolvedEmail) {
+          setCachedEmail(clean, resolvedEmail);
+          return resolvedEmail;
+        } else {
+          const fallback = `${clean}@portal.enactusqena.org`;
+          setCachedEmail(clean, fallback);
+          return fallback;
+        }
+      } catch {
+        const fallback = `${clean}@portal.enactusqena.org`;
+        setCachedEmail(clean, fallback);
+        return fallback;
+      } finally {
+        inFlightResolutions.delete(clean);
+      }
+    })();
+
+    inFlightResolutions.set(clean, promise);
+    return promise;
+  }, []);
+
+  // Preload dashboard in background as soon as page mounts
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      preloadDashboardChunks();
+    }, 150);
+    return () => clearTimeout(timer);
+  }, []);
+
   // Prevent browser back button from re-entering dashboard after signing out
   useEffect(() => {
     if (location.state?.loggedOut) {
@@ -64,21 +148,14 @@ export default function LoginPage() {
     }
 
     const input = values.identifier.trim();
-    let emailToUse = input;
+    let emailToUse = getCachedEmail(input) || input;
 
-    // Check if input is a member code (does not contain @)
-    if (!input.includes('@')) {
-      try {
-        const { data: resolvedEmail } = await supabase.rpc('get_member_login_email', {
-          p_identifier: input,
-        });
-        if (resolvedEmail) {
-          emailToUse = resolvedEmail;
-        } else {
-          emailToUse = `${input}@portal.enactusqena.org`;
-        }
-      } catch {
-        emailToUse = `${input}@portal.enactusqena.org`;
+    // If identifier is member code or national ID and not yet resolved
+    if (!emailToUse.includes('@')) {
+      if (inFlightResolutions.has(input.toLowerCase())) {
+        emailToUse = await inFlightResolutions.get(input.toLowerCase());
+      } else {
+        emailToUse = await preResolveIdentifier(input) || `${input}@portal.enactusqena.org`;
       }
     }
 
@@ -220,7 +297,20 @@ export default function LoginPage() {
                   placeholder={
                     isAr ? '2026001 أو islam@gmail.com' : '2026001 or islam@gmail.com'
                   }
-                  {...register('identifier')}
+                  {...register('identifier', {
+                    onChange: (e) => {
+                      const val = e.target.value?.trim();
+                      if (val && (val.length === 7 || val.length === 14)) {
+                        preResolveIdentifier(val);
+                      }
+                    },
+                  })}
+                  onBlur={(e) => {
+                    preResolveIdentifier(e.target.value);
+                  }}
+                  onFocus={() => {
+                    preloadDashboardChunks();
+                  }}
                   style={{
                     width: '100%',
                     background: 'rgba(10, 11, 16, 0.85)',
@@ -267,6 +357,9 @@ export default function LoginPage() {
                   autoComplete="current-password"
                   placeholder={isAr ? 'الرقم القومي (14 رقماً)' : 'National ID (14 digits)'}
                   {...register('password')}
+                  onFocus={() => {
+                    preloadDashboardChunks();
+                  }}
                   style={{
                     width: '100%',
                     background: 'rgba(10, 11, 16, 0.85)',

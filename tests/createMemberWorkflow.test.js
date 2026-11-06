@@ -139,6 +139,35 @@ describe('Create Member & 7-Digit Code Workflow', () => {
       expect(modal).toContain("supabase.rpc('create_member_admin'");
       expect(modal).toContain('functions/v1/create-member');
     });
+
+    it('verifies migration 20261106101500 optimizes get_member_login_email with indexed fast-paths', () => {
+      const migPath = path.join(
+        process.cwd(),
+        'supabase',
+        'migrations',
+        '20261106101500_optimize_login_email_resolution.sql'
+      );
+      expect(fs.existsSync(migPath)).toBe(true);
+
+      const migSql = fs.readFileSync(migPath, 'utf-8');
+      expect(migSql).toContain('function public.get_member_login_email(p_identifier text)');
+      expect(migSql).toContain('stable');
+      expect(migSql).toContain('security definer');
+      expect(migSql).toContain('idx_profiles_member_code_active');
+      expect(migSql).toContain('idx_profile_private_national_id_clean');
+      expect(migSql).toContain('grant execute on function public.get_member_login_email');
+    });
+
+    it('verifies LoginPage implements pre-resolution cache and dashboard preloading', () => {
+      const loginSource = fs.readFileSync(
+        path.join(process.cwd(), 'src', 'pages', 'LoginPage.jsx'),
+        'utf-8'
+      );
+      expect(loginSource).toContain('preloadDashboardChunks');
+      expect(loginSource).toContain('preResolveIdentifier');
+      expect(loginSource).toContain('getCachedEmail');
+      expect(loginSource).toContain('setCachedEmail');
+    });
   });
 });
 
