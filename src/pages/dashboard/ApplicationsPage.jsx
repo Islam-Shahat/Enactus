@@ -10,7 +10,7 @@ import ConfirmDialog from '../../components/dashboard/ConfirmDialog';
 import FileLink from '../../components/dashboard/FileLink';
 import FormField from '../../components/dashboard/FormField';
 import { useToast } from '../../components/dashboard/Toast';
-import { User, Mail, Phone, BookOpen, CheckCircle2 } from 'lucide-react';
+import { User, Mail, Phone, BookOpen, CheckCircle2, Trash2 } from 'lucide-react';
 
 const PAGE_SIZE = 10;
 
@@ -34,6 +34,7 @@ export default function ApplicationsPage() {
   // Drawer & Action states
   const [selectedApp, setSelectedApp] = useState(null);
   const [isAcceptOpen, setIsAcceptOpen] = useState(false);
+  const [appToDelete, setAppToDelete] = useState(null);
   const [targetCommitteeSlug, setTargetCommitteeSlug] = useState('');
   const [targetPosition, setTargetPosition] = useState('member');
   const [reviewNotes, setReviewNotes] = useState('');
@@ -172,6 +173,54 @@ export default function ApplicationsPage() {
     },
   });
 
+  // Mutation: Delete application with RPC and RLS fallback
+  const deleteMutation = useMutation({
+    mutationFn: async (applicationId) => {
+      // 1. Try secure RPC delete_application first
+      try {
+        const { data: rpcData, error: rpcErr } = await supabase.rpc('delete_application', {
+          p_application_id: applicationId,
+        });
+
+        if (!rpcErr && rpcData) {
+          if (rpcData.ok === false) {
+            throw new Error(rpcData.error || (isAr ? 'فشل حذف طلب التقديم' : 'Failed to delete application'));
+          }
+          return rpcData;
+        }
+        if (rpcErr && !rpcErr.message?.includes('function') && !rpcErr.message?.includes('does not exist')) {
+          throw new Error(rpcErr.message);
+        }
+      } catch (rpcEx) {
+        if (!rpcEx.message?.includes('does not exist') && !rpcEx.message?.includes('function')) {
+          throw rpcEx;
+        }
+      }
+
+      // 2. Direct table delete fallback
+      const { error: directErr } = await supabase
+        .from('applications')
+        .delete()
+        .eq('id', applicationId);
+
+      if (directErr) {
+        throw new Error(directErr.message || (isAr ? 'فشل حذف طلب التقديم' : 'Failed to delete application'));
+      }
+      return { ok: true };
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['dashboard', 'applications'] });
+      toast.success(isAr ? 'تم حذف طلب التقديم بنجاح' : 'Application deleted successfully');
+      setAppToDelete(null);
+      if (selectedApp) {
+        setSelectedApp(null);
+      }
+    },
+    onError: (err) => {
+      toast.error(err.message || (isAr ? 'فشل حذف طلب التقديم' : 'Failed to delete application'));
+    },
+  });
+
   const handleOpenDrawer = (row) => {
     setSelectedApp(row);
     setReviewNotes(row.notes || '');
@@ -260,6 +309,49 @@ export default function ApplicationsPage() {
         </span>
       ),
     },
+    ...(canManage
+      ? [
+          {
+            key: 'actions',
+            header: isAr ? 'إجراءات' : 'Actions',
+            render: (row) => (
+              <div
+                style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}
+                onClick={(e) => e.stopPropagation()}
+              >
+                <button
+                  type="button"
+                  onClick={() => setAppToDelete(row)}
+                  title={isAr ? 'حذف طلب التقديم' : 'Delete Application'}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    width: '32px',
+                    height: '32px',
+                    borderRadius: '8px',
+                    background: 'rgba(239, 68, 68, 0.1)',
+                    border: '1px solid rgba(239, 68, 68, 0.3)',
+                    color: '#ef4444',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s ease',
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.background = 'rgba(239, 68, 68, 0.25)';
+                    e.currentTarget.style.borderColor = '#ef4444';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.background = 'rgba(239, 68, 68, 0.1)';
+                    e.currentTarget.style.borderColor = 'rgba(239, 68, 68, 0.3)';
+                  }}
+                >
+                  <Trash2 size={15} />
+                </button>
+              </div>
+            ),
+          },
+        ]
+      : []),
   ];
 
   return (
@@ -394,6 +486,25 @@ export default function ApplicationsPage() {
                     {isAr ? 'رفض' : 'Reject'}
                   </button>
                 )}
+                <button
+                  type="button"
+                  onClick={() => setAppToDelete(selectedApp)}
+                  disabled={deleteMutation.isPending}
+                  className="btn-secondary"
+                  title={isAr ? 'حذف طلب التقديم نهائياً' : 'Permanently Delete Application'}
+                  style={{
+                    fontSize: '0.8rem',
+                    padding: '0.45rem 0.75rem',
+                    borderColor: 'rgba(239, 68, 68, 0.4)',
+                    color: '#ef4444',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.35rem',
+                  }}
+                >
+                  <Trash2 size={14} />
+                  <span>{isAr ? 'حذف' : 'Delete'}</span>
+                </button>
               </div>
 
               <button
@@ -623,6 +734,23 @@ export default function ApplicationsPage() {
           </FormField>
         </div>
       </ConfirmDialog>
+
+      {/* Delete Application Confirmation Dialog */}
+      <ConfirmDialog
+        isOpen={Boolean(appToDelete)}
+        onClose={() => setAppToDelete(null)}
+        onConfirm={() => deleteMutation.mutate(appToDelete?.id)}
+        isLoading={deleteMutation.isPending}
+        title={isAr ? 'تأكيد حذف طلب التقديم' : 'Confirm Application Deletion'}
+        message={
+          isAr
+            ? `هل أنت متأكد من رغبتك في حذف طلب التقديم الخاص بـ "${appToDelete?.full_name}" بشكل نهائي؟ لا يمكن التراجع عن هذا الإجراء.`
+            : `Are you sure you want to permanently delete the application for "${appToDelete?.full_name}"? This action cannot be undone.`
+        }
+        confirmText={isAr ? 'نعم، احذف الطلب' : 'Yes, Delete'}
+        confirmVariant="danger"
+        variant="danger"
+      />
     </div>
   );
 }

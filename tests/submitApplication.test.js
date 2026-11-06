@@ -241,5 +241,41 @@ describe('submit-application Field Mapping & Schema Regression Tests', () => {
       expect(modalContent).toContain('submittedInfo.fullName');
     });
   });
+
+  describe('Application Deletion Workflow & Security Contracts', () => {
+    it('verifies migration 20261106093000 configures delete_application RPC and updated RLS policy', async () => {
+      const fs = await import('fs');
+      const path = await import('path');
+      const migrationPath = path.resolve(
+        __dirname,
+        '../supabase/migrations/20261106093000_allow_application_deletion.sql'
+      );
+
+      expect(fs.existsSync(migrationPath)).toBe(true);
+
+      const content = fs.readFileSync(migrationPath, 'utf-8');
+      expect(content).toContain('policy applications_delete');
+      expect(content).toContain("'hr_admin', 'president', 'vice_president'");
+      expect(content).toContain('function public.delete_application');
+      expect(content).toContain('grant execute on function public.delete_application');
+      expect(content).toContain('grant delete on public.applications to authenticated');
+    });
+
+    it('verifies ApplicationsPage integrates application deletion with ConfirmDialog and RPC/table fallback', async () => {
+      const fs = await import('fs');
+      const path = await import('path');
+      const appPage = fs.readFileSync(
+        path.resolve(__dirname, '../src/pages/dashboard/ApplicationsPage.jsx'),
+        'utf-8'
+      );
+
+      expect(appPage).toContain("supabase.rpc('delete_application'");
+      expect(appPage).toContain(".from('applications')");
+      expect(appPage).toContain('.delete()');
+      expect(appPage).toContain('appToDelete');
+      expect(appPage).toContain('setAppToDelete');
+      expect(appPage).toContain('Trash2');
+    });
+  });
 });
 

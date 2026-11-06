@@ -528,3 +528,4 @@ end;
 $$;
 
 grant execute on function public.create_member_admin(text, text, text, text, text, uuid, text, text, int, date, text, text) to authenticated, service_role;
+
