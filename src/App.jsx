@@ -1,5 +1,5 @@
 import React, { Suspense, useState } from 'react';
-import { Routes, Route, Outlet } from 'react-router-dom';
+import { Routes, Route, Outlet, Navigate } from 'react-router-dom';
 import GoldenParticles from './components/GoldenParticles';
 import Navbar from './components/Navbar';
 import Footer from './components/Footer';
@@ -290,11 +290,7 @@ export default function App() {
           />
           <Route
             path="events"
-            element={
-              <RoleGuard allow={DASHBOARD_NAV.find((n) => n.key === 'events')?.allow}>
-                <DashboardEventsPage />
-              </RoleGuard>
-            }
+            element={<Navigate to="/dashboard" replace />}
           />
           <Route
             path="members"

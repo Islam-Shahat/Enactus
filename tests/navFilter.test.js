@@ -15,7 +15,12 @@ describe('Dashboard Navigation Filter Logic (RBAC)', () => {
     expect(visibleKeys).not.toContain('roles');
   });
 
-  it('allows committee_head to see applications, members, posts, and events', () => {
+  it('does not include events anywhere in DASHBOARD_NAV', () => {
+    const allKeys = DASHBOARD_NAV.map((i) => i.key);
+    expect(allKeys).not.toContain('events');
+  });
+
+  it('allows committee_head to see applications, members, and posts', () => {
     const headRoles = [{ role: ROLES.COMMITTEE_HEAD, committee_id: 'comm-123' }];
     const visible = filterNavItems(DASHBOARD_NAV, headRoles, false);
     const visibleKeys = visible.map((i) => i.key);
@@ -23,14 +28,14 @@ describe('Dashboard Navigation Filter Logic (RBAC)', () => {
     expect(visibleKeys).toContain('applications');
     expect(visibleKeys).toContain('members');
     expect(visibleKeys).toContain('posts');
-    expect(visibleKeys).toContain('events');
+    expect(visibleKeys).not.toContain('events');
     // Cannot see president-only or HR-only or super-admin-only
     expect(visibleKeys).not.toContain('settings');
     expect(visibleKeys).not.toContain('audit');
     expect(visibleKeys).not.toContain('roles');
   });
 
-  it('allows hr_admin to see applications, members, settings, site, events', () => {
+  it('allows hr_admin to see applications, members, settings, and site', () => {
     const hrRoles = [{ role: ROLES.HR }];
     const visible = filterNavItems(DASHBOARD_NAV, hrRoles, false);
     const visibleKeys = visible.map((i) => i.key);
@@ -39,7 +44,7 @@ describe('Dashboard Navigation Filter Logic (RBAC)', () => {
     expect(visibleKeys).toContain('members');
     expect(visibleKeys).toContain('settings');
     expect(visibleKeys).toContain('site');
-    expect(visibleKeys).toContain('events');
+    expect(visibleKeys).not.toContain('events');
     expect(visibleKeys).not.toContain('audit');
     expect(visibleKeys).not.toContain('roles');
   });
