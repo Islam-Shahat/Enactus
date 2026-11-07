@@ -195,6 +195,39 @@ describe('Create Member & 7-Digit Code Workflow', () => {
       expect(membersPage).toContain('ConfirmDialog');
       expect(membersPage).toContain('deleteMemberMutation');
     });
+
+    it('verifies migration 20261107215000 fixes auth.identities, confirmed_at, and credential sync', () => {
+      const migPath = path.join(
+        process.cwd(),
+        'supabase',
+        'migrations',
+        '20261107215000_fix_member_auth_login_and_sync.sql'
+      );
+      expect(fs.existsSync(migPath)).toBe(true);
+
+      const migSql = fs.readFileSync(migPath, 'utf-8');
+      expect(migSql).toContain('function public.sync_member_auth_credentials');
+      expect(migSql).toContain('function public.convert_application_to_member');
+      expect(migSql).toContain('function public.create_member_admin');
+      expect(migSql).toContain('function public.get_member_login_email');
+      // Crucial: GoTrue identity lookup matches provider_id = user_id::text
+      expect(migSql).toContain('v_user_id::text');
+      expect(migSql).toContain('email_confirmed_at');
+      expect(migSql).toContain('grant execute on function public.sync_member_auth_credentials');
+
+      const membersPage = fs.readFileSync(
+        path.join(process.cwd(), 'src', 'pages', 'dashboard', 'MembersPage.jsx'),
+        'utf-8'
+      );
+      expect(membersPage).toContain("supabase.rpc('sync_member_auth_credentials'");
+      expect(membersPage).toContain('syncAuthMutation');
+
+      const loginPage = fs.readFileSync(
+        path.join(process.cwd(), 'src', 'pages', 'LoginPage.jsx'),
+        'utf-8'
+      );
+      expect(loginPage).toContain('clearCachedEmail');
+    });
   });
 });
 

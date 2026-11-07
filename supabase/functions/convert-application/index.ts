@@ -120,10 +120,11 @@ Deno.serve(async (req: Request) => {
   }
   const committeeId = targetCommittee.id;
 
-  // 8. Resolve active season
+  // 8. Resolve active season & year
+  let seasonYear = '2026';
   const { data: activeSeason, error: seasonErr } = await adminClient
     .from('seasons')
-    .select('id')
+    .select('id, name')
     .eq('is_active', true)
     .maybeSingle();
 
@@ -131,12 +132,47 @@ Deno.serve(async (req: Request) => {
     console.warn('[convert-application] Error querying active season:', seasonErr);
   }
   const seasonId = activeSeason?.id || app.season_id;
+  if (activeSeason?.name) {
+    const yearMatch = activeSeason.name.match(/\d{4}/);
+    if (yearMatch) seasonYear = yearMatch[0];
+  } else {
+    seasonYear = String(new Date().getFullYear());
+  }
 
-  // 9. Find or create auth user (Safe Order)
+  // 9. Generate sequential 7-digit Member Code (e.g. 2026001)
+  let memberCode: string | null = null;
+  try {
+    const { data: generatedCode } = await adminClient.rpc('generate_next_member_code', {
+      p_season_year: seasonYear,
+    });
+    memberCode = generatedCode;
+  } catch (codeErr) {
+    console.warn('[convert-application] RPC code generation fallback:', codeErr);
+  }
+
+  if (!memberCode) {
+    const { data: maxProfile } = await adminClient
+      .from('profiles')
+      .select('member_code')
+      .like('member_code', `${seasonYear}%`)
+      .order('member_code', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    let seq = 1;
+    if (maxProfile?.member_code && maxProfile.member_code.length === 7) {
+      const parsedSeq = parseInt(maxProfile.member_code.substring(4), 10);
+      if (!isNaN(parsedSeq)) seq = parsedSeq + 1;
+    }
+    memberCode = `${seasonYear}${String(seq).padStart(3, '0')}`;
+  }
+
+  // 10. Find or create auth user (Direct confirmed user with National ID password)
   let authUserId: string | null = null;
   let isNewAuthUser = false;
 
   const candidateEmail = app.email.toLowerCase().trim();
+  const initialPassword = app.national_id?.trim() || app.phone?.trim() || 'Enactus@2026';
 
   try {
     // Check if user already exists in profile_private
@@ -168,42 +204,50 @@ Deno.serve(async (req: Request) => {
     }
 
     if (!authUserId) {
-      // Create new user by sending invite email
-      const siteUrl = Deno.env.get('SITE_URL') || 'http://localhost:5173';
-      const redirectTo = `${siteUrl.replace(/\/$/, '')}/reset-password`;
+      // Create user directly with confirmed email and National ID password
+      const { data: createRes, error: createErr } = await adminClient.auth.admin.createUser({
+        email: candidateEmail,
+        password: initialPassword,
+        email_confirm: true,
+        user_metadata: {
+          full_name_ar: app.full_name,
+          full_name_en: app.full_name,
+          member_code: memberCode,
+        },
+      });
 
-      const { data: inviteRes, error: inviteErr } = await adminClient.auth.admin.inviteUserByEmail(
-        candidateEmail,
-        { redirectTo }
-      );
-
-      if (inviteErr || !inviteRes?.user) {
-        console.error('[convert-application] Error inviting candidate:', inviteErr);
+      if (createErr || !createRes?.user) {
+        console.error('[convert-application] Error creating candidate auth account:', createErr);
         return errorResponse(req, 'Failed to create user account for candidate', 500, 'USER_CREATION_FAILED');
       }
 
-      authUserId = inviteRes.user.id;
+      authUserId = createRes.user.id;
       isNewAuthUser = true;
-    }
-
-    // Set or sync password to applicant's National ID if available
-    if (app.national_id) {
+    } else {
+      // Sync password to National ID and ensure email is confirmed
       try {
         await adminClient.auth.admin.updateUserById(authUserId, {
-          password: app.national_id,
+          password: initialPassword,
+          email_confirm: true,
+          user_metadata: {
+            full_name_ar: app.full_name,
+            full_name_en: app.full_name,
+            member_code: memberCode,
+          },
         });
       } catch (pwErr) {
-        console.warn('[convert-application] Could not set user password to national_id:', pwErr);
+        console.warn('[convert-application] Could not sync user password to national_id:', pwErr);
       }
     }
 
-    // 10. Update profiles & profile_private
+    // 11. Update profiles & profile_private
     const { error: profileErr } = await adminClient.from('profiles').upsert({
       id: authUserId,
       full_name_ar: app.full_name,
       full_name_en: app.full_name,
       status: 'active',
       locale: 'ar',
+      member_code: memberCode,
     });
     if (profileErr) throw profileErr;
 

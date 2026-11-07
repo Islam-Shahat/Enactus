@@ -11,7 +11,7 @@ import { useToast } from '../../components/dashboard/Toast';
 import ConfirmDialog from '../../components/dashboard/ConfirmDialog';
 import CreateMemberModal from '../../components/dashboard/members/CreateMemberModal';
 import SendMessageModal from '../../components/dashboard/members/SendMessageModal';
-import { User, Mail, Phone, BookOpen, GraduationCap, ShieldCheck, Edit3, Save, UserPlus, CreditCard, Calendar, Trash2, MessageSquare } from 'lucide-react';
+import { User, Mail, Phone, BookOpen, GraduationCap, ShieldCheck, Edit3, Save, UserPlus, CreditCard, Calendar, Trash2, MessageSquare, KeyRound } from 'lucide-react';
 
 const PAGE_SIZE = 10;
 
@@ -260,6 +260,32 @@ export default function MembersPage() {
       profileStatus: editForm.profileStatus,
     });
   };
+
+  // Sync Member credentials and reset password to National ID
+  const syncAuthMutation = useMutation({
+    mutationFn: async (userId) => {
+      const { data, error } = await supabase.rpc('sync_member_auth_credentials', {
+        p_user_id: userId,
+      });
+      if (error) throw error;
+      if (data && data.ok === false) throw new Error(data.error);
+      return data;
+    },
+    onSuccess: () => {
+      toast.show(
+        isAr
+          ? 'تمت مزامنة بيانات الدخول وتأكيد كلمة المرور بالرقم القومي بنجاح!'
+          : 'Login credentials and National ID password synced successfully!',
+        'success'
+      );
+    },
+    onError: (err) => {
+      toast.show(
+        err.message || (isAr ? 'فشل مزامنة بيانات الدخول' : 'Failed to sync credentials'),
+        'error'
+      );
+    },
+  });
 
   // Delete Member mutation (removes from auth.users, profiles, memberships & recycles code)
   const deleteMemberMutation = useMutation({
@@ -1161,11 +1187,40 @@ export default function MembersPage() {
                   </div>
 
                   <div>
-                    <div style={{ fontSize: '0.75rem', color: '#ffb800', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
-                      <CreditCard size={12} />
-                      <span>{isAr ? 'الرقم القومي (كلمة المرور)' : 'National ID (Password)'}</span>
+                    <div style={{ fontSize: '0.75rem', color: '#ffb800', fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.5rem' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
+                        <CreditCard size={12} />
+                        <span>{isAr ? 'الرقم القومي (كلمة المرور)' : 'National ID (Password)'}</span>
+                      </div>
+                      {canManage && selectedMembership?.user_id && (
+                        <button
+                          type="button"
+                          onClick={() => syncAuthMutation.mutate(selectedMembership.user_id)}
+                          disabled={syncAuthMutation.isPending}
+                          style={{
+                            background: 'rgba(255, 184, 0, 0.15)',
+                            border: '1px solid rgba(255, 184, 0, 0.4)',
+                            color: '#ffd54f',
+                            borderRadius: '6px',
+                            padding: '0.15rem 0.5rem',
+                            fontSize: '0.72rem',
+                            cursor: 'pointer',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '0.25rem',
+                          }}
+                          title={isAr ? 'إعادة ضبط كلمة المرور للرقم القومي وتفعيل الدخول' : 'Sync credentials & reset password to National ID'}
+                        >
+                          <KeyRound size={11} />
+                          <span>
+                            {syncAuthMutation.isPending
+                              ? (isAr ? 'جاري المزامنة...' : 'Syncing...')
+                              : (isAr ? 'مزامنة الدخول' : 'Sync Auth')}
+                          </span>
+                        </button>
+                      )}
                     </div>
-                    <div style={{ color: '#ffd54f', fontWeight: 800, fontSize: '0.9rem', direction: 'ltr', textAlign: 'start' }}>
+                    <div style={{ color: '#ffd54f', fontWeight: 800, fontSize: '0.9rem', direction: 'ltr', textAlign: 'start', marginTop: '0.2rem' }}>
                       {privateProfile.national_id || '—'}
                     </div>
                   </div>

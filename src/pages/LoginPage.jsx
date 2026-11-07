@@ -23,6 +23,11 @@ const getCachedEmail = (identifier) => {
   try {
     const stored = localStorage.getItem(`enactus_login_id_${clean}`);
     if (stored) {
+      // Do not trust synthetic portal alias fallbacks stored in localStorage
+      if (stored.endsWith('@portal.enactusqena.org')) {
+        localStorage.removeItem(`enactus_login_id_${clean}`);
+        return null;
+      }
       identifierCache.set(clean, stored);
       return stored;
     }
@@ -33,9 +38,23 @@ const getCachedEmail = (identifier) => {
 const setCachedEmail = (identifier, email) => {
   if (!identifier || !email) return;
   const clean = identifier.trim().toLowerCase();
+  // Never save unverified fallback domains to localStorage
+  if (email.endsWith('@portal.enactusqena.org')) {
+    identifierCache.set(clean, email);
+    return;
+  }
   identifierCache.set(clean, email);
   try {
     localStorage.setItem(`enactus_login_id_${clean}`, email);
+  } catch (_) {}
+};
+
+const clearCachedEmail = (identifier) => {
+  if (!identifier) return;
+  const clean = identifier.trim().toLowerCase();
+  identifierCache.delete(clean);
+  try {
+    localStorage.removeItem(`enactus_login_id_${clean}`);
   } catch (_) {}
 };
 
@@ -80,10 +99,11 @@ export default function LoginPage() {
 
   // Pre-resolve member code or national ID in the background as the user types
   const preResolveIdentifier = useCallback(async (rawInput) => {
-    if (!rawInput) return;
+    if (!rawInput) return null;
     const clean = rawInput.trim().toLowerCase();
-    if (clean.includes('@') || clean.length < 4) return;
-    if (getCachedEmail(clean)) return;
+    if (clean.includes('@') || clean.length < 4) return null;
+    const cached = getCachedEmail(clean);
+    if (cached) return cached;
 
     if (inFlightResolutions.has(clean)) {
       return inFlightResolutions.get(clean);
@@ -97,15 +117,10 @@ export default function LoginPage() {
         if (resolvedEmail) {
           setCachedEmail(clean, resolvedEmail);
           return resolvedEmail;
-        } else {
-          const fallback = `${clean}@portal.enactusqena.org`;
-          setCachedEmail(clean, fallback);
-          return fallback;
         }
+        return null;
       } catch {
-        const fallback = `${clean}@portal.enactusqena.org`;
-        setCachedEmail(clean, fallback);
-        return fallback;
+        return null;
       } finally {
         inFlightResolutions.delete(clean);
       }
@@ -148,20 +163,64 @@ export default function LoginPage() {
     }
 
     const input = values.identifier.trim();
-    let emailToUse = getCachedEmail(input) || input;
+    let emailToUse = input;
 
-    // If identifier is member code or national ID and not yet resolved
-    if (!emailToUse.includes('@')) {
-      if (inFlightResolutions.has(input.toLowerCase())) {
-        emailToUse = await inFlightResolutions.get(input.toLowerCase());
+    // If identifier is member code or national ID (not a direct email)
+    if (!input.includes('@')) {
+      const cached = getCachedEmail(input);
+      if (cached) {
+        emailToUse = cached;
       } else {
-        emailToUse = await preResolveIdentifier(input) || `${input}@portal.enactusqena.org`;
+        try {
+          let resolved = null;
+          if (inFlightResolutions.has(input.toLowerCase())) {
+            resolved = await inFlightResolutions.get(input.toLowerCase());
+          } else {
+            resolved = await preResolveIdentifier(input);
+          }
+
+          if (resolved) {
+            emailToUse = resolved;
+          } else {
+            // Direct indexed query fallback
+            const { data: directResolved } = await supabase.rpc('get_member_login_email', {
+              p_identifier: input,
+            });
+            if (directResolved) {
+              emailToUse = directResolved;
+              setCachedEmail(input, directResolved);
+            } else if (input.length === 7 && /^\d{7}$/.test(input)) {
+              // Synthetic email fallback for legacy members created without external email
+              emailToUse = `${input}@portal.enactusqena.org`;
+            } else {
+              setServerError(
+                isAr
+                  ? 'كود العضو أو الرقم القومي غير مسجل في النظام. يرجى التأكد من البيانات أو مراجعة إدارة الفريق.'
+                  : 'Member code or National ID is not registered. Please verify your details or contact HR.'
+              );
+              return;
+            }
+          }
+        } catch {
+          if (input.length === 7 && /^\d{7}$/.test(input)) {
+            emailToUse = `${input}@portal.enactusqena.org`;
+          } else {
+            setServerError(
+              isAr
+                ? 'تعذر التحقق من كود العضو حالياً. يرجى المحاولة باستخدام البريد الإلكتروني.'
+                : 'Could not verify member code. Please try using your email.'
+            );
+            return;
+          }
+        }
       }
     }
 
     try {
       const { error } = await signIn(emailToUse, values.password.trim());
       if (error) {
+        // Clear cached resolution on failed login so bad/stale cache never persists
+        clearCachedEmail(input);
         setServerError(
           isAr
             ? 'فشل تسجيل الدخول. يرجى التحقق من كود العضو / البريد والرقم القومي (كلمة المرور).'
@@ -169,9 +228,11 @@ export default function LoginPage() {
         );
         return;
       }
+      setCachedEmail(input, emailToUse);
       const destination = location.state?.from || '/dashboard';
       navigate(destination, { replace: true });
     } catch {
+      clearCachedEmail(input);
       setServerError(t('loginGenericError'));
     }
   };
