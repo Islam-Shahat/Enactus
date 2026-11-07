@@ -11,6 +11,7 @@ import {
   Loader2,
   Clock,
   Sparkles,
+  X,
 } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../context/AuthContext';
@@ -199,18 +200,21 @@ export default function NotificationsBell() {
         )}
       </button>
 
+      {/* Mobile Backdrop */}
+      {isOpen && (
+        <div
+          className="notifications-dropdown-backdrop"
+          onClick={() => setIsOpen(false)}
+          aria-hidden="true"
+        />
+      )}
+
       {/* Notifications Dropdown */}
       {isOpen && (
         <div
           dir={dir}
-          className="glass-panel gold-border-glow"
+          className="notifications-dropdown-menu glass-panel gold-border-glow"
           style={{
-            position: 'absolute',
-            top: 'calc(100% + 10px)',
-            insetInlineEnd: 0,
-            width: '360px',
-            maxWidth: '92vw',
-            borderRadius: '18px',
             background: isDark
               ? 'linear-gradient(150deg, rgba(22, 24, 34, 0.98), rgba(12, 13, 18, 0.98))'
               : '#ffffff',
@@ -218,24 +222,21 @@ export default function NotificationsBell() {
               ? '0 20px 50px rgba(0, 0, 0, 0.8), 0 0 30px rgba(255, 184, 0, 0.15)'
               : '0 15px 40px rgba(0, 0, 0, 0.12), 0 0 20px rgba(184, 120, 0, 0.1)',
             border: isDark ? '1px solid rgba(255, 184, 0, 0.25)' : '1px solid rgba(184, 120, 0, 0.3)',
-            zIndex: 1000,
-            overflow: 'hidden',
-            display: 'flex',
-            flexDirection: 'column',
           }}
         >
           {/* Header */}
           <div
             style={{
-              padding: '1rem 1.25rem',
+              padding: '0.85rem 1.15rem',
               borderBottom: isDark ? '1px solid rgba(255, 255, 255, 0.08)' : '1px solid #f3f4f6',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'space-between',
+              gap: '0.5rem',
             }}
           >
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              <span style={{ fontWeight: 800, fontSize: '1rem', color: isDark ? '#ffd54f' : '#b45309' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem' }}>
+              <span style={{ fontWeight: 800, fontSize: '0.98rem', color: isDark ? '#ffd54f' : '#b45309' }}>
                 {isAr ? 'الإشعارات' : 'Notifications'}
               </span>
               {unreadCount > 0 && (
@@ -254,31 +255,53 @@ export default function NotificationsBell() {
               )}
             </div>
 
-            {unreadCount > 0 && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+              {unreadCount > 0 && (
+                <button
+                  type="button"
+                  onClick={() => markAllReadMutation.mutate()}
+                  disabled={markAllReadMutation.isPending}
+                  style={{
+                    background: 'transparent',
+                    border: 'none',
+                    color: isDark ? '#a3a3b2' : '#6b7280',
+                    fontSize: '0.75rem',
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.3rem',
+                  }}
+                >
+                  {markAllReadMutation.isPending ? (
+                    <Loader2 size={13} className="animate-spin" />
+                  ) : (
+                    <CheckCheck size={14} />
+                  )}
+                  <span>{isAr ? 'تحديد الكل كمقروء' : 'Mark all read'}</span>
+                </button>
+              )}
+
               <button
                 type="button"
-                onClick={() => markAllReadMutation.mutate()}
-                disabled={markAllReadMutation.isPending}
+                onClick={() => setIsOpen(false)}
                 style={{
                   background: 'transparent',
                   border: 'none',
                   color: isDark ? '#a3a3b2' : '#6b7280',
-                  fontSize: '0.75rem',
-                  fontWeight: 600,
                   cursor: 'pointer',
+                  padding: '4px',
                   display: 'flex',
                   alignItems: 'center',
-                  gap: '0.3rem',
+                  justifyContent: 'center',
+                  borderRadius: '6px',
+                  transition: 'color 0.15s ease',
                 }}
+                aria-label={isAr ? 'إغلاق' : 'Close'}
               >
-                {markAllReadMutation.isPending ? (
-                  <Loader2 size={13} className="animate-spin" />
-                ) : (
-                  <CheckCheck size={14} />
-                )}
-                <span>{isAr ? 'تحديد الكل كمقروء' : 'Mark all read'}</span>
+                <X size={16} />
               </button>
-            )}
+            </div>
           </div>
 
           {/* List Content */}
