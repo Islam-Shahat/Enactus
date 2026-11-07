@@ -15,9 +15,14 @@ import SEO from '../components/SEO';
 const identifierCache = new Map();
 const inFlightResolutions = new Map();
 
+const normalizeDigits = (str) => {
+  if (!str) return '';
+  return String(str).replace(/[٠-٩]/g, (d) => '٠١٢٣٤٥٦٧٨٩'.indexOf(d));
+};
+
 const getCachedEmail = (identifier) => {
   if (!identifier) return null;
-  const clean = identifier.trim().toLowerCase();
+  const clean = normalizeDigits(identifier).trim().toLowerCase();
   if (clean.includes('@')) return clean;
   if (identifierCache.has(clean)) return identifierCache.get(clean);
   try {
@@ -37,7 +42,7 @@ const getCachedEmail = (identifier) => {
 
 const setCachedEmail = (identifier, email) => {
   if (!identifier || !email) return;
-  const clean = identifier.trim().toLowerCase();
+  const clean = normalizeDigits(identifier).trim().toLowerCase();
   // Never save unverified fallback domains to localStorage
   if (email.endsWith('@portal.enactusqena.org')) {
     identifierCache.set(clean, email);
@@ -51,7 +56,7 @@ const setCachedEmail = (identifier, email) => {
 
 const clearCachedEmail = (identifier) => {
   if (!identifier) return;
-  const clean = identifier.trim().toLowerCase();
+  const clean = normalizeDigits(identifier).trim().toLowerCase();
   identifierCache.delete(clean);
   try {
     localStorage.removeItem(`enactus_login_id_${clean}`);
@@ -100,7 +105,7 @@ export default function LoginPage() {
   // Pre-resolve member code or national ID in the background as the user types
   const preResolveIdentifier = useCallback(async (rawInput) => {
     if (!rawInput) return null;
-    const clean = rawInput.trim().toLowerCase();
+    const clean = normalizeDigits(rawInput).trim().toLowerCase();
     if (clean.includes('@') || clean.length < 4) return null;
     const cached = getCachedEmail(clean);
     if (cached) return cached;
@@ -162,7 +167,10 @@ export default function LoginPage() {
       return;
     }
 
-    const input = values.identifier.trim();
+    const rawInput = values.identifier.trim();
+    const input = normalizeDigits(rawInput).trim();
+    const rawPassword = values.password.trim();
+    const password = normalizeDigits(rawPassword).trim();
     let emailToUse = input;
 
     // If identifier is member code or national ID (not a direct email)
@@ -217,7 +225,14 @@ export default function LoginPage() {
     }
 
     try {
-      const { error } = await signIn(emailToUse, values.password.trim());
+      let { error } = await signIn(emailToUse, password);
+      // Fallback if password was raw non-digit string
+      if (error && password !== rawPassword) {
+        const retry = await signIn(emailToUse, rawPassword);
+        if (!retry.error) {
+          error = null;
+        }
+      }
       if (error) {
         // Clear cached resolution on failed login so bad/stale cache never persists
         clearCachedEmail(input);
