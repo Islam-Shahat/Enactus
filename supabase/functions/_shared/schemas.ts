@@ -3,6 +3,7 @@ import { z } from 'npm:zod@4.6.7';
 
 export const submitApplicationSchema = z.object({
   fullName: z.string().trim().min(3, 'الاسم يجب ألا يقل عن 3 أحرف').max(120),
+  nationalId: z.string().trim().regex(/^\d{14}$/, 'الرقم القومي يجب أن يتكون من 14 رقماً').optional(),
   email: z.string().trim().email('البريد الإلكتروني غير صالح').max(150),
   phone: z.string().trim().min(8, 'رقم الهاتف يجب ألا يقل عن 8 أرقام').max(25),
   faculty: z.string().trim().min(2, 'يرجى اختيار الكلية').max(100),

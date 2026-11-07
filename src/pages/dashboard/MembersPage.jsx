@@ -8,8 +8,10 @@ import StatusBadge from '../../components/dashboard/StatusBadge';
 import Drawer from '../../components/dashboard/Drawer';
 import FormField from '../../components/dashboard/FormField';
 import { useToast } from '../../components/dashboard/Toast';
+import ConfirmDialog from '../../components/dashboard/ConfirmDialog';
 import CreateMemberModal from '../../components/dashboard/members/CreateMemberModal';
-import { User, Mail, Phone, BookOpen, GraduationCap, ShieldCheck, Edit3, Save, UserPlus, CreditCard, Calendar } from 'lucide-react';
+import SendMessageModal from '../../components/dashboard/members/SendMessageModal';
+import { User, Mail, Phone, BookOpen, GraduationCap, ShieldCheck, Edit3, Save, UserPlus, CreditCard, Calendar, Trash2, MessageSquare } from 'lucide-react';
 
 const PAGE_SIZE = 10;
 
@@ -21,6 +23,14 @@ export default function MembersPage() {
   const queryClient = useQueryClient();
 
   const canManage = isSuperAdmin || hasRole(['hr_admin', 'president', 'vice_president']);
+  const canMessageMember = isSuperAdmin || hasRole([
+    'super_admin',
+    'president',
+    'vice_president',
+    'hr_admin',
+    'committee_head',
+    'coordinator',
+  ]);
 
   // Table state
   const [page, setPage] = useState(1);
@@ -33,6 +43,14 @@ export default function MembersPage() {
 
   // Add Member Modal state
   const [isAddMemberOpen, setIsAddMemberOpen] = useState(false);
+
+  // Delete Member Confirmation state
+  const [memberToDelete, setMemberToDelete] = useState(null);
+  const [isDeleteOpen, setIsDeleteOpen] = useState(false);
+
+  // Send Direct Message state
+  const [memberToMessage, setMemberToMessage] = useState(null);
+  const [isMessageOpen, setIsMessageOpen] = useState(false);
 
   // Drawer state
   const [selectedMembership, setSelectedMembership] = useState(null);
@@ -243,6 +261,37 @@ export default function MembersPage() {
     });
   };
 
+  // Delete Member mutation (removes from auth.users, profiles, memberships & recycles code)
+  const deleteMemberMutation = useMutation({
+    mutationFn: async (userId) => {
+      const { data, error } = await supabase.rpc('delete_member', {
+        p_user_id: userId,
+      });
+      if (error) throw error;
+      if (data && data.ok === false) {
+        throw new Error(data.error || (isAr ? 'فشل حذف العضو' : 'Failed to delete member'));
+      }
+      return data;
+    },
+    onSuccess: (data) => {
+      const freedCode = data?.memberCode ? ` (${data.memberCode})` : '';
+      toast.show(
+        isAr
+          ? `تم حذف العضو${freedCode} نهائياً وتحرير كود العضوية بنجاح.`
+          : `Member${freedCode} deleted permanently and membership code is now free.`,
+        'success'
+      );
+      queryClient.invalidateQueries({ queryKey: ['dashboard', 'members'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboard', 'active-season'] });
+      setIsDeleteOpen(false);
+      setMemberToDelete(null);
+      setSelectedMembership(null);
+    },
+    onError: (err) => {
+      toast.show(err.message || (isAr ? 'حدث خطأ أثناء حذف العضو' : 'Failed to delete member'), 'error');
+    },
+  });
+
   // Columns definition
   const columns = [
     {
@@ -344,6 +393,108 @@ export default function MembersPage() {
       label: isAr ? 'حالة الحساب' : 'Account Status',
       render: (row) => <StatusBadge status={row.profiles?.status || 'active'} />,
     },
+    ...(canManage || canMessageMember
+      ? [
+          {
+            key: 'actions',
+            label: isAr ? 'إجراءات' : 'Actions',
+            render: (row) => {
+              const name = isAr
+                ? row.profiles?.full_name_ar || row.profiles?.full_name_en
+                : row.profiles?.full_name_en || row.profiles?.full_name_ar;
+              const code = row.profiles?.member_code;
+              return (
+                <div
+                  style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  {canMessageMember && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const comm = isAr ? row.committees?.name_ar : row.committees?.name_en;
+                        setMemberToMessage({
+                          userId: row.user_id,
+                          name: name || '',
+                          code: code || '',
+                          committee: comm || '',
+                        });
+                        setIsMessageOpen(true);
+                      }}
+                      title={isAr ? 'إرسال رسالة خاصة للعضو' : 'Send Direct Message to Member'}
+                      style={{
+                        background: 'rgba(6, 182, 212, 0.12)',
+                        border: '1px solid rgba(6, 182, 212, 0.35)',
+                        color: '#38bdf8',
+                        borderRadius: '8px',
+                        padding: '0.38rem 0.65rem',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '0.35rem',
+                        cursor: 'pointer',
+                        fontSize: '0.8rem',
+                        fontWeight: 600,
+                        transition: 'all 0.2s ease',
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.background = 'rgba(6, 182, 212, 0.25)';
+                        e.currentTarget.style.borderColor = '#06b6d4';
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.background = 'rgba(6, 182, 212, 0.12)';
+                        e.currentTarget.style.borderColor = 'rgba(6, 182, 212, 0.35)';
+                      }}
+                    >
+                      <MessageSquare size={14} />
+                      <span>{isAr ? 'تواصل' : 'Message'}</span>
+                    </button>
+                  )}
+
+                  {canManage && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setMemberToDelete({
+                          userId: row.user_id,
+                          name: name || '',
+                          code: code || '',
+                        });
+                        setIsDeleteOpen(true);
+                      }}
+                      title={isAr ? 'حذف العضو نهائياً وتحرير الكود' : 'Delete Member & Recycle Code'}
+                      style={{
+                        background: 'rgba(239, 68, 68, 0.12)',
+                        border: '1px solid rgba(239, 68, 68, 0.35)',
+                        color: '#f87171',
+                        borderRadius: '8px',
+                        padding: '0.38rem 0.65rem',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '0.35rem',
+                        cursor: 'pointer',
+                        fontSize: '0.8rem',
+                        fontWeight: 600,
+                        transition: 'all 0.2s ease',
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.background = 'rgba(239, 68, 68, 0.25)';
+                        e.currentTarget.style.borderColor = '#ef4444';
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.background = 'rgba(239, 68, 68, 0.12)';
+                        e.currentTarget.style.borderColor = 'rgba(239, 68, 68, 0.35)';
+                      }}
+                    >
+                      <Trash2 size={14} />
+                      <span>{isAr ? 'حذف' : 'Delete'}</span>
+                    </button>
+                  )}
+                </div>
+              );
+            },
+          },
+        ]
+      : []),
   ];
 
   return (
@@ -564,25 +715,103 @@ export default function MembersPage() {
             : ''
         }
         footer={
-          selectedMembership && canManage && (
-            <div style={{ display: 'flex', gap: '0.75rem', width: '100%' }}>
+          selectedMembership && (canManage || canMessageMember) && (
+            <div style={{ display: 'flex', gap: '0.75rem', width: '100%', flexWrap: 'wrap' }}>
               {!isEditing ? (
-                <button
-                  type="button"
-                  onClick={() => setIsEditing(true)}
-                  className="btn-primary"
-                  style={{
-                    flex: 1,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: '0.5rem',
-                    padding: '0.75rem',
-                  }}
-                >
-                  <Edit3 size={16} />
-                  <span>{isAr ? 'تعديل البيانات والصلاحية' : 'Edit Member'}</span>
-                </button>
+                <>
+                  {canMessageMember && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const name = isAr
+                          ? selectedMembership.profiles?.full_name_ar || selectedMembership.profiles?.full_name_en
+                          : selectedMembership.profiles?.full_name_en || selectedMembership.profiles?.full_name_ar;
+                        const code = selectedMembership.profiles?.member_code;
+                        const comm = isAr ? selectedMembership.committees?.name_ar : selectedMembership.committees?.name_en;
+                        setMemberToMessage({
+                          userId: selectedMembership.user_id,
+                          name: name || '',
+                          code: code || '',
+                          committee: comm || '',
+                        });
+                        setIsMessageOpen(true);
+                      }}
+                      style={{
+                        flex: canManage ? 1.5 : 1,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: '0.45rem',
+                        padding: '0.75rem',
+                        background: 'rgba(6, 182, 212, 0.15)',
+                        border: '1px solid rgba(6, 182, 212, 0.4)',
+                        color: '#38bdf8',
+                        borderRadius: '8px',
+                        cursor: 'pointer',
+                        fontWeight: 700,
+                        fontSize: '0.88rem',
+                      }}
+                    >
+                      <MessageSquare size={16} />
+                      <span>{isAr ? 'إرسال رسالة' : 'Send Message'}</span>
+                    </button>
+                  )}
+
+                  {canManage && (
+                    <>
+                      <button
+                        type="button"
+                        onClick={() => setIsEditing(true)}
+                        className="btn-primary"
+                        style={{
+                          flex: 2,
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          gap: '0.5rem',
+                          padding: '0.75rem',
+                        }}
+                      >
+                        <Edit3 size={16} />
+                        <span>{isAr ? 'تعديل البيانات والصلاحية' : 'Edit Member'}</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const name = isAr
+                            ? selectedMembership.profiles?.full_name_ar || selectedMembership.profiles?.full_name_en
+                            : selectedMembership.profiles?.full_name_en || selectedMembership.profiles?.full_name_ar;
+                          const code = selectedMembership.profiles?.member_code;
+                          setMemberToDelete({
+                            userId: selectedMembership.user_id,
+                            name: name || '',
+                            code: code || '',
+                          });
+                          setIsDeleteOpen(true);
+                        }}
+                        style={{
+                          flex: 1,
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          gap: '0.45rem',
+                          padding: '0.75rem',
+                          background: 'rgba(239, 68, 68, 0.15)',
+                          border: '1px solid rgba(239, 68, 68, 0.4)',
+                          color: '#f87171',
+                          borderRadius: '8px',
+                          cursor: 'pointer',
+                          fontWeight: 700,
+                          fontSize: '0.88rem',
+                        }}
+                      >
+                        <Trash2 size={16} />
+                        <span>{isAr ? 'حذف العضو' : 'Delete Member'}</span>
+                      </button>
+                    </>
+                  )}
+                </>
               ) : (
                 <>
                   <button
@@ -998,6 +1227,40 @@ export default function MembersPage() {
         committees={committees}
         seasonYear={activeSeason?.name?.match(/\d{4}/)?.[0] || '2026'}
         nextSequence={(membersData?.total || 0) + 1}
+      />
+
+      {/* Confirm Member Deletion Dialog */}
+      <ConfirmDialog
+        isOpen={isDeleteOpen}
+        onClose={() => {
+          setIsDeleteOpen(false);
+          setMemberToDelete(null);
+        }}
+        onConfirm={() => {
+          if (memberToDelete?.userId) {
+            deleteMemberMutation.mutate(memberToDelete.userId);
+          }
+        }}
+        isLoading={deleteMemberMutation.isPending}
+        variant="danger"
+        title={isAr ? 'تأكيد حذف العضو نهائياً وتحرير الكود' : 'Confirm Member Deletion'}
+        confirmText={isAr ? 'حذف نهائياً' : 'Delete Permanently'}
+        cancelText={isAr ? 'إلغاء' : 'Cancel'}
+        message={
+          isAr
+            ? `هل أنت متأكد من حذف العضو "${memberToDelete?.name}" صاحب كود "${memberToDelete?.code}" نهائياً؟ سيتم حذف الحساب والبيانات من الموقع وقاعدة البيانات، وسيصبح كود العضوية متاحاً للاستخدام من جديد للعضو القادم.`
+            : `Are you sure you want to permanently delete member "${memberToDelete?.name}" (${memberToDelete?.code})? Their account and records will be deleted from the system and their member code will become available for recycling.`
+        }
+      />
+
+      {/* Send Direct Message Modal */}
+      <SendMessageModal
+        isOpen={isMessageOpen}
+        onClose={() => {
+          setIsMessageOpen(false);
+          setMemberToMessage(null);
+        }}
+        member={memberToMessage}
       />
     </div>
   );

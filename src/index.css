@@ -99,14 +99,24 @@ h1, h2, h3, h4, h5, h6 {
 
 body {
   background-color: var(--bg-dark);
+  min-height: 100vh;
+  position: relative;
+  overflow-x: hidden;
+}
+
+/* GPU-accelerated fixed background canvas layer: eliminates scroll repaints */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: -2;
+  pointer-events: none;
   background-image: 
     radial-gradient(circle at 50% 0%, rgba(255, 184, 0, 0.09) 0%, transparent 60%),
     radial-gradient(circle at 90% 25%, rgba(212, 136, 0, 0.05) 0%, transparent 40%),
     radial-gradient(circle at 10% 65%, rgba(255, 184, 0, 0.05) 0%, transparent 45%);
-  background-attachment: fixed;
-  min-height: 100vh;
-  position: relative;
-  overflow-x: hidden;
+  transform: translate3d(0, 0, 0);
+  will-change: transform;
 }
 
 /* Custom Scrollbar */
@@ -194,13 +204,14 @@ p, h1, h2, h3, h4, h5, h6, span, a, label, div {
 
 /* Glassmorphism */
 .glass-panel {
-  background: rgba(14, 15, 20, 0.72);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
+  background: rgba(14, 15, 20, 0.78);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
   border: 1px solid rgba(255, 184, 0, 0.18);
+  transform: translateZ(0);
 }
 
-/* Animations */
+/* Animations (GPU hardware-accelerated with translate3d) */
 @keyframes pulseGlow {
   0%, 100% {
     box-shadow: 0 0 15px rgba(255, 184, 0, 0.25), inset 0 0 10px rgba(255, 184, 0, 0.08);
@@ -212,25 +223,25 @@ p, h1, h2, h3, h4, h5, h6, span, a, label, div {
 
 @keyframes floatSlow {
   0%, 100% {
-    transform: translateY(0px);
+    transform: translate3d(0, 0, 0);
   }
   50% {
-    transform: translateY(-8px);
+    transform: translate3d(0, -8px, 0);
   }
 }
 
 @keyframes floatReverse {
   0%, 100% {
-    transform: translateY(0px);
+    transform: translate3d(0, 0, 0);
   }
   50% {
-    transform: translateY(8px);
+    transform: translate3d(0, 8px, 0);
   }
 }
 
 @keyframes rayRotate {
-  0% { transform: translate(-50%, -50%) rotate(0deg); }
-  100% { transform: translate(-50%, -50%) rotate(360deg); }
+  0% { transform: translate3d(-50%, -50%, 0) rotate(0deg); }
+  100% { transform: translate3d(-50%, -50%, 0) rotate(360deg); }
 }
 
 @keyframes shineSlide {
@@ -244,10 +255,12 @@ p, h1, h2, h3, h4, h5, h6, span, a, label, div {
 
 .animate-float {
   animation: floatSlow 5s infinite ease-in-out;
+  will-change: transform;
 }
 
 .animate-float-reverse {
   animation: floatReverse 6s infinite ease-in-out;
+  will-change: transform;
 }
 
 /* Interactive card shine on hover */
@@ -281,8 +294,8 @@ p, h1, h2, h3, h4, h5, h6, span, a, label, div {
   position: absolute;
   top: 15%;
   left: 50%;
-  width: 900px;
-  height: 900px;
+  width: 650px;
+  height: 650px;
   background: conic-gradient(
     from 0deg,
     rgba(255, 184, 0, 0.07) 0deg 18deg,
@@ -307,10 +320,13 @@ p, h1, h2, h3, h4, h5, h6, span, a, label, div {
     transparent 342deg 360deg
   );
   border-radius: 50%;
-  filter: blur(45px);
+  filter: blur(20px);
   pointer-events: none;
   z-index: 0;
   animation: rayRotate 120s linear infinite;
+  transform: translate3d(-50%, -50%, 0);
+  will-change: transform;
+  contain: strict;
 }
 
 /* Typography classes */
@@ -475,11 +491,14 @@ html, body, .glass-panel, header, footer, .btn-secondary, .badge-gold, input, se
 [data-theme="light"] html,
 [data-theme="light"] body {
   background-color: #f6f8fc !important;
+  color: #141722 !important;
+}
+
+[data-theme="light"] body::before {
   background-image: 
     radial-gradient(circle at 50% 0%, rgba(255, 184, 0, 0.12) 0%, transparent 60%),
     radial-gradient(circle at 90% 25%, rgba(212, 136, 0, 0.06) 0%, transparent 40%),
     radial-gradient(circle at 10% 65%, rgba(255, 184, 0, 0.06) 0%, transparent 45%) !important;
-  color: #141722 !important;
 }
 
 /* Unified seamless background: remove any dark strip divisions */

@@ -707,6 +707,36 @@ export default function NotificationsPage() {
               </div>
             )}
 
+            {/* Sender Info (for direct member messages) */}
+            {selectedNotif.data?.sender_name && !selectedNotif.data?.full_name && (
+              <div className="glass-panel" style={{ padding: '1.1rem', borderRadius: '14px', border: '1px solid rgba(6, 182, 212, 0.25)' }}>
+                <h4 style={{ fontSize: '0.92rem', fontWeight: 800, color: '#38bdf8', margin: '0 0 0.85rem 0' }}>
+                  {isAr ? 'المرسل' : 'Sender'}
+                </h4>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', flexWrap: 'wrap' }}>
+                  <User size={18} style={{ color: '#38bdf8' }} />
+                  <span style={{ fontWeight: 800, color: isDark ? '#fff' : '#111827', fontSize: '0.95rem' }}>
+                    {selectedNotif.data.sender_name}
+                  </span>
+                  {selectedNotif.data.sender_role && (
+                    <span
+                      style={{
+                        fontSize: '0.75rem',
+                        fontWeight: 700,
+                        padding: '3px 9px',
+                        borderRadius: '6px',
+                        background: 'rgba(255, 184, 0, 0.15)',
+                        color: '#ffb800',
+                        border: '1px solid rgba(255, 184, 0, 0.3)',
+                      }}
+                    >
+                      {selectedNotif.data.sender_role}
+                    </span>
+                  )}
+                </div>
+              </div>
+            )}
+
             {/* Message Subject & Content */}
             <div className="glass-panel" style={{ padding: '1.1rem', borderRadius: '14px' }}>
               <h4 style={{ fontSize: '0.92rem', fontWeight: 800, color: '#ffd54f', margin: '0 0 0.85rem 0' }}>

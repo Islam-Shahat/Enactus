@@ -79,4 +79,40 @@ describe('Egyptian National ID & Member Code Helpers', () => {
       expect(EGYPTIAN_GOVERNORATES['01'].ar).toBe('القاهرة');
     });
   });
+
+  describe('recruitmentFormSchema National ID Validation', () => {
+    it('requires a valid 14-digit Egyptian National ID in recruitment form', async () => {
+      const { recruitmentFormSchema } = await import('../src/lib/schemas');
+
+      const baseData = {
+        fullName: 'إسلام شحات رسلي',
+        email: 'islam@example.com',
+        phone: '01557523934',
+        faculty: 'كلية التجارة',
+        studyYear: 'الفرقة الثانية',
+        committee: 'إدارة المشاريع التنموية (PM)',
+      };
+
+      // Missing nationalId should fail
+      const resMissing = recruitmentFormSchema.safeParse({ ...baseData });
+      expect(resMissing.success).toBe(false);
+
+      // Invalid nationalId should fail
+      const resInvalid = recruitmentFormSchema.safeParse({
+        ...baseData,
+        nationalId: '12345678901234',
+      });
+      expect(resInvalid.success).toBe(false);
+
+      // Valid Egyptian nationalId should succeed
+      const resValid = recruitmentFormSchema.safeParse({
+        ...baseData,
+        nationalId: '30308152700315',
+      });
+      expect(resValid.success).toBe(true);
+      if (resValid.success) {
+        expect(resValid.data.nationalId).toBe('30308152700315');
+      }
+    });
+  });
 });

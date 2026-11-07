@@ -186,6 +186,17 @@ Deno.serve(async (req: Request) => {
       isNewAuthUser = true;
     }
 
+    // Set or sync password to applicant's National ID if available
+    if (app.national_id) {
+      try {
+        await adminClient.auth.admin.updateUserById(authUserId, {
+          password: app.national_id,
+        });
+      } catch (pwErr) {
+        console.warn('[convert-application] Could not set user password to national_id:', pwErr);
+      }
+    }
+
     // 10. Update profiles & profile_private
     const { error: profileErr } = await adminClient.from('profiles').upsert({
       id: authUserId,
@@ -200,6 +211,7 @@ Deno.serve(async (req: Request) => {
       user_id: authUserId,
       email: candidateEmail,
       phone: app.phone,
+      national_id: app.national_id || undefined,
       university_id: app.university_id,
       faculty: app.faculty,
       study_year: app.study_year,

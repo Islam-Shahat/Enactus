@@ -22,6 +22,7 @@ export function buildApplicationRow({
   seasonId: string;
   input: {
     fullName: string;
+    nationalId?: string | null;
     phone: string;
     universityId?: string | null;
     faculty?: string | null;
@@ -59,6 +60,7 @@ export function buildApplicationRow({
     id: applicationId,
     season_id: seasonId,
     full_name: sanitizeText(input.fullName),
+    national_id: input.nationalId ? sanitizeText(input.nationalId) : null,
     email: normalizedEmail,
     phone: input.phone ? sanitizeText(input.phone) : null,
     university_id: input.universityId ? sanitizeText(input.universityId) : null,
@@ -184,14 +186,20 @@ if (typeof Deno !== 'undefined' && typeof Deno.serve === 'function') {
     }
     const seasonId = activeSeason.id;
 
-    // 9. Dedupe by season + exact lower(email) without wildcard operators
+    // 9. Dedupe by season + exact lower(email) or national_id without wildcard operators
     const normalizedEmail = input.email.toLowerCase().trim();
-    const { data: existingApp } = await supabase
+    let dedupeQuery = supabase
       .from('applications')
       .select('id, status, created_at')
-      .eq('season_id', seasonId)
-      .eq('email', normalizedEmail)
-      .maybeSingle();
+      .eq('season_id', seasonId);
+
+    if (input.nationalId) {
+      dedupeQuery = dedupeQuery.or(`email.eq.${normalizedEmail},national_id.eq.${input.nationalId}`);
+    } else {
+      dedupeQuery = dedupeQuery.eq('email', normalizedEmail);
+    }
+
+    const { data: existingApp } = await dedupeQuery.maybeSingle();
 
     if (existingApp) {
       rateCheck.release?.();

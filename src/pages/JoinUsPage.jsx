@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
 import { useForm, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Sparkles, User, Mail, Phone, CheckCircle2, Copy, Check, ArrowLeft, ArrowRight, Clock, AlertCircle, Loader2, UploadCloud } from 'lucide-react';
+import { Sparkles, User, Mail, Phone, CheckCircle2, Copy, Check, ArrowLeft, ArrowRight, Clock, AlertCircle, Loader2, UploadCloud, ShieldCheck } from 'lucide-react';
 import { useApplicationsOpen } from '../hooks/usePublicContent';
 import { useLanguage } from '../context/LanguageContext';
 import { FACULTIES, ACADEMIC_YEARS, RECRUITMENT_COMMITTEES } from '../services/mockLocalization';
@@ -43,6 +43,7 @@ export default function JoinUsPage() {
     resolver: zodResolver(recruitmentFormSchema),
     defaultValues: {
       fullName: '',
+      nationalId: '',
       email: '',
       phone: '',
       faculty: defaultFaculty,
@@ -109,6 +110,7 @@ export default function JoinUsPage() {
 
       const payload = {
         fullName: values.fullName,
+        nationalId: values.nationalId,
         email: values.email,
         phone: values.phone,
         faculty: values.faculty,
@@ -117,6 +119,7 @@ export default function JoinUsPage() {
         motivation: values.impactGoal || undefined,
         answers: {
           impactGoal: values.impactGoal || '',
+          nationalId: values.nationalId || '',
         },
         honeypot: values.honeypot || '',
         turnstileToken: turnstileToken || undefined,
@@ -148,6 +151,7 @@ export default function JoinUsPage() {
 
         const { data: rpcData, error: rpcErr } = await supabase.rpc('submit_recruitment_application', {
           p_full_name: values.fullName.trim(),
+          p_national_id: values.nationalId.trim(),
           p_email: values.email.trim(),
           p_phone: values.phone?.trim() || null,
           p_faculty: values.faculty?.trim() || null,
@@ -158,6 +162,7 @@ export default function JoinUsPage() {
             impactGoal: values.impactGoal || '',
             faculty: values.faculty || '',
             studyYear: values.studyYear || '',
+            nationalId: values.nationalId || '',
           },
           p_cv_url: cvUrl,
         });
@@ -407,6 +412,48 @@ export default function JoinUsPage() {
                   {errors.fullName && (
                     <span style={{ color: '#ef4444', fontSize: '0.8rem', marginTop: '0.3rem', display: 'block' }}>
                       {errors.fullName.message}
+                    </span>
+                  )}
+                </div>
+
+                {/* National ID (الرقم القومي - كلمة سر العضو) */}
+                <div style={{ marginBottom: '1.5rem' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.35rem', marginBottom: '0.5rem' }}>
+                    <label htmlFor="join-nationalId" style={{ display: 'block', color: '#ffd54f', fontSize: '0.92rem', fontWeight: 700, margin: 0 }}>
+                      {isAr ? 'الرقم القومي (14 رقماً) *' : 'Egyptian National ID (14 digits) *'}
+                    </label>
+                    <span style={{ fontSize: '0.78rem', fontWeight: 500, color: '#fcd34d', background: 'rgba(255, 184, 0, 0.1)', padding: '0.2rem 0.6rem', borderRadius: '6px', border: '1px solid rgba(255, 184, 0, 0.25)' }}>
+                      {isAr ? '🔐 كلمة سر حسابك بعد القبول' : '🔐 Your login password once accepted'}
+                    </span>
+                  </div>
+                  <div style={{ position: 'relative' }}>
+                    <input
+                      id="join-nationalId"
+                      type="text"
+                      inputMode="numeric"
+                      maxLength={14}
+                      placeholder={isAr ? 'مثال: 30101012701234' : 'e.g. 30101012701234'}
+                      {...register('nationalId')}
+                      style={{
+                        width: '100%',
+                        background: 'rgba(10, 11, 16, 0.85)',
+                        border: errors.nationalId ? '1px solid #ef4444' : '1px solid rgba(255, 184, 0, 0.3)',
+                        borderRadius: '12px',
+                        padding: isAr ? '0.9rem 1rem 0.9rem 2.8rem' : '0.9rem 2.8rem 0.9rem 1rem',
+                        color: '#fff',
+                        fontSize: '1rem',
+                        outline: 'none',
+                        direction: 'ltr',
+                        textAlign: isAr ? 'right' : 'left',
+                        fontFamily: 'monospace, Outfit, Cairo, sans-serif',
+                        letterSpacing: '1px',
+                      }}
+                    />
+                    <ShieldCheck size={18} color="#ffb800" style={{ position: 'absolute', [isAr ? 'left' : 'right']: '14px', top: '50%', transform: 'translateY(-50%)' }} />
+                  </div>
+                  {errors.nationalId && (
+                    <span style={{ color: '#ef4444', fontSize: '0.8rem', marginTop: '0.3rem', display: 'block' }}>
+                      {errors.nationalId.message}
                     </span>
                   )}
                 </div>

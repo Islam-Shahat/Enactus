@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useForm, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { X, Sparkles, CheckCircle2, User, Mail, Phone, Copy, Check, Clock, AlertCircle, Loader2, UploadCloud } from 'lucide-react';
+import { X, Sparkles, CheckCircle2, User, Mail, Phone, Copy, Check, Clock, AlertCircle, Loader2, UploadCloud, ShieldCheck } from 'lucide-react';
 import { useApplicationsOpen } from '../hooks/usePublicContent';
 import { useLanguage } from '../context/LanguageContext';
 import { FACULTIES, ACADEMIC_YEARS, RECRUITMENT_COMMITTEES } from '../services/mockLocalization';
@@ -39,6 +39,7 @@ export default function RecruitmentModal({ isOpen, onClose, defaultCommittee = '
     resolver: zodResolver(recruitmentFormSchema),
     defaultValues: {
       fullName: '',
+      nationalId: '',
       email: '',
       phone: '',
       faculty: defaultFaculty,
@@ -108,6 +109,7 @@ export default function RecruitmentModal({ isOpen, onClose, defaultCommittee = '
 
       const payload = {
         fullName: values.fullName,
+        nationalId: values.nationalId,
         email: values.email,
         phone: values.phone,
         faculty: values.faculty,
@@ -116,6 +118,7 @@ export default function RecruitmentModal({ isOpen, onClose, defaultCommittee = '
         motivation: values.impactGoal || undefined,
         answers: {
           impactGoal: values.impactGoal || '',
+          nationalId: values.nationalId || '',
         },
         honeypot: values.honeypot || '',
         turnstileToken: turnstileToken || undefined,
@@ -147,6 +150,7 @@ export default function RecruitmentModal({ isOpen, onClose, defaultCommittee = '
 
         const { data: rpcData, error: rpcErr } = await supabase.rpc('submit_recruitment_application', {
           p_full_name: values.fullName.trim(),
+          p_national_id: values.nationalId.trim(),
           p_email: values.email.trim(),
           p_phone: values.phone?.trim() || null,
           p_faculty: values.faculty?.trim() || null,
@@ -157,6 +161,7 @@ export default function RecruitmentModal({ isOpen, onClose, defaultCommittee = '
             impactGoal: values.impactGoal || '',
             faculty: values.faculty || '',
             studyYear: values.studyYear || '',
+            nationalId: values.nationalId || '',
           },
           p_cv_url: cvUrl,
         });
@@ -430,6 +435,48 @@ export default function RecruitmentModal({ isOpen, onClose, defaultCommittee = '
                 {errors.fullName && (
                   <span style={{ color: '#ef4444', fontSize: '0.8rem', marginTop: '0.3rem', display: 'block' }}>
                     {errors.fullName.message}
+                  </span>
+                )}
+              </div>
+
+              {/* Field: National ID (الرقم القومي - كلمة سر العضو) */}
+              <div style={{ marginBottom: '1.25rem' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.35rem', marginBottom: '0.4rem' }}>
+                  <label htmlFor="recruitment-nationalId" style={{ display: 'block', color: '#ffd54f', fontSize: '0.88rem', fontWeight: 700, margin: 0 }}>
+                    {isAr ? 'الرقم القومي (14 رقماً) *' : 'Egyptian National ID (14 digits) *'}
+                  </label>
+                  <span style={{ fontSize: '0.75rem', fontWeight: 500, color: '#fcd34d', background: 'rgba(255, 184, 0, 0.1)', padding: '0.15rem 0.5rem', borderRadius: '6px', border: '1px solid rgba(255, 184, 0, 0.25)' }}>
+                    {isAr ? '🔐 كلمة سر حسابك بعد القبول' : '🔐 Your login password once accepted'}
+                  </span>
+                </div>
+                <div style={{ position: 'relative' }}>
+                  <input
+                    id="recruitment-nationalId"
+                    type="text"
+                    inputMode="numeric"
+                    maxLength={14}
+                    placeholder={isAr ? 'مثال: 30101012701234' : 'e.g. 30101012701234'}
+                    {...register('nationalId')}
+                    style={{
+                      width: '100%',
+                      background: 'rgba(10, 11, 16, 0.8)',
+                      border: errors.nationalId ? '1px solid #ef4444' : '1px solid rgba(255, 184, 0, 0.3)',
+                      borderRadius: '12px',
+                      padding: isAr ? '0.85rem 1rem 0.85rem 2.5rem' : '0.85rem 2.5rem 0.85rem 1rem',
+                      color: '#fff',
+                      fontSize: '0.95rem',
+                      outline: 'none',
+                      direction: 'ltr',
+                      textAlign: isAr ? 'right' : 'left',
+                      fontFamily: 'monospace, Outfit, Cairo, sans-serif',
+                      letterSpacing: '1px',
+                    }}
+                  />
+                  <ShieldCheck size={18} color="#ffb800" style={{ position: 'absolute', [isAr ? 'left' : 'right']: '12px', top: '50%', transform: 'translateY(-50%)' }} />
+                </div>
+                {errors.nationalId && (
+                  <span style={{ color: '#ef4444', fontSize: '0.8rem', marginTop: '0.3rem', display: 'block' }}>
+                    {errors.nationalId.message}
                   </span>
                 )}
               </div>

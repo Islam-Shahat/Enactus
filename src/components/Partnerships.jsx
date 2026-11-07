@@ -237,6 +237,8 @@ export default function Partnerships() {
                 <img
                   src={partner.image}
                   alt={partner.name}
+                  loading="lazy"
+                  decoding="async"
                   style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                 />
               </div>
@@ -295,6 +297,8 @@ export default function Partnerships() {
                           <img
                             src={sp.logo}
                             alt={sp.name}
+                            loading="lazy"
+                            decoding="async"
                             style={{ width: '100%', height: '100%', objectFit: 'contain' }}
                           />
                         ) : (

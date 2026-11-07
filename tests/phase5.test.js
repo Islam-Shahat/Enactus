@@ -107,6 +107,7 @@ describe('Phase 5 Form Helpers & Security Logic', () => {
     it('validates a valid recruitment submission', () => {
       const validRecruitment = {
         fullName: 'أحمد محمود مصطفى',
+        nationalId: '30308152700315',
         email: 'ahmed@example.com',
         phone: '01012345678',
         faculty: 'كلية التجارة',
@@ -118,6 +119,7 @@ describe('Phase 5 Form Helpers & Security Logic', () => {
       expect(res.success).toBe(true);
       if (res.success) {
         expect(res.data.studyYear).toBe(2);
+        expect(res.data.nationalId).toBe('30308152700315');
       }
     });
 

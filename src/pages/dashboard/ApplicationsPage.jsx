@@ -547,6 +547,10 @@ export default function ApplicationsPage() {
                   <span style={{ color: '#fff' }}>{selectedApp.study_year ? (isAr ? `الفرقة ${selectedApp.study_year}` : `Year ${selectedApp.study_year}`) : '—'}</span>
                 </div>
                 <div>
+                  <span style={{ color: '#888', display: 'block', fontSize: '0.75rem' }}>{isAr ? 'الرقم القومي (كلمة المرور):' : 'National ID (Password):'}</span>
+                  <span style={{ color: '#ffd54f', fontFamily: 'monospace', fontWeight: 600 }}>{selectedApp.national_id || selectedApp.answers?.nationalId || '—'}</span>
+                </div>
+                <div>
                   <span style={{ color: '#888', display: 'block', fontSize: '0.75rem' }}>{isAr ? 'الرقم الجامعي:' : 'University ID:'}</span>
                   <span style={{ color: '#fff' }}>{selectedApp.university_id || '—'}</span>
                 </div>

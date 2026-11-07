@@ -253,6 +253,8 @@ export default function ProjectsImpact({ onOpenJoinModal }) {
                   <img
                     src={proj.image}
                     alt={proj.title}
+                    loading="lazy"
+                    decoding="async"
                     style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                   />
                   <div

@@ -102,6 +102,12 @@ export const NOTIFICATION_TYPES = {
     label: { ar: 'دفعة مؤكدة', en: 'Payment Confirmed' },
     defaultLink: '/dashboard/finance',
   },
+  direct_message: {
+    color: '#06b6d4',
+    bgColor: 'rgba(6, 182, 212, 0.15)',
+    label: { ar: 'رسالة إدارية خاصة', en: 'Direct Message' },
+    defaultLink: '/dashboard/notifications',
+  },
 };
 
 export function getNotificationMeta(type) {

@@ -8,6 +8,7 @@ const APPLICATIONS_DB_COLUMNS = new Set([
   'id',
   'season_id',
   'full_name',
+  'national_id',
   'email',
   'phone',
   'university_id',
@@ -90,6 +91,16 @@ describe('submit-application Field Mapping & Schema Regression Tests', () => {
     expect(row.cv_url).toBe(sampleCvUrl);
     expect(row.ip_hash).toBe(sampleIpHash);
     expect(row.answers).toEqual(sampleInput.answers);
+  });
+
+  it('maps nationalId correctly to national_id column', () => {
+    const row = buildApplicationRow({
+      applicationId: sampleApplicationId,
+      seasonId: sampleSeasonId,
+      input: { ...sampleInput, nationalId: '30101012701234' },
+      normalizedEmail: 'test@example.com',
+    });
+    expect(row.national_id).toBe('30101012701234');
   });
 
   describe('study_year Numeric Validation', () => {

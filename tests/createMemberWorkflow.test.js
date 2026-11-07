@@ -168,6 +168,33 @@ describe('Create Member & 7-Digit Code Workflow', () => {
       expect(loginSource).toContain('getCachedEmail');
       expect(loginSource).toContain('setCachedEmail');
     });
+
+    it('verifies migration 20261107190000 defines delete_member RPC and recycles member codes', () => {
+      const migPath = path.join(
+        process.cwd(),
+        'supabase',
+        'migrations',
+        '20261107190000_allow_member_deletion_and_recycle_code.sql'
+      );
+      expect(fs.existsSync(migPath)).toBe(true);
+
+      const migSql = fs.readFileSync(migPath, 'utf-8');
+      expect(migSql).toContain('function public.delete_member(p_user_id uuid)');
+      expect(migSql).toContain("'hr_admin', 'president', 'vice_president', 'super_admin'");
+      expect(migSql).toContain('delete from public.memberships');
+      expect(migSql).toContain('delete from public.profiles');
+      expect(migSql).toContain('delete from auth.users');
+      expect(migSql).toContain('grant execute on function public.delete_member');
+      expect(migSql).toContain('generate_series');
+
+      const membersPage = fs.readFileSync(
+        path.join(process.cwd(), 'src', 'pages', 'dashboard', 'MembersPage.jsx'),
+        'utf-8'
+      );
+      expect(membersPage).toContain("supabase.rpc('delete_member'");
+      expect(membersPage).toContain('ConfirmDialog');
+      expect(membersPage).toContain('deleteMemberMutation');
+    });
   });
 });
 

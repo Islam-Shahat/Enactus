@@ -45,6 +45,11 @@ describe('Notification Type Metadata', () => {
     expect(meta.color).toBe('#3b82f6');
     expect(meta.label.ar).toBe('مهمة جديدة');
     expect(meta.defaultLink).toBe('/dashboard/tasks');
+
+    const dmMeta = getNotificationMeta('direct_message');
+    expect(dmMeta.color).toBe('#06b6d4');
+    expect(dmMeta.label.ar).toBe('رسالة إدارية خاصة');
+    expect(dmMeta.defaultLink).toBe('/dashboard/notifications');
   });
 
   it('returns fallback for unknown notification type', () => {

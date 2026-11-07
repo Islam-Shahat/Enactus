@@ -425,11 +425,12 @@ export default function Hero({ onOpenJoinModal }) {
                 <img
                   src={visualCards[activeVisual].img}
                   alt={visualCards[activeVisual].title}
+                  decoding="async"
                   style={{
                     width: '100%',
                     height: '100%',
                     objectFit: 'cover',
-                    transition: 'all 0.5s ease',
+                    transition: 'opacity 0.3s ease',
                   }}
                 />
 

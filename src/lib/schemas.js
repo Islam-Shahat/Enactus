@@ -1,9 +1,23 @@
 // src/lib/schemas.js
 import { z } from 'zod';
 import { parseStudyYear } from './formHelpers';
+import { parseEgyptianNationalId } from './nationalIdHelper';
 
 export const recruitmentFormSchema = z.object({
   fullName: z.string().trim().min(3, { message: 'الاسم يجب ألا يقل عن 3 أحرف' }).max(120),
+  nationalId: z
+    .string({ required_error: 'الرقم القومي مطلوب' })
+    .trim()
+    .min(1, { message: 'الرقم القومي مطلوب' })
+    .superRefine((val, ctx) => {
+      const parsed = parseEgyptianNationalId(val);
+      if (!parsed.isValid) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: parsed.error || 'الرقم القومي غير صالح، يجب أن يتكون من 14 رقماً وفقاً لبطاقة الرقم القومي المصرية',
+        });
+      }
+    }),
   email: z.string().trim().email({ message: 'يرجى إدخال بريد إلكتروني صحيح' }).max(150),
   phone: z.string().trim().min(8, { message: 'يرجى إدخال رقم هاتف صحيح (8 أرقام على الأقل)' }).max(25),
   faculty: z.string().trim().min(2, { message: 'يرجى اختيار الكلية' }).max(100),

@@ -260,6 +260,8 @@ export default function CommitteesSection({ onOpenJoinModal }) {
               <img
                 src="/assets/E6.jpg"
                 alt="Enactus Qena One Team One Goal Pharaoh Characters"
+                loading="lazy"
+                decoding="async"
                 style={{ width: '100%', height: '100%', objectFit: 'cover' }}
               />
             </div>
