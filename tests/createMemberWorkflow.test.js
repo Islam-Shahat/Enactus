@@ -247,6 +247,24 @@ describe('Create Member & 7-Digit Code Workflow', () => {
       expect(migSql).toContain('delete from public.member_scores');
       expect(migSql).toContain('grant execute on function public.delete_member');
     });
+
+    it('verifies migration 20261108073000 synchronizes member auth credentials and fixes login email lookup', () => {
+      const migPath = path.join(
+        process.cwd(),
+        'supabase',
+        'migrations',
+        '20261108073000_fix_all_member_auth_sync_and_login.sql'
+      );
+      expect(fs.existsSync(migPath)).toBe(true);
+
+      const migSql = fs.readFileSync(migPath, 'utf-8');
+      expect(migSql).toContain('function public.get_member_login_email(p_identifier text)');
+      expect(migSql).toContain('function public.sync_member_auth_credentials(p_user_id uuid default null)');
+      expect(migSql).toContain('select lower(trim(au.email))');
+      expect(migSql).toContain('extensions.crypt(v_pwd, extensions.gen_salt(\'bf\'))');
+      expect(migSql).toContain('auth.identities');
+      expect(migSql).toContain('select public.sync_member_auth_credentials(null);');
+    });
   });
 });
 

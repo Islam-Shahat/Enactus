@@ -215,11 +215,26 @@ export default function LoginPage() {
     try {
       let { error } = await signIn(emailToUse, password);
 
-      // Fallback: try original password in case digits were already ASCII
+      // Fallback 1: try raw password in case digits were already ASCII
       if (error && password !== rawPassword) {
         const retry = await signIn(emailToUse, rawPassword);
         if (!retry.error) {
           error = null;
+        }
+      }
+
+      // Fallback 2: if 7-digit member code and primary email failed, retry with synthetic portal alias
+      if (error && /^\d{7}$/.test(input) && emailToUse !== `${input}@portal.enactusqena.org`) {
+        const retryPortal = await signIn(`${input}@portal.enactusqena.org`, password);
+        if (!retryPortal.error) {
+          error = null;
+          emailToUse = `${input}@portal.enactusqena.org`;
+        } else if (password !== rawPassword) {
+          const retryPortalRaw = await signIn(`${input}@portal.enactusqena.org`, rawPassword);
+          if (!retryPortalRaw.error) {
+            error = null;
+            emailToUse = `${input}@portal.enactusqena.org`;
+          }
         }
       }
 
@@ -229,14 +244,14 @@ export default function LoginPage() {
         if (msg.includes('email not confirmed')) {
           setServerError(
             isAr
-              ? 'لم يتم تفعيل هذا الحساب بعد. يرجى مراجعة إدارة الفريق.'
-              : 'Account not confirmed yet. Please contact HR.'
+              ? 'لم يتم تفعيل هذا الحساب بعد. يرجى مراجعة إدارة الفريق أو الضغط على (مزامنة الدخول).'
+              : 'Account not confirmed yet. Please contact HR or click Sync Auth.'
           );
         } else if (msg.includes('invalid login') || msg.includes('invalid credentials')) {
           setServerError(
             isAr
-              ? 'كلمة المرور غير صحيحة. كلمة المرور الافتراضية هي الرقم القومي (14 رقماً). يرجى مراجعة إدارة الفريق إذا نسيت كلمة المرور.'
-              : 'Incorrect password. Default password is your National ID (14 digits). Contact HR if you forgot it.'
+              ? 'فشل تسجيل الدخول. يرجى التحقق من كود العضو / البريد والرقم القومي (كلمة المرور).'
+              : 'Login failed. Please check your member code / email and National ID password.'
           );
         } else {
           setServerError(
