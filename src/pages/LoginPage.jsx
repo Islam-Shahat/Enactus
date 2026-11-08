@@ -17,7 +17,10 @@ const inFlightResolutions = new Map();
 
 const normalizeDigits = (str) => {
   if (!str) return '';
-  return String(str).replace(/[٠-٩]/g, (d) => '٠١٢٣٤٥٦٧٨٩'.indexOf(d));
+  // Convert Eastern Arabic-Indic digits (٠١٢٣٤٥٦٧٨٩) and Extended Arabic-Indic digits to ASCII
+  return String(str)
+    .replace(/[٠-٩]/g, (d) => d.charCodeAt(0) - 0x0660)
+    .replace(/[۰-۹]/g, (d) => d.charCodeAt(0) - 0x06F0);
 };
 
 const getCachedEmail = (identifier) => {
@@ -167,87 +170,88 @@ export default function LoginPage() {
       return;
     }
 
+    // Normalize Arabic-Indic digits on both fields
     const rawInput = values.identifier.trim();
     const input = normalizeDigits(rawInput).trim();
     const rawPassword = values.password.trim();
     const password = normalizeDigits(rawPassword).trim();
-    let emailToUse = input;
 
-    // If identifier is member code or national ID (not a direct email)
-    if (!input.includes('@')) {
-      const cached = getCachedEmail(input);
-      if (cached) {
-        emailToUse = cached;
-      } else {
-        try {
-          let resolved = null;
-          if (inFlightResolutions.has(input.toLowerCase())) {
-            resolved = await inFlightResolutions.get(input.toLowerCase());
-          } else {
-            resolved = await preResolveIdentifier(input);
-          }
+    // Always clear stale cache for this identifier before resolving
+    clearCachedEmail(input);
 
-          if (resolved) {
-            emailToUse = resolved;
-          } else {
-            // Direct indexed query fallback
-            const { data: directResolved } = await supabase.rpc('get_member_login_email', {
-              p_identifier: input,
-            });
-            if (directResolved) {
-              emailToUse = directResolved;
-              setCachedEmail(input, directResolved);
-            } else if (input.length === 7 && /^\d{7}$/.test(input)) {
-              // Synthetic email fallback for legacy members created without external email
-              emailToUse = `${input}@portal.enactusqena.org`;
-            } else {
-              setServerError(
-                isAr
-                  ? 'كود العضو أو الرقم القومي غير مسجل في النظام. يرجى التأكد من البيانات أو مراجعة إدارة الفريق.'
-                  : 'Member code or National ID is not registered. Please verify your details or contact HR.'
-              );
-              return;
-            }
-          }
-        } catch {
-          if (input.length === 7 && /^\d{7}$/.test(input)) {
-            emailToUse = `${input}@portal.enactusqena.org`;
-          } else {
-            setServerError(
-              isAr
-                ? 'تعذر التحقق من كود العضو حالياً. يرجى المحاولة باستخدام البريد الإلكتروني.'
-                : 'Could not verify member code. Please try using your email.'
-            );
-            return;
-          }
+    let emailToUse = null;
+
+    // ---- Step 1: Resolve email from identifier ----
+    if (input.includes('@')) {
+      // Direct email input
+      emailToUse = input.toLowerCase();
+    } else {
+      // Member code or national ID — ALWAYS call DB fresh (never use stale cache for login submit)
+      try {
+        const { data: resolvedEmail, error: rpcErr } = await supabase.rpc('get_member_login_email', {
+          p_identifier: input,
+        });
+
+        if (!rpcErr && resolvedEmail) {
+          emailToUse = resolvedEmail;
+          setCachedEmail(input, resolvedEmail);
         }
+      } catch (_) {
+        // RPC failed — continue to fallback below
+      }
+
+      if (!emailToUse) {
+        // 7-digit member code without resolved email: show clear error
+        setServerError(
+          isAr
+            ? 'لم يتم العثور على حساب لهذا الكود أو الرقم القومي. يرجى التأكد من البيانات أو مراجعة إدارة الفريق.'
+            : 'No account found for this code or National ID. Please verify your details or contact HR.'
+        );
+        return;
       }
     }
 
+    // ---- Step 2: Sign in with Supabase ----
     try {
       let { error } = await signIn(emailToUse, password);
-      // Fallback if password was raw non-digit string
+
+      // Fallback: try original password in case digits were already ASCII
       if (error && password !== rawPassword) {
         const retry = await signIn(emailToUse, rawPassword);
         if (!retry.error) {
           error = null;
         }
       }
+
       if (error) {
-        // Clear cached resolution on failed login so bad/stale cache never persists
-        clearCachedEmail(input);
-        setServerError(
-          isAr
-            ? 'فشل تسجيل الدخول. يرجى التحقق من كود العضو / البريد والرقم القومي (كلمة المرور).'
-            : 'Login failed. Please verify your member code / email and National ID.'
-        );
+        // Specific error handling
+        const msg = error.message?.toLowerCase() || '';
+        if (msg.includes('email not confirmed')) {
+          setServerError(
+            isAr
+              ? 'لم يتم تفعيل هذا الحساب بعد. يرجى مراجعة إدارة الفريق.'
+              : 'Account not confirmed yet. Please contact HR.'
+          );
+        } else if (msg.includes('invalid login') || msg.includes('invalid credentials')) {
+          setServerError(
+            isAr
+              ? 'كلمة المرور غير صحيحة. كلمة المرور الافتراضية هي الرقم القومي (14 رقماً). يرجى مراجعة إدارة الفريق إذا نسيت كلمة المرور.'
+              : 'Incorrect password. Default password is your National ID (14 digits). Contact HR if you forgot it.'
+          );
+        } else {
+          setServerError(
+            isAr
+              ? 'فشل تسجيل الدخول. يرجى التحقق من البيانات أو مراجعة إدارة الفريق.'
+              : 'Login failed. Please verify your details or contact HR.'
+          );
+        }
         return;
       }
+
       setCachedEmail(input, emailToUse);
       const destination = location.state?.from || '/dashboard';
       navigate(destination, { replace: true });
     } catch {
-      clearCachedEmail(input);
       setServerError(t('loginGenericError'));
     }
   };
