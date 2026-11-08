@@ -228,6 +228,25 @@ describe('Create Member & 7-Digit Code Workflow', () => {
       );
       expect(loginPage).toContain('clearCachedEmail');
     });
+
+    it('verifies migration 20261108072000 resolves point entries deletion block via transaction purge bypass', () => {
+      const migPath = path.join(
+        process.cwd(),
+        'supabase',
+        'migrations',
+        '20261108072000_fix_delete_member_point_entries_purge.sql'
+      );
+      expect(fs.existsSync(migPath)).toBe(true);
+
+      const migSql = fs.readFileSync(migPath, 'utf-8');
+      expect(migSql).toContain("current_setting('app.purge_member_data', true) = 'true'");
+      expect(migSql).toContain("perform set_config('app.purge_member_data', 'true', true);");
+      expect(migSql).toContain('function private.point_entries_immutable()');
+      expect(migSql).toContain('function public.delete_member(p_user_id uuid)');
+      expect(migSql).toContain('delete from public.point_entries');
+      expect(migSql).toContain('delete from public.member_scores');
+      expect(migSql).toContain('grant execute on function public.delete_member');
+    });
   });
 });
 
