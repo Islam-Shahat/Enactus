@@ -180,7 +180,19 @@ begin
     declare
       v_pwd text;
       v_login_email text;
+      v_is_super boolean;
     begin
+      -- Protection: never overwrite passwords for leadership/super_admin accounts that don't have a national_id
+      select exists(
+        select 1 from public.user_roles
+        where user_id = v_target.user_id and role in ('super_admin', 'president', 'vice_president')
+      ) into v_is_super;
+
+      if v_is_super and (v_target.national_id is null or trim(v_target.national_id) = '') then
+        -- Retain custom admin password (e.g. 2026001)
+        continue;
+      end if;
+
       -- Normalize password: use 14-digit National ID, or phone, or Enactus@2026
       v_pwd := nullif(trim(coalesce(v_target.national_id, v_target.phone, 'Enactus@2026')), '');
       if v_pwd is not null then
