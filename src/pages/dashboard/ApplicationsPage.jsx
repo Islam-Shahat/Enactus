@@ -10,7 +10,7 @@ import ConfirmDialog from '../../components/dashboard/ConfirmDialog';
 import FileLink from '../../components/dashboard/FileLink';
 import FormField from '../../components/dashboard/FormField';
 import { useToast } from '../../components/dashboard/Toast';
-import { User, Mail, Phone, BookOpen, CheckCircle2, Trash2 } from 'lucide-react';
+import { User, Mail, Phone, BookOpen, CheckCircle2, Trash2, Copy, Check, ShieldCheck } from 'lucide-react';
 
 const PAGE_SIZE = 10;
 
@@ -39,6 +39,8 @@ export default function ApplicationsPage() {
   const [targetPosition, setTargetPosition] = useState('member');
   const [reviewNotes, setReviewNotes] = useState('');
   const [reviewScore, setReviewScore] = useState('');
+  const [conversionResult, setConversionResult] = useState(null);
+  const [copiedCredentials, setCopiedCredentials] = useState(false);
 
   // Fetch committees for filter and conversion select
   const { data: committees = [] } = useQuery({
@@ -159,14 +161,25 @@ export default function ApplicationsPage() {
       }
       return data;
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['dashboard', 'applications'] });
       queryClient.invalidateQueries({ queryKey: ['dashboard', 'members'] });
-      toast.success(
-        isAr ? 'تم قبول المتقدم وتحويله إلى عضو نشط بنجاح!' : 'Application accepted and converted to team member!'
-      );
+      const currentSelected = selectedApp;
       setIsAcceptOpen(false);
       setSelectedApp(null);
+      if (data?.memberCode || data?.userId) {
+        setConversionResult({
+          fullName: currentSelected?.full_name || '',
+          email: currentSelected?.email || '',
+          nationalId: currentSelected?.national_id || currentSelected?.answers?.nationalId || '',
+          memberCode: data?.memberCode || '',
+          committeeName: committees.find((c) => c.slug === targetCommitteeSlug)?.[isAr ? 'name_ar' : 'name_en'] || targetCommitteeSlug,
+        });
+      } else {
+        toast.success(
+          isAr ? 'تم قبول المتقدم وتحويله إلى عضو نشط بنجاح!' : 'Application accepted and converted to team member!'
+        );
+      }
     },
     onError: (err) => {
       toast.error(err.message || (isAr ? 'فشل تحويل المتقدم إلى عضو' : 'Failed to convert application'));
@@ -755,6 +768,99 @@ export default function ApplicationsPage() {
         confirmVariant="danger"
         variant="danger"
       />
+
+      {/* Conversion Success & Credentials Modal */}
+      <ConfirmDialog
+        isOpen={Boolean(conversionResult)}
+        onClose={() => {
+          setConversionResult(null);
+          setCopiedCredentials(false);
+        }}
+        onConfirm={() => {
+          setConversionResult(null);
+          setCopiedCredentials(false);
+        }}
+        title={isAr ? '🎉 تم قبول العضو وإنشاء حسابه بنجاح!' : '🎉 Member Accepted & Account Created!'}
+        message={
+          isAr
+            ? `تم تحويل "${conversionResult?.fullName}" بنجاح إلى عضو رسمي، وتم توليد كود العضوية وتأكيد كلمة المرور الافتراضية.`
+            : `"${conversionResult?.fullName}" has been successfully onboarded as a team member.`
+        }
+        confirmText={isAr ? 'إغلاق ومتابعة' : 'Close'}
+        cancelText={null}
+        variant="gold"
+      >
+        {conversionResult && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem', marginTop: '0.75rem' }}>
+            <div
+              style={{
+                background: 'rgba(255, 184, 0, 0.08)',
+                border: '1px solid rgba(255, 184, 0, 0.3)',
+                borderRadius: '12px',
+                padding: '1rem',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '0.6rem',
+                fontSize: '0.85rem',
+              }}
+            >
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span style={{ color: '#aaa' }}>{isAr ? 'كود العضو الرسمي:' : 'Member Code:'}</span>
+                <span style={{ color: '#ffd54f', fontWeight: 'bold', fontSize: '1.1rem', letterSpacing: '1px' }}>
+                  {conversionResult.memberCode || '—'}
+                </span>
+              </div>
+
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span style={{ color: '#aaa' }}>{isAr ? 'البريد الإلكتروني:' : 'Email:'}</span>
+                <span style={{ color: '#fff', direction: 'ltr', wordBreak: 'break-all' }}>
+                  {conversionResult.email || '—'}
+                </span>
+              </div>
+
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span style={{ color: '#aaa' }}>{isAr ? 'كلمة المرور الافتراضية:' : 'Default Password:'}</span>
+                <span style={{ color: '#fff', fontWeight: 'bold', letterSpacing: '0.5px' }}>
+                  {conversionResult.nationalId
+                    ? (isAr ? `${conversionResult.nationalId} (الرقم القومي)` : `${conversionResult.nationalId} (National ID)`)
+                    : 'Enactus@2026'}
+                </span>
+              </div>
+
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span style={{ color: '#aaa' }}>{isAr ? 'اللجنة الموزع عليها:' : 'Assigned Committee:'}</span>
+                <span style={{ color: '#e2e8f0' }}>{conversionResult.committeeName}</span>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => {
+                const textToCopy = isAr
+                  ? `مرحباً بك في فريق إيناكتس جامعة جنوب الوادي! 🎉\nبيانات تسجيل الدخول الخاصة بك إلى بوابة الفريق:\n- كود العضو: ${conversionResult.memberCode}\n- البريد الإلكتروني: ${conversionResult.email}\n- كلمة المرور: ${conversionResult.nationalId || 'Enactus@2026'} (الرقم القومي)\n- رابط البوابة: ${window.location.origin}/login`
+                  : `Welcome to Enactus South Valley University! 🎉\nYour portal login credentials:\n- Member Code: ${conversionResult.memberCode}\n- Email: ${conversionResult.email}\n- Password: ${conversionResult.nationalId || 'Enactus@2026'}\n- Login URL: ${window.location.origin}/login`;
+                navigator.clipboard.writeText(textToCopy);
+                setCopiedCredentials(true);
+                toast.success(isAr ? 'تم نسخ بيانات الدخول إلى الحافظة' : 'Login credentials copied to clipboard');
+                setTimeout(() => setCopiedCredentials(false), 3000);
+              }}
+              className="btn-secondary"
+              style={{
+                width: '100%',
+                justifyContent: 'center',
+                gap: '0.5rem',
+                fontSize: '0.85rem',
+                padding: '0.6rem',
+                borderColor: copiedCredentials ? '#10b981' : 'rgba(255, 184, 0, 0.4)',
+                color: copiedCredentials ? '#10b981' : '#ffd54f',
+              }}
+            >
+              {copiedCredentials ? <Check size={16} /> : <Copy size={16} />}
+              <span>{copiedCredentials ? (isAr ? 'تم النسخ!' : 'Copied!') : (isAr ? 'نسخ بيانات الدخول للعضو' : 'Copy Credentials')}</span>
+            </button>
+          </div>
+        )}
+      </ConfirmDialog>
     </div>
   );
 }
