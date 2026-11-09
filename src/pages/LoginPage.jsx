@@ -3,7 +3,7 @@ import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { Lock, Mail, AlertCircle, KeyRound, ArrowRight } from 'lucide-react';
+import { Lock, Mail, AlertCircle, KeyRound, ArrowRight, Eye, EyeOff } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
 import { supabase, isSupabaseConfigured } from '../lib/supabase';
@@ -15,10 +15,17 @@ import SEO from '../components/SEO';
 const identifierCache = new Map();
 const inFlightResolutions = new Map();
 
+const cleanInput = (str) => {
+  if (!str) return '';
+  return String(str)
+    .replace(/[\u200B-\u200D\uFEFF\u200E\u200F\u202A-\u202E]/g, '')
+    .trim();
+};
+
 const normalizeDigits = (str) => {
   if (!str) return '';
   // Convert Eastern Arabic-Indic digits (٠١٢٣٤٥٦٧٨٩) and Extended Arabic-Indic digits to ASCII
-  return String(str)
+  return cleanInput(str)
     .replace(/[٠-٩]/g, (d) => d.charCodeAt(0) - 0x0660)
     .replace(/[۰-۹]/g, (d) => d.charCodeAt(0) - 0x06F0);
 };
@@ -92,6 +99,7 @@ export default function LoginPage() {
   const location = useLocation();
   const navigate = useNavigate();
   const [serverError, setServerError] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
 
   const {
     register,
@@ -170,11 +178,11 @@ export default function LoginPage() {
       return;
     }
 
-    // Normalize Arabic-Indic digits on both fields
-    const rawInput = values.identifier.trim();
-    const input = normalizeDigits(rawInput).trim();
-    const rawPassword = values.password.trim();
-    const password = normalizeDigits(rawPassword).trim();
+    // Sanitize invisible BiDi marks and normalize Arabic-Indic digits on both fields
+    const rawInput = cleanInput(values.identifier);
+    const input = normalizeDigits(rawInput);
+    const rawPassword = cleanInput(values.password);
+    const password = normalizeDigits(rawPassword);
 
     // Always clear stale cache for this identifier before resolving
     clearCachedEmail(input);
@@ -448,7 +456,7 @@ export default function LoginPage() {
               <div style={{ position: 'relative' }}>
                 <input
                   id="login-password"
-                  type="password"
+                  type={showPassword ? 'text' : 'password'}
                   autoComplete="current-password"
                   placeholder={isAr ? 'الرقم القومي (14 رقماً)' : 'National ID (14 digits)'}
                   {...register('password')}
@@ -460,7 +468,7 @@ export default function LoginPage() {
                     background: 'rgba(10, 11, 16, 0.85)',
                     border: errors.password ? '1px solid #ef4444' : '1px solid rgba(255, 184, 0, 0.3)',
                     borderRadius: '12px',
-                    padding: '0.85rem 1rem 0.85rem 2.8rem',
+                    padding: '0.85rem 2.8rem 0.85rem 2.8rem',
                     color: '#fff',
                     fontSize: '0.95rem',
                     outline: 'none',
@@ -473,6 +481,27 @@ export default function LoginPage() {
                   color="#ffb800"
                   style={{ position: 'absolute', left: '14px', top: '50%', transform: 'translateY(-50%)' }}
                 />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword((prev) => !prev)}
+                  tabIndex={-1}
+                  aria-label={showPassword ? 'Hide password' : 'Show password'}
+                  style={{
+                    position: 'absolute',
+                    right: '14px',
+                    top: '50%',
+                    transform: 'translateY(-50%)',
+                    background: 'transparent',
+                    border: 'none',
+                    color: '#a0a0b2',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    padding: 0,
+                  }}
+                >
+                  {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                </button>
               </div>
               {errors.password && (
                 <span style={{ display: 'block', color: '#ef4444', fontSize: '0.8rem', marginTop: '0.35rem' }}>
